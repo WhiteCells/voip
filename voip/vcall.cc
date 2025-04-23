@@ -1,13 +1,26 @@
 #include "vcall.h"
 #include "vaccount.h"
+#include "vaudiomediaport.h"
 
 #include <pjsua2/call.hpp>
 #include <iostream>
 
 voip::VCall::VCall(voip::VAccount &acc, int call_id) :
     Call(acc, call_id),
-    acc_(acc)
+    acc_(acc),
+    aud_media_port_(std::make_shared<VAudioMediaPort>()),
+    aud_media_recorder_(std::make_shared<pj::AudioMediaRecorder>())
 {
+    pj::MediaFormatAudio fmt;
+    fmt.init(PJMEDIA_FORMAT_PCM, 16000, 1, 20000, 16);
+    aud_media_port_->createPort("aud_media_port_", fmt);
+
+    // recorder
+    aud_media_recorder_->createRecorder(acc.phone_num_ + ".wav");
+
+    pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
+    cap_dev_med_ = mgr.getCaptureDevMedia();
+    play_dev_med_ = mgr.getPlaybackDevMedia();
 }
 
 voip::VCall::~VCall()
@@ -55,33 +68,19 @@ void voip::VCall::onCallMediaState(pj::OnCallMediaStateParam &prm)
         pj::CallInfo ci = getInfo();
         std::cout << ">>> call " << ci.id << " Media State Changed" << std::endl;
 
-        // voip::VRecvAudioMediaPort *recv_aud_med = new voip::VRecvAudioMediaPort {};
-        // voip::VSendAudioMediaPort *send_aud_med = new voip::VSendAudioMediaPort {};
-        // pj::MediaFormatAudio med_for_aud;
-
-        // med_for_aud.init(PJMEDIA_FORMAT_PCM, 8000, 1, 20, 16);
-        // recv_aud_med->createPort("recv", med_for_aud);
-        // send_aud_med->createPort("send", med_for_aud);
-
-        pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
-        auto cap_dev_med = mgr.getCaptureDevMedia();
-        auto play_dev_med = mgr.getPlaybackDevMedia();
-
         for (unsigned i = 0; i < ci.media.size(); ++i) {
             if (ci.media[i].type == PJMEDIA_TYPE_AUDIO && getMedia(i)) {
+                std::cout << "<<<:" << i << std::endl;
                 pj::AudioMedia aud_med = getAudioMedia(i);
 
                 if (ci.media[i].status == PJSUA_CALL_MEDIA_ACTIVE) {
                     try {
-                        cap_dev_med.startTransmit(aud_med);
-                        aud_med.startTransmit(play_dev_med);
-
-                        // recv_aud_med->startTransmit(*send_aud_med);
-                        // send_aud_med->startTransmit(play_dev_med);
-
-                        // play_dev_med.startTransmit(*recv_aud_med);
-                        // aud_med.startTransmit(*recv_aud_med);
-                        // recv_aud_med->startTransmit(aud_med);
+                        // cap_dev_med_.startTransmit(aud_med);
+                        // aud_med.startTransmit(*aud_media_port_);
+                        // aud_med.startTransmit(play_dev_med);
+                        // cap_dev_med_.startTransmit(*aud_media_recorder_);
+                        aud_med.startTransmit(*aud_media_recorder_);
+                        // play_dev_med.startTransmit(*aud_media_recorder_);
                     }
                     catch (pj::Error &err) {
                         std::cerr << ">>> failed to connect audio for call " << ci.id << ": " << err.info() << std::endl;

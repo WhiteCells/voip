@@ -17,6 +17,7 @@ add_executable(voip
     # test/offical.cc
     # test/main.cc
     # test/test_audiomediaport.cc
+    ini.cc
     vaudiomediaport.cc
     vaccount.cc
     vcall.cc
