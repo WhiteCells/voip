@@ -30,6 +30,7 @@ public:
 private:
     VAccount &acc_;
     std::shared_ptr<VAudioMediaPort> aud_media_port_;
+    
     std::shared_ptr<pj::AudioMediaRecorder> aud_media_recorder_;
 
     pj::AudioMedia cap_dev_med_;

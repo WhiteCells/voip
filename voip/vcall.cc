@@ -37,27 +37,37 @@ voip::VCall::~VCall()
 void voip::VCall::onCallState(pj::OnCallStateParam &prm)
 {
     PJ_UNUSED_ARG(prm);
-    try {
-        pj::CallInfo ci = getInfo();
-        std::cout << ">>> call " << ci.id << " state: " << ci.stateText;
-        if (!ci.lastReason.empty()) {
-            std::cout << " (reason: " << ci.lastReason << ")";
-        }
-        std::cout << std::endl;
+    pj::CallInfo ci = getInfo();
+    std::cout << ">>> call " << ci.id << " state: " << ci.stateText;
+    if (!ci.lastReason.empty()) {
+        std::cout << " (reason: " << ci.lastReason << ")";
+    }
+    std::cout << std::endl;
 
-        if (ci.state == PJSIP_INV_STATE_DISCONNECTED) {
+    // if (ci.state == PJSIP_INV_STATE_DISCONNECTED) {
+    //     std::cout << ">>> call " << ci.id << " disconnected." << std::endl;
+    //     if (acc_.cur_call == this) {
+    //         acc_.cur_call = nullptr;
+    //         std::cout << ">>> account's active call pointer cleared due to DISCONNECTED state." << std::endl;
+    //     }
+    // }
+    // else if (ci.state == PJSIP_INV_STATE_CONFIRMED) {
+    //     std::cout << ">>> call " << ci.id << " connected/Confirmed." << std::endl;
+    // }
+
+    switch (ci.state) {
+        case PJSIP_INV_STATE_DISCONNECTED:
             std::cout << ">>> call " << ci.id << " disconnected." << std::endl;
             if (acc_.cur_call == this) {
                 acc_.cur_call = nullptr;
                 std::cout << ">>> account's active call pointer cleared due to DISCONNECTED state." << std::endl;
             }
-        }
-        else if (ci.state == PJSIP_INV_STATE_CONFIRMED) {
+            break;
+        case PJSIP_INV_STATE_CONFIRMED:
             std::cout << ">>> call " << ci.id << " connected/Confirmed." << std::endl;
-        }
-    }
-    catch (const pj::Error &err) {
-        std::cerr << ">>> error getting call info in onCallState: " << err.info() << std::endl;
+            break;
+        default:
+            break;
     }
 }
 
@@ -68,18 +78,30 @@ void voip::VCall::onCallMediaState(pj::OnCallMediaStateParam &prm)
         pj::CallInfo ci = getInfo();
         std::cout << ">>> call " << ci.id << " Media State Changed" << std::endl;
 
+        std::cout << "=== media.size(): " << ci.media.size() << std::endl;
         for (unsigned i = 0; i < ci.media.size(); ++i) {
             if (ci.media[i].type == PJMEDIA_TYPE_AUDIO && getMedia(i)) {
-                std::cout << "<<<:" << i << std::endl;
+                std::cout << "=== used media index: " << i << std::endl;
                 pj::AudioMedia aud_med = getAudioMedia(i);
 
                 if (ci.media[i].status == PJSUA_CALL_MEDIA_ACTIVE) {
                     try {
+                        // 正常通话逻辑
+                        // cap_dev_med_.startTransmit(aud_med);
+                        // aud_med.startTransmit(play_dev_med_);
+
+                        //
+                        aud_med.startTransmit(*aud_media_recorder_);
+                        // aud_med.startTransmit(*aud_media_port_);
+
+                        // cap_dev_med_.startTransmit(*aud_media_port_);
+                        // play_dev_med_.startTransmit(*aud_media_port_);
+
                         // cap_dev_med_.startTransmit(aud_med);
                         // aud_med.startTransmit(*aud_media_port_);
                         // aud_med.startTransmit(play_dev_med);
                         // cap_dev_med_.startTransmit(*aud_media_recorder_);
-                        aud_med.startTransmit(*aud_media_recorder_);
+                        // aud_media_port_->startTransmit(cap_dev_med_);
                         // play_dev_med.startTransmit(*aud_media_recorder_);
                     }
                     catch (pj::Error &err) {

@@ -47,7 +47,7 @@ voip::cfg_map voip::loadINICfg(const std::string &filename)
     return cfg;
 }
 
-#ifdef TEST_ENV
+#ifdef TEST_INI
 
 int main(int argc, char *argv[])
 {
