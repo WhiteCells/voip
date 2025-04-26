@@ -11,12 +11,14 @@ include_directories(${PROJECT_SOURCE_DIR})
 link_directories(/usr/local/lib)
 
 add_executable(voip 
+    # test/test_audiomedia.cc
     # voip.cpp 
     # vcall.cc
     # main.cc
     # test/offical.cc
     # test/main.cc
     # test/test_audiomediaport.cc
+
     ini.cc
     vaudiomediaport.cc
     vaccount.cc

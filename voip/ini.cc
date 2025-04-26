@@ -25,10 +25,10 @@ voip::cfg_map voip::loadINICfg(const std::string &filename)
     voip::cfg_map cfg;
 
     while (std::getline(file, line)) {
+        line = trimSpace(line);
         if (line.empty()) {
             continue;
         }
-        line = trimSpace(line);
         if (line[0] == '#') {
             continue;
         }

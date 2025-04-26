@@ -44,17 +44,6 @@ void voip::VCall::onCallState(pj::OnCallStateParam &prm)
     }
     std::cout << std::endl;
 
-    // if (ci.state == PJSIP_INV_STATE_DISCONNECTED) {
-    //     std::cout << ">>> call " << ci.id << " disconnected." << std::endl;
-    //     if (acc_.cur_call == this) {
-    //         acc_.cur_call = nullptr;
-    //         std::cout << ">>> account's active call pointer cleared due to DISCONNECTED state." << std::endl;
-    //     }
-    // }
-    // else if (ci.state == PJSIP_INV_STATE_CONFIRMED) {
-    //     std::cout << ">>> call " << ci.id << " connected/Confirmed." << std::endl;
-    // }
-
     switch (ci.state) {
         case PJSIP_INV_STATE_DISCONNECTED:
             std::cout << ">>> call " << ci.id << " disconnected." << std::endl;

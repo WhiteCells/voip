@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <pj/config.h>
 
 voip::VAudioMediaPort::VAudioMediaPort()
 {
@@ -13,6 +14,7 @@ voip::VAudioMediaPort::~VAudioMediaPort()
 
 void voip::VAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
+    PJ_UNUSED_ARG(frame);
     std::cout << "frame send" << std::endl;
 }
 
