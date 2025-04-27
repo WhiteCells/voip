@@ -1,32 +1,61 @@
 cmake_minimum_required(VERSION 3.10)
-project(SIPC_VoIP)
+project(voip LANGUAGES CXX VERSION 1.0)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(PJPROJECT_DIR /usr/local)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 
+set(PJPROJECT_DIR /usr/local)
 include_directories(${PROJECT_SOURCE_DIR})
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 link_directories(/usr/local/lib)
 
-add_executable(voip 
-    # test/test_audiomedia.cc
-    # voip.cpp 
-    # vcall.cc
-    # main.cc
-    # test/offical.cc
-    # test/main.cc
-    # test/test_audiomediaport.cc
-
+set(PROJECT_SOURCES
     ini.cc
     vaudiomediaport.cc
     vaccount.cc
     vcall.cc
     voip.cc
+
+    main.cc
+    mainwindow.cc
+    mainwindow.h
+    account.cc
+    account.h
+    phone.cc
+    phone.h
+    voipcore.cc
+    voipcore.h
 )
 
-target_link_libraries(voip
+qt_add_executable(voip
+    ${PROJECT_SOURCES}
+)
+
+# add_executable(${PROJECT_NAME}
+#     ${PROJECT_SOURCES}
+#     # test/test_audiomedia.cc
+#     # voip.cpp 
+#     # vcall.cc
+#     # main.cc
+#     # test/offical.cc
+#     # test/main.cc
+#     # test/test_audiomediaport.cc
+#     # ini.cc
+#     # vaudiomediaport.cc
+#     # vaccount.cc
+#     # vcall.cc
+#     # voip.cc
+# )
+
+target_link_libraries(voip PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
     pjsua2-x86_64-pc-linux-gnu 
     pjsua-x86_64-pc-linux-gnu 
     pjsip-ua-x86_64-pc-linux-gnu 

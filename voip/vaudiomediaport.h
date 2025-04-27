@@ -2,7 +2,6 @@
 #define _VAUDIOMEDIAPORT_H_
 
 #include <pjsua2.hpp>
-#include <pjsua2/media.hpp>
 
 namespace voip {
 

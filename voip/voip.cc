@@ -12,7 +12,7 @@
 // #define SIP_PASSWORD  "1003"
 // #define SIP_REGISTRAR "sip:" SIP_DOMAIN
 
-int main(int argc, char *argv[])
+int main1(int argc, char *argv[])
 {
     voip::cfg_map cfg;
     if (argc == 2) {
@@ -21,8 +21,9 @@ int main(int argc, char *argv[])
     else {
         cfg = voip::loadINICfg(".env");
     }
-    pj::Endpoint ep;
     std::unique_ptr<voip::VAccount> acc;
+
+    pj::Endpoint ep;
 
     try {
         const std::string SIP_USER = cfg["SIP_USER"];
@@ -31,8 +32,8 @@ int main(int argc, char *argv[])
         const std::string SIP_REGISTRAR = cfg["SIP_REGISTRAR"];
         const std::string SIP_PORT = cfg["SIP_PORT"];
 
-        std::cout << "initializing Endpoint" << std::endl;
         ep.libCreate();
+
         pj::EpConfig ep_cfg;
         ep.libInit(ep_cfg);
 
@@ -41,7 +42,6 @@ int main(int argc, char *argv[])
         ep.transportCreate(PJSIP_TRANSPORT_UDP, tcfg);
 
         ep.libStart();
-        std::cout << "Pjsua2 library start" << std::endl;
 
         // try {
         //     pj::AudDevManager &mgr = ep.audDevManager();

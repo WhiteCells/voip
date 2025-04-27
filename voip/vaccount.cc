@@ -67,3 +67,8 @@ void voip::VAccount::onIncomingCall(pj::OnIncomingCallParam &iprm)
         cur_call = nullptr;
     }
 }
+
+void voip::VAccount::slot_update_account_config(pj::AccountConfig &acc_cfg)
+{
+    
+}
