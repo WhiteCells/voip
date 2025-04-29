@@ -11,8 +11,9 @@
 class Http;
 
 class Handler :
-    public std::enable_shared_from_this<Handler>
+    public Singleton<Handler>
 {
+    friend class Http;
     friend class Singleton<Handler>;
     using callback = std::function<void(std::shared_ptr<Http>)>;
 
@@ -28,8 +29,8 @@ public:
 private:
     Handler();
 
-    std::map<std::string, callback> m_post;
-    std::map<std::string, callback> m_get;
+    std::unordered_map<std::string, callback> m_post;
+    std::unordered_map<std::string, callback> m_get;
 };
 
 #endif // _LOGIC_H_

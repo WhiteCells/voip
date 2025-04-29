@@ -3,7 +3,6 @@
 
 #include <memory>
 #include <mutex>
-#include <iostream>
 
 template <typename T>
 class Singleton
@@ -24,7 +23,6 @@ protected:
 template <typename T>
 Singleton<T>::~Singleton()
 {
-    std::cout << "Singleton<T> destruct" << std::endl;
 }
 
 template <typename T>

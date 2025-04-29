@@ -10,6 +10,8 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 link_directories(/usr/local/lib)
 
+add_subdirectory(third_party/jsoncpp)
+
 add_executable(voip 
     # test/test_audiomedia.cc
     # voip.cpp 
@@ -19,14 +21,24 @@ add_executable(voip
     # test/main.cc
     # test/test_audiomediaport.cc
 
-    ini.cc
-    vaudiomediaport.cc
     vaccount.cc
+    vaudiomediaport.cc
     vcall.cc
-    voip.cc
+    
+    core.cc
+    handler.cc
+    http.cc
+    io_context_pool.cc
+    main.cc
+    server.cc
+    singleton.hpp
+
+    ini.cc
+    # voip.cc
 )
 
 target_link_libraries(voip
+    jsoncpp_lib
     pjsua2-x86_64-pc-linux-gnu 
     pjsua-x86_64-pc-linux-gnu 
     pjsip-ua-x86_64-pc-linux-gnu 

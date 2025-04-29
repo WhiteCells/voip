@@ -4,7 +4,6 @@
 #include "singleton.hpp"
 
 #include <boost/asio.hpp>
-#include <boost/asio/executor_work_guard.hpp>
 #include <thread>
 #include <vector>
 #include <memory>

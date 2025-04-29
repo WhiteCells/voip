@@ -1,4 +1,5 @@
 #include "http.h"
+#include "handler.h"
 
 #include <iostream>
 
@@ -23,12 +24,12 @@ void Http::start()
         m_buffer,
         m_request,
         [self](beast::error_code ec, std::size_t transfer_byte) {
+            boost::ignore_unused(transfer_byte);
             try {
                 if (ec) {
                     std::cerr << "[Err]: " << ec.what() << std::endl;
                     return;
                 }
-                boost::ignore_unused(transfer_byte);
                 self->handleRequest();
                 self->heartheat();
             }
@@ -57,6 +58,7 @@ void Http::writeResponse()
         m_socket,
         m_response,
         [self](beast::error_code ec, std::size_t transfer_byte) {
+            boost::ignore_unused(transfer_byte);
             ec = self->m_socket.shutdown(tcp::socket::shutdown_send, ec);
             self->m_deadline.cancel();
         });
@@ -67,22 +69,41 @@ void Http::handleRequest()
     m_response.version(m_request.version());
     m_response.keep_alive(false);
 
+    std::cout << "[Request Path]: " << m_request.target() << std::endl;
+
     switch (m_request.method()) {
-        case http::verb::get:
-            parseParam();
-
+        case http::verb::get: {
+            bool ok = Handler::getInstance()->handleGet(
+                m_request.target(), shared_from_this());
+            if (!ok) {
+                m_response.result(http::status::not_found);
+                m_response.set(http::field::content_type, "text/json");
+                beast::ostream(m_response.body()) << "url nof found\r\n";
+                writeResponse();
+                return;
+            }
             m_response.result(http::status::ok);
             m_response.set(http::field::server, "serve");
             writeResponse();
             break;
+        }
 
-        case http::verb::post:
-            parseParam();
-
+        case http::verb::post: {
+            std::cout << "[Route Post]" << std::endl;
+            bool ok = Handler::getInstance()->handlePost(
+                m_request.target(), shared_from_this());
+            if (!ok) {
+                m_response.result(http::status::not_found);
+                m_response.set(http::field::content_type, "text/json");
+                beast::ostream(m_response.body()) << "url nof found\r\n";
+                writeResponse();
+                return;
+            }
             m_response.result(http::status::ok);
             m_response.set(http::field::server, "serve");
             writeResponse();
             break;
+        }
 
         default:
             break;

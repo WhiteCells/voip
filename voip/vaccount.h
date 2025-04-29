@@ -19,7 +19,7 @@ public:
     virtual void
     onIncomingCall(pj::OnIncomingCallParam &iprm) override;
 
-    VCall *cur_call = nullptr;
+    voip::VCall *cur_call = nullptr;
     std::string phone_num_;
 };
 
