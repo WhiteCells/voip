@@ -1,4 +1,5 @@
 #include <pjsua2.hpp>
+#include <vector>
 
 namespace voip {
 

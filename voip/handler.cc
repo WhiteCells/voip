@@ -41,13 +41,48 @@ bool Handler::handlePost(std::string path, std::shared_ptr<Http> conn)
     return true;
 }
 
+void Handler::registerDelete(std::string path, callback cb)
+{
+    m_delete[path] = cb;
+}
+
+bool Handler::handleDelete(std::string path, std::shared_ptr<Http> conn)
+{
+    if (m_delete.find(path) == m_delete.end()) {
+        return false;
+    }
+    m_delete[path](conn);
+    return true;
+}
+
+void Handler::registerPut(std::string path, callback cb)
+{
+    m_put[path] = cb;
+}
+
+bool Handler::handlePut(std::string path, std::shared_ptr<Http> conn)
+{
+    if (m_put.find(path) == m_put.end()) {
+        return false;
+    }
+    m_put[path](conn);
+    return true;
+}
+
 Handler::Handler()
 {
     registerGet("/", [](std::shared_ptr<Http> conn) {
         beast::ostream(conn->m_response.body()) << "[GET] {/api} req";
-        return;
+    });
+    registerGet("/status", [](std::shared_ptr<Http> conn) {
+        conn->m_response.set(http::field::content_type, "text/json");
+        json::Value send_root;
+        send_root["status"] = 0;
+        beast::ostream(conn->m_response.body()) << send_root.toStyledString();
     });
     registerPost("/call", [](std::shared_ptr<Http> conn) {
+        auto core = Core::getInstance();
+        pj::Endpoint::instance().libRegisterThread("beast_http");
         auto body_str = beast::buffers_to_string(
             conn->m_request.body().data());
         std::cout << "" << body_str << std::endl;
@@ -63,15 +98,14 @@ Handler::Handler()
             return;
         }
         if (!recv_root.isMember("phone")) {
-            std::cerr << "[Json Parse Error]" << std::endl;
-            send_root["error"] = "Json Parse Error";
+            std::cerr << "[Json Field Error]" << std::endl;
+            send_root["error"] = "Json Field Error";
             beast::ostream(conn->m_response.body()) << send_root.toStyledString();
             return;
         }
         json::String phone = recv_root["phone"].asString();
-        auto core = Core::getInstance();
-        core->makeCall(phone);
+        send_root["status"] = 1;
         beast::ostream(conn->m_response.body()) << send_root.toStyledString();
-        return;
+        core->makeCall(phone);
     });
 }

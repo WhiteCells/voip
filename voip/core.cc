@@ -15,20 +15,23 @@ Core::~Core()
 void Core::makeCall(const std::string &phone)
 {
     m_account->phone_num_ = phone;
-    m_vcall = new voip::VCall(*m_account);
+    if (!m_vcall) {
+        m_vcall = new voip::VCall(*m_account);
+    }
     std::string dst_uri = "sip:" + phone + "@" + m_sip_domain;
     pj::CallOpParam prm(true);
     m_vcall->makeCall(dst_uri, prm);
-    // m_account->cur_call = m_vcall;
+    if (!m_account) {
+        m_account->cur_call = m_vcall;
+    }
 }
 
 void Core::config(
-    const std::string &sip_user,       //
-    const std::string &sip_domain,     //
-    const std::string &sip_password,   //
-    const unsigned int sip_port,       //
-    const pjsip_transport_type_e ts_tp //
-)
+    const std::string &sip_user,
+    const std::string &sip_domain,
+    const std::string &sip_password,
+    const unsigned int sip_port,
+    const pjsip_transport_type_e ts_tp)
 {
     m_sip_user = sip_user;
     m_sip_domain = sip_domain;

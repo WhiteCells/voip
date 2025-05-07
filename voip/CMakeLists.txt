@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(SIPC_VoIP)
+project(voip)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,7 +12,7 @@ link_directories(/usr/local/lib)
 
 add_subdirectory(third_party/jsoncpp)
 
-add_executable(voip 
+add_executable(${PROJECT_NAME} 
     # test/test_audiomedia.cc
     # voip.cpp 
     # vcall.cc
@@ -21,6 +21,7 @@ add_executable(voip
     # test/main.cc
     # test/test_audiomediaport.cc
 
+    request.hpp
     vaccount.cc
     vaudiomediaport.cc
     vcall.cc
@@ -81,48 +82,3 @@ target_link_libraries(voip
     opencore-amrnb 
     opencore-amrwb
 )
-
-# g++ voip.cpp -L/usr/local/lib 
-# -lpjsua2-x86_64-pc-linux-gnu 
-# -lpjsua-x86_64-pc-linux-gnu 
-# -lpjsip-ua-x86_64-pc-linux-gnu 
-# -lpjsip-simple-x86_64-pc-linux-gnu 
-# -lpjsip-x86_64-pc-linux-gnu 
-# -lpjmedia-codec-x86_64-pc-linux-gnu 
-# -lpjmedia-videodev-x86_64-pc-linux-gnu 
-# -lpjmedia-audiodev-x86_64-pc-linux-gnu 
-# -lpjmedia-x86_64-pc-linux-gnu 
-# -lpjnath-x86_64-pc-linux-gnu 
-# -lpjlib-util-x86_64-pc-linux-gnu 
-# -lpj-x86_64-pc-linux-gnu 
-# -lsrtp-x86_64-pc-linux-gnu 
-# -lresample-x86_64-pc-linux-gnu 
-# -lgsmcodec-x86_64-pc-linux-gnu 
-# -lspeex-x86_64-pc-linux-gnu 
-# -lilbccodec-x86_64-pc-linux-gnu 
-# -lg7221codec-x86_64-pc-linux-gnu 
-# -lyuv-x86_64-pc-linux-gnu 
-# -lwebrtc-x86_64-pc-linux-gnu  
-# -lopus 
-# -lssl 
-# -lcrypto 
-# -lvpx 
-# -lopenh264 
-# -lstdc++ 
-# -lupnp 
-# -lixml 
-# -luuid 
-# -lm 
-# -lrt 
-# -lpthread  
-# -lasound 
-# -l/usr/lib 
-# -lSDL2  
-# -lavdevice 
-# -lavformat 
-# -lavcodec 
-# -lswscale 
-# -lavutil 
-# -lv4l2 
-# -lopencore-amrnb 
-# -lopencore-amrwb

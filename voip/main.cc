@@ -3,6 +3,7 @@
 #ifdef TEST
 #include "core.h"
 #endif
+#include "request.hpp"
 
 #include <iostream>
 
@@ -12,6 +13,13 @@ int main()
     auto core = Core::getInstance();
     core->makeCall("18871357225");
 #endif
+    try {
+        auto res = voip::httpRequest("localhost", "5000", "/get_account", voip::http::verb::get);
+        std::cout << res.toStyledString() << std::endl;
+    }
+    catch (const std::exception &e) {
+        std::cout << e.what() << std::endl;
+    }
     try {
         asio::io_context ioc(1);
         asio::signal_set signals(ioc, SIGINT, SIGTERM);

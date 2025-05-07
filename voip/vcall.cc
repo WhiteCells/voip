@@ -59,49 +59,35 @@ void voip::VCall::onCallState(pj::OnCallStateParam &prm)
 void voip::VCall::onCallMediaState(pj::OnCallMediaStateParam &prm)
 {
     PJ_UNUSED_ARG(prm);
-    try {
-        pj::CallInfo ci = getInfo();
-        std::cout << ">>> call " << ci.id << " Media State Changed" << std::endl;
 
-        std::cout << "=== media.size(): " << ci.media.size() << std::endl;
-        for (unsigned i = 0; i < ci.media.size(); ++i) {
-            if (ci.media[i].type == PJMEDIA_TYPE_AUDIO && getMedia(i)) {
-                std::cout << "=== used media index: " << i << std::endl;
-                pj::AudioMedia aud_med = getAudioMedia(i);
+    pj::CallInfo ci = getInfo();
+    std::cout << ">>> call " << ci.id << " Media State Changed" << std::endl;
+    std::cout << "=== media.size(): " << ci.media.size() << std::endl;
 
-                if (ci.media[i].status == PJSUA_CALL_MEDIA_ACTIVE) {
-                    try {
-                        // 正常通话逻辑
-                        // cap_dev_med_.startTransmit(aud_med);
-                        // aud_med.startTransmit(play_dev_med_);
+    pj::AudioMedia *aud_med;
 
-                        //
-                        aud_med.startTransmit(*aud_media_recorder_);
-                        // aud_med.startTransmit(*aud_media_port_);
-
-                        // cap_dev_med_.startTransmit(*aud_media_port_);
-                        // play_dev_med_.startTransmit(*aud_media_port_);
-
-                        // cap_dev_med_.startTransmit(aud_med);
-                        // aud_med.startTransmit(*aud_media_port_);
-                        // aud_med.startTransmit(play_dev_med);
-                        // cap_dev_med_.startTransmit(*aud_media_recorder_);
-                        // aud_media_port_->startTransmit(cap_dev_med_);
-                        // play_dev_med.startTransmit(*aud_media_recorder_);
-                    }
-                    catch (pj::Error &err) {
-                        std::cerr << ">>> failed to connect audio for call " << ci.id << ": " << err.info() << std::endl;
-                    }
-                }
-            }
-            else if (ci.media[i].type != PJMEDIA_TYPE_AUDIO) {
-                std::cout << ">>> non-audio media stream detected (type: " << ci.media[i].type << ")" << std::endl;
-            }
+    for (unsigned i = 0; i < ci.media.size(); ++i) {
+        if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
+            std::cout << "=== used media index: " << i << std::endl;
+            aud_med = (pj::AudioMedia *)getMedia(i);
+            // if (ci.media[i].status == PJSUA_CALL_MEDIA_ACTIVE) {
+            //     // 正常通话逻辑
+            //     // cap_dev_med_.startTransmit(aud_med);
+            //     // aud_med.startTransmit(play_dev_med_);
+            //     aud_med->startTransmit(*aud_media_recorder_);
+            //     // aud_med.startTransmit(*aud_media_port_);
+            //     // cap_dev_med_.startTransmit(*aud_media_port_);
+            //     // play_dev_med_.startTransmit(*aud_media_port_);
+            //     // cap_dev_med_.startTransmit(aud_med);
+            //     // aud_med.startTransmit(*aud_media_port_);
+            //     // aud_med.startTransmit(play_dev_med);
+            //     // cap_dev_med_.startTransmit(*aud_media_recorder_);
+            //     // aud_media_port_->startTransmit(cap_dev_med_);
+            //     // play_dev_med.startTransmit(*aud_media_recorder_);
+            // }
         }
     }
-    catch (const pj::Error &err) {
-        std::cerr << ">>> error in onCallMediaState: " << err.info() << std::endl;
-    }
+    aud_med->startTransmit(*aud_media_recorder_);
 }
 
 // void voip::VCall::onStreamCreated(pj::OnStreamCreatedParam &prm)

@@ -73,6 +73,7 @@ void Http::handleRequest()
 
     switch (m_request.method()) {
         case http::verb::get: {
+            std::cout << "[Route Get]" << std::endl;
             bool ok = Handler::getInstance()->handleGet(
                 m_request.target(), shared_from_this());
             if (!ok) {
@@ -91,6 +92,40 @@ void Http::handleRequest()
         case http::verb::post: {
             std::cout << "[Route Post]" << std::endl;
             bool ok = Handler::getInstance()->handlePost(
+                m_request.target(), shared_from_this());
+            if (!ok) {
+                m_response.result(http::status::not_found);
+                m_response.set(http::field::content_type, "text/json");
+                beast::ostream(m_response.body()) << "url nof found\r\n";
+                writeResponse();
+                return;
+            }
+            m_response.result(http::status::ok);
+            m_response.set(http::field::server, "serve");
+            writeResponse();
+            break;
+        }
+
+        case http::verb::delete_: {
+            std::cout << "[Route Delete]" << std::endl;
+            bool ok = Handler::getInstance()->handleDelete(
+                m_request.target(), shared_from_this());
+            if (!ok) {
+                m_response.result(http::status::not_found);
+                m_response.set(http::field::content_type, "text/json");
+                beast::ostream(m_response.body()) << "url nof found\r\n";
+                writeResponse();
+                return;
+            }
+            m_response.result(http::status::ok);
+            m_response.set(http::field::server, "serve");
+            writeResponse();
+            break;
+        }
+
+        case http::verb::put: {
+            std::cout << "[Route Put]" << std::endl;
+            bool ok = Handler::getInstance()->handlePut(
                 m_request.target(), shared_from_this());
             if (!ok) {
                 m_response.result(http::status::not_found);

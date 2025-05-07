@@ -17,15 +17,16 @@ public:
     void makeCall(const std::string &phone);
 
     void config(
-        const std::string &sip_user = "1003",                    //
-        const std::string &sip_doamin = "192.168.10.51:5060",    //
-        const std::string &sip_password = "1003",                //
-        const unsigned int sip_port = 50601,                     //
-        const pjsip_transport_type_e ts_tp = PJSIP_TRANSPORT_UDP //
-    );
+        const std::string &sip_user = "1003",
+        const std::string &sip_doamin = "192.168.10.51:5060",
+        const std::string &sip_password = "1003",
+        const unsigned int sip_port = 50601,
+        const pjsip_transport_type_e ts_tp = PJSIP_TRANSPORT_UDP);
 
 private:
     Core();
+
+    // std::shared_ptr<voip::VAccount> createAccount()
 
 private:
     std::string m_sip_user;
