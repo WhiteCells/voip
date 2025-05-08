@@ -11,21 +11,24 @@
 
 class AccountPool : public Singleton<AccountPool>
 {
+    friend class Singleton<AccountPool>;
+
 public:
-    using VAccountSPtr = std::shared_ptr<voip::VAccount>;
+    using VAccountUPtr = std::unique_ptr<voip::VAccount>;
 
 public:
     ~AccountPool();
 
     void addAccount();
-    VAccountSPtr getAccount();
+    VAccountUPtr getAccount();
+    void recycleAccount();
 
 private:
     AccountPool();
 
 private:
     std::size_t m_pool_size;
-    std::queue<VAccountSPtr> m_accounts_que;
+    std::queue<VAccountUPtr> m_accounts_que;
     std::condition_variable m_has_acc_condition;
     std::mutex m_has_acc_mtx;
 };

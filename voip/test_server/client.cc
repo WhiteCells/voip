@@ -25,7 +25,7 @@ void send_heartbeat(websocket::stream<tcp::socket> &ws)
 int main()
 {
     try {
-        asio::io_context ioc;
+        asio::io_context ioc {1};
         tcp::resolver resolver(ioc);
         websocket::stream<tcp::socket> ws(ioc);
 

@@ -1,11 +1,16 @@
 #ifndef _REQUEST_H_
 #define _REQUEST_H_
 
+#include "async_timer.h"
+
 #include <boost/asio.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/core.hpp>
 #include <json/json.h>
 #include <string>
+#include <chrono>
+#include <functional>
+#include <memory>
 
 namespace voip {
 
@@ -14,6 +19,8 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 namespace json = Json;
 using tcp = asio::ip::tcp;
+
+using HttpPollCallback = std::function<void(void)>;
 
 // http 1.1
 inline json::Value httpRequest(
@@ -58,6 +65,33 @@ inline json::Value httpRequest(
     }
 
     return resp;
+}
+
+// inline void polling(
+//     asio::io_context &ioc,
+//     unsigned int interval,
+//     std::function<void()> cb,
+
+// )
+// {
+// }
+
+inline void httpPolling(
+    asio::io_context &ioc,
+    const std::string &host,
+    const std::string &port,
+    const std::string &target,
+    http::verb method)
+{
+    // AsyncTimer timer {ioc, std::ch};
+}
+
+inline void heartbeatHttpPoll(asio::io_context &ioc, const std::string &id)
+{
+    AsyncTimer timer {ioc, std::chrono::seconds {1}};
+    timer.start([&]() {
+        httpRequest("localhost", "5000", "/" + id, http::verb::post);
+    });
 }
 
 } // namespace voip

@@ -4,28 +4,16 @@ project(voip)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(PJPROJECT_DIR /usr/local)
-
-include_directories(${PROJECT_SOURCE_DIR})
-
-link_directories(/usr/local/lib)
-
 add_subdirectory(third_party/jsoncpp)
+add_subdirectory(tests)
 
-add_executable(${PROJECT_NAME} 
-    # test/test_audiomedia.cc
-    # voip.cpp 
-    # vcall.cc
-    # main.cc
-    # test/offical.cc
-    # test/main.cc
-    # test/test_audiomediaport.cc
-
+set(SRC 
+    localhost.hpp
+    account_pool.cc
     request.hpp
     vaccount.cc
     vaudiomediaport.cc
     vcall.cc
-    
     core.cc
     handler.cc
     http.cc
@@ -33,12 +21,18 @@ add_executable(${PROJECT_NAME}
     main.cc
     server.cc
     singleton.hpp
-
     ini.cc
-    # voip.cc
 )
 
-target_link_libraries(voip
+include_directories(${PROJECT_SOURCE_DIR})
+
+# add_library(${PROJECT_NAME}_lib STATIC
+#     ${SRC}
+# )
+
+add_executable(${PROJECT_NAME} ${SRC})
+
+target_link_libraries(${PROJECT_NAME}
     jsoncpp_lib
     pjsua2-x86_64-pc-linux-gnu 
     pjsua-x86_64-pc-linux-gnu 

@@ -1,4 +1,7 @@
 #include "account_pool.h"
+#include "request.hpp"
+
+#include <iostream>
 
 AccountPool::~AccountPool()
 {
@@ -8,20 +11,35 @@ void AccountPool::addAccount()
 {
 }
 
-AccountPool::VAccountSPtr AccountPool::getAccount()
+AccountPool::VAccountUPtr AccountPool::getAccount()
 {
     std::unique_lock<std::mutex> lock(m_has_acc_mtx);
     m_has_acc_condition.wait(lock, [this]() {
         return m_accounts_que.empty();
     });
-    return m_accounts_que.front();
+    return std::move(m_accounts_que.front());
 }
 
-AccountPool::AccountPool() :
-    m_pool_size(10),
-    m_has_acc_mtx()
+void AccountPool::recycleAccount()
 {
-    for (std::size_t i = 0; i < m_pool_size; ++i) {
-        m_accounts_que.push(std::make_shared<voip::VAccount>());
+}
+
+AccountPool::AccountPool()
+{
+    // Request
+    /*
+        {
+            "accounts": ]
+                {"": ""},
+                {"": ""},
+                {"": ""},
+            ]
+        }
+   */
+    auto resp = voip::httpRequest("localhost", "50010", "/accounts", voip::http::verb::get);
+    for (const auto &accounts : resp["accounts"]) {
+        std::cout << accounts["name"].asString()
+                  << accounts["password"].asString()
+                  << std::endl;
     }
 }

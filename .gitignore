@@ -13,3 +13,6 @@ pa/
 
 # bin
 *.out
+
+# wav
+*.wav
