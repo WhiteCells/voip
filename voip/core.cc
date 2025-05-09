@@ -14,7 +14,6 @@ Core::~Core()
 
 void Core::makeCall(const std::string &phone)
 {
-    m_account->phone_num_ = phone;
     if (!m_vcall) {
         m_vcall = new voip::VCall(*m_account);
     }

@@ -8,6 +8,9 @@ add_subdirectory(third_party/jsoncpp)
 add_subdirectory(tests)
 
 set(SRC 
+    global.cc
+    async_timer.cc
+    caller_queue.cc
     localhost.hpp
     account_pool.cc
     request.hpp

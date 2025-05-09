@@ -1,11 +1,19 @@
 #include "server.h"
+#include "account_pool.h"
+#include "caller_queue.h"
+#include "request.hpp"
 
 #include <iostream>
 
 int main()
 {
     try {
+        // VAccountPool::getInstance();
         asio::io_context ioc(1);
+        if (voip::notifyRequest(ioc)) {
+            std::cout << "id: " <<  id << std::endl;
+        }
+        CallerQueue que(ioc);
         asio::signal_set signals(ioc, SIGINT, SIGTERM);
         signals.async_wait([&ioc](boost::system::error_code ec, int signal_num) {
             if (ec) {

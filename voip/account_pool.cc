@@ -1,30 +1,30 @@
 #include "account_pool.h"
 #include "request.hpp"
+#include "io_context_pool.h"
+#include "vaccount.h"
 
 #include <iostream>
 
-AccountPool::~AccountPool()
+VAccountPool::~VAccountPool()
 {
 }
 
-void AccountPool::addAccount()
+void VAccountPool::addVAccount(VAccountUPtr vaccount)
+{
+
+}
+
+VAccountPool::VAccountUPtr VAccountPool::getVAccount()
+{
+    std::unique_lock<std::mutex> lock(m_has_vacc_mtx);
+    return std::move(m_vaccounts_que.front());
+}
+
+void VAccountPool::recycleVAccount(VAccountUPtr vaccount)
 {
 }
 
-AccountPool::VAccountUPtr AccountPool::getAccount()
-{
-    std::unique_lock<std::mutex> lock(m_has_acc_mtx);
-    m_has_acc_condition.wait(lock, [this]() {
-        return m_accounts_que.empty();
-    });
-    return std::move(m_accounts_que.front());
-}
-
-void AccountPool::recycleAccount()
-{
-}
-
-AccountPool::AccountPool()
+VAccountPool::VAccountPool()
 {
     // Request
     /*
@@ -36,7 +36,8 @@ AccountPool::AccountPool()
             ]
         }
    */
-    auto resp = voip::httpRequest("localhost", "50010", "/accounts", voip::http::verb::get);
+    asio::io_context &ioc = IOContextPool::getInstance()->getIOContext();
+    auto resp = voip::httpRequest(ioc, "localhost", "5000", "/accounts/123", voip::http::verb::get);
     for (const auto &accounts : resp["accounts"]) {
         std::cout << accounts["name"].asString()
                   << accounts["password"].asString()

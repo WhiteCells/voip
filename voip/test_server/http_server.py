@@ -13,6 +13,13 @@ clients = {
     "456": {"status": "offline", "last_seen": int(time.time())}
 }
 
+accounts = {
+    "123": [
+        {"name": "1000", "password": "1000"},
+        {"name": "1001", "password": "1001"}
+    ]
+}
+
 """
 /accounts/<id>
 客户端获取对应的 Account
@@ -25,13 +32,17 @@ clients = {
 }
 """
 @app.route('/accounts/<id>', methods=['GET'])
-def get_account():
+def get_account(id):
+    acc = accounts[id]
+    # return jsonify({
+    #     "accounts": [
+    #         {"name":"1", "password": "1"},
+    #         {"name":"2", "password": "2"},
+    #         {"name":"3", "password": "3"},
+    #     ]
+    # })
     return jsonify({
-        "accounts": [
-            {"name":"1", "password": "1"},
-            {"name":"2", "password": "2"},
-            {"name":"3", "password": "3"},
-        ]
+        "accounts": acc
     })
 
 
@@ -40,7 +51,7 @@ def get_account():
 客户端获取 UUID 对应的 Dial Plan
 {
     "dialplans": [
-        {"dial": "xxx", "status": "pending"}
+        {"dial": "xxx", "status": "pending"},
     ]
 }
 """
@@ -58,10 +69,10 @@ UUID 是已经设置好的，UUID 会对应拨号计划
     "uuid": "xxx"
 }
 """
-@app.route('/notify', methods=['POST'])
+@app.route('/notify', methods=['GET'])
 def post_notify():
     return jsonify({
-        "uuid": uuid.uuid4()
+        "id": uuid.uuid4()
     })
 
 """
@@ -79,6 +90,9 @@ def post_heartbeat(id):
         "status": "online",
         "last_seen": timestamp
     }
+
+    # for k, v in clients:
+    #     print(k, v)
 
     return jsonify({
         "id": id,
@@ -117,7 +131,6 @@ def post_dial_wav(id):
     return jsonify({
         "id": id
     })
-    pass
 
 
 if __name__ == '__main__':

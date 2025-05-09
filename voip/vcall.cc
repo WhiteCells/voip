@@ -16,7 +16,7 @@ voip::VCall::VCall(voip::VAccount &acc, int call_id) :
     aud_media_port_->createPort("aud_media_port_", fmt);
 
     // recorder
-    aud_media_recorder_->createRecorder(acc.phone_num_ + ".wav");
+    // aud_media_recorder_->createRecorder(acc.phone_num_ + ".wav");
 
     pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
     cap_dev_med_ = mgr.getCaptureDevMedia();
@@ -32,6 +32,14 @@ voip::VCall::~VCall()
     else {
         std::cout << ">>> Call object destroyed (was not the account's active call)." << std::endl;
     }
+}
+
+void voip::VCall::call(const std::string &phone)
+{
+    aud_media_recorder_->createRecorder(phone + ".wav");
+    const std::string dst_uri = "";
+    const pj::CallOpParam prm {true};
+    this->makeCall(dst_uri, prm);
 }
 
 void voip::VCall::onCallState(pj::OnCallStateParam &prm)

@@ -1,11 +1,8 @@
 #include "io_context_pool.h"
 
-#include <iostream>
-
 IOContextPool::~IOContextPool()
 {
     stopAllIOContext();
-    std::cout << "IOContextPool singleton destruct" << std::endl;
 }
 
 IOContextPool::IOContext &IOContextPool::getIOContext()

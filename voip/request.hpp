@@ -2,6 +2,7 @@
 #define _REQUEST_H_
 
 #include "async_timer.h"
+#include "global.h"
 
 #include <boost/asio.hpp>
 #include <boost/beast/http.hpp>
@@ -11,6 +12,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <iostream>
 
 namespace voip {
 
@@ -24,12 +26,12 @@ using HttpPollCallback = std::function<void(void)>;
 
 // http 1.1
 inline json::Value httpRequest(
+    asio::io_context &ioc,
     const std::string &host,
     const std::string &port,
     const std::string &target,
     http::verb method)
 {
-    asio::io_context ioc;
     tcp::resolver resolver(ioc);
     const auto endpoint = resolver.resolve(host, port);
 
@@ -67,31 +69,23 @@ inline json::Value httpRequest(
     return resp;
 }
 
-// inline void polling(
-//     asio::io_context &ioc,
-//     unsigned int interval,
-//     std::function<void()> cb,
-
-// )
-// {
-// }
-
-inline void httpPolling(
-    asio::io_context &ioc,
-    const std::string &host,
-    const std::string &port,
-    const std::string &target,
-    http::verb method)
-{
-    // AsyncTimer timer {ioc, std::ch};
-}
-
 inline void heartbeatHttpPoll(asio::io_context &ioc, const std::string &id)
 {
-    AsyncTimer timer {ioc, std::chrono::seconds {1}};
-    timer.start([&]() {
-        httpRequest("localhost", "5000", "/" + id, http::verb::post);
+    auto timer = std::make_shared<AsyncTimer>(ioc, std::chrono::seconds {1});
+    timer->start([timer, &ioc, id]() {
+        httpRequest(ioc, "localhost", "5000", "/heartbeat/" + id, http::verb::post);
     });
+}
+
+
+inline bool notifyRequest(asio::io_context &ioc)
+{
+    auto resp = httpRequest(ioc, "localhost", "5000", "/notify", http::verb::get);
+    if (resp.isMember("id")) {
+        id = resp["id"].asString();
+        return true;
+    }
+    return false;
 }
 
 } // namespace voip

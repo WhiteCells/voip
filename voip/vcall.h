@@ -3,6 +3,7 @@
 
 #include "vaudiomediaport.h"
 #include <pjsua2.hpp>
+#include <string>
 #include <memory>
 
 namespace voip {
@@ -15,6 +16,8 @@ class VCall : public pj::Call
 public:
     VCall(VAccount &acc, int call_id = PJSUA_INVALID_ID);
     ~VCall();
+
+    void call(const std::string &phone);
 
     // 呼叫状态改变
     virtual void
