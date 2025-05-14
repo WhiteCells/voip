@@ -3,7 +3,7 @@
 
 namespace voip {
 
-class VCall;
+class Caller;
 
 class VAccount : public pj::Account
 {
@@ -18,7 +18,7 @@ public:
     // 呼入
     virtual void onIncomingCall(pj::OnIncomingCallParam &iprm) override;
 
-    voip::VCall *cur_call = nullptr;
+    voip::Caller *cur_call = nullptr;
 };
 
 } // namespace voip

@@ -81,7 +81,7 @@ Handler::Handler()
         beast::ostream(conn->m_response.body()) << send_root.toStyledString();
     });
     registerPost("/call", [](std::shared_ptr<Http> conn) {
-        auto core = Core::getInstance();
+        // auto core = Core::getInstance();
         pj::Endpoint::instance().libRegisterThread("beast_http");
         auto body_str = beast::buffers_to_string(
             conn->m_request.body().data());
@@ -106,6 +106,6 @@ Handler::Handler()
         json::String phone = recv_root["phone"].asString();
         send_root["status"] = 1;
         beast::ostream(conn->m_response.body()) << send_root.toStyledString();
-        core->makeCall(phone);
+        // core->makeCall(phone);
     });
 }

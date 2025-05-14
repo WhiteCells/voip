@@ -11,21 +11,19 @@ namespace voip {
 class VAccount;
 class VAudioMediaPort;
 
-class VCall : public pj::Call
+class Caller : public pj::Call
 {
 public:
-    VCall(VAccount &acc, int call_id = PJSUA_INVALID_ID);
-    ~VCall();
+    Caller(VAccount &acc, int call_id = PJSUA_INVALID_ID);
+    ~Caller();
 
     void call(const std::string &phone);
 
     // 呼叫状态改变
-    virtual void
-    onCallState(pj::OnCallStateParam &prm) override;
+    virtual void onCallState(pj::OnCallStateParam &prm) override;
 
     // 呼叫状态改变
-    virtual void
-    onCallMediaState(pj::OnCallMediaStateParam &prm) override;
+    virtual void onCallMediaState(pj::OnCallMediaStateParam &prm) override;
 
     // virtual void
     // onStreamCreated(pj::OnStreamCreatedParam &prm) override;

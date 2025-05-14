@@ -4,12 +4,15 @@ set(TEST_SOURCES
     test_async_timer.cc
     test_core.cc
     test_request.cc
+    test_thread_pool.cc
 )
 
 add_library(src_lib STATIC 
     ../async_timer.cc 
     ../core.cc
     ../request.hpp
+    ../thread_pool.h
+    ../thread_pool.cc
 )
 
 foreach(TEST_SRC ${TEST_SOURCES})

@@ -1,11 +1,11 @@
-#include "vcall.h"
+#include "caller.h"
 #include "vaccount.h"
 #include "vaudiomediaport.h"
 
 #include <pjsua2/call.hpp>
 #include <iostream>
 
-voip::VCall::VCall(voip::VAccount &acc, int call_id) :
+voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     Call(acc, call_id),
     acc_(acc),
     aud_media_port_(std::make_shared<VAudioMediaPort>()),
@@ -23,7 +23,7 @@ voip::VCall::VCall(voip::VAccount &acc, int call_id) :
     play_dev_med_ = mgr.getPlaybackDevMedia();
 }
 
-voip::VCall::~VCall()
+voip::Caller::~Caller()
 {
     if (acc_.cur_call == this) {
         acc_.cur_call = nullptr;
@@ -34,7 +34,7 @@ voip::VCall::~VCall()
     }
 }
 
-void voip::VCall::call(const std::string &phone)
+void voip::Caller::call(const std::string &phone)
 {
     aud_media_recorder_->createRecorder(phone + ".wav");
     const std::string dst_uri = "";
@@ -42,7 +42,7 @@ void voip::VCall::call(const std::string &phone)
     this->makeCall(dst_uri, prm);
 }
 
-void voip::VCall::onCallState(pj::OnCallStateParam &prm)
+void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 {
     PJ_UNUSED_ARG(prm);
     pj::CallInfo ci = getInfo();
@@ -64,7 +64,7 @@ void voip::VCall::onCallState(pj::OnCallStateParam &prm)
     }
 }
 
-void voip::VCall::onCallMediaState(pj::OnCallMediaStateParam &prm)
+void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
 {
     PJ_UNUSED_ARG(prm);
 

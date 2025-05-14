@@ -9,9 +9,9 @@ namespace asio = boost::asio;
 
 class AsyncTimer
 {
-public:
     using Task = std::function<void(void)>;
 
+public:
     AsyncTimer(asio::io_context &io_context, std::chrono::seconds interval);
     ~AsyncTimer();
 

@@ -7,11 +7,12 @@
 #include <pjsua2.hpp>
 #include <memory>
 
-class Core : public Singleton<Core>
+class Core
 {
-    friend class Singleton<Core>;
-
 public:
+    Core();
+    Core(const Core &) = delete;
+    Core &operator=(const Core &) = delete;
     ~Core();
 
     void makeCall(const std::string &phone);
@@ -24,8 +25,6 @@ public:
         const pjsip_transport_type_e ts_tp = PJSIP_TRANSPORT_UDP);
 
 private:
-    Core();
-
     // std::shared_ptr<voip::VAccount> createAccount()
 
 private:
@@ -41,7 +40,7 @@ private:
     std::shared_ptr<voip::VAccount> m_account;
     pj::AccountConfig m_account_cfg;
     pj::AuthCredInfo m_auth_cred_info;
-    voip::VCall *m_vcall;
+    voip::Caller *m_vcall;
 };
 
 #endif // _CORE_H_

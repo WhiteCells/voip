@@ -11,7 +11,7 @@ namespace asio = boost::asio;
 BOOST_AUTO_TEST_CASE(request_heartbeat)
 {
     asio::io_context ioc;
-    voip::heartbeatHttpPoll(ioc, "123");
+    voip::heartbeatRequest(ioc, "123");
 
     std::thread io_thread {[&]() {
         ioc.run();

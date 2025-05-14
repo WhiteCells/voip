@@ -1,18 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
 project(voip)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(third_party/jsoncpp)
 add_subdirectory(tests)
 
 set(SRC 
+# account_queue.cc
     global.cc
     async_timer.cc
     caller_queue.cc
     localhost.hpp
-    account_pool.cc
+    client.cc
     request.hpp
     vaccount.cc
     vaudiomediaport.cc
@@ -25,6 +26,9 @@ set(SRC
     server.cc
     singleton.hpp
     ini.cc
+    thread_pool.h
+    thread_pool.cc
+    dialplan_queue.cc
 )
 
 include_directories(${PROJECT_SOURCE_DIR})
@@ -35,8 +39,8 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 add_executable(${PROJECT_NAME} ${SRC})
 
-target_link_libraries(${PROJECT_NAME}
-    jsoncpp_lib
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    jsoncpp
     pjsua2-x86_64-pc-linux-gnu 
     pjsua-x86_64-pc-linux-gnu 
     pjsip-ua-x86_64-pc-linux-gnu 

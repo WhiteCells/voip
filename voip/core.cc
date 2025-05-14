@@ -1,7 +1,12 @@
 #include "core.h"
-#include "vcall.h"
+#include "caller.h"
 
 #include <iostream>
+
+Core::Core()
+{
+    config();
+}
 
 Core::~Core()
 {
@@ -15,7 +20,7 @@ Core::~Core()
 void Core::makeCall(const std::string &phone)
 {
     if (!m_vcall) {
-        m_vcall = new voip::VCall(*m_account);
+        m_vcall = new voip::Caller(*m_account);
     }
     std::string dst_uri = "sip:" + phone + "@" + m_sip_domain;
     pj::CallOpParam prm(true);
@@ -62,7 +67,4 @@ void Core::config(
     m_account->create(m_account_cfg);
 }
 
-Core::Core()
-{
-    config();
-}
+

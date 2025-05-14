@@ -1,42 +1,34 @@
 #include "caller_queue.h"
-#include "async_timer.h"
-#include "request.hpp"
 
 #include <pjsua2.hpp>
-#include <vector>
 
-CallerQueue::CallerQueue(asio::io_context &ioc) :
-    m_ioc(ioc),
-    m_fetch_timer(std::make_shared<AsyncTimer>(ioc, std::chrono::seconds {1}))
+CallerQueue::CallerQueue()
 {
-    m_fetch_timer->start([this]() {
-        fetch();
-    });
 }
 
 CallerQueue::~CallerQueue()
 {
 }
 
-void CallerQueue::addVCall(VCallUPtr vcall)
+void CallerQueue::addCaller(CallerUPtr vcall)
 {
     std::unique_lock<std::mutex> lock(m_que_mtx);
     m_que.push(std::move(vcall));
     m_que_cond.notify_one();
 }
 
-CallerQueue::VCallUPtr CallerQueue::getVCall()
+CallerQueue::CallerUPtr CallerQueue::getCaller()
 {
     std::unique_lock<std::mutex> lock(m_que_mtx);
     m_que_cond.wait(lock, [this]() {
         return !m_que.empty();
     });
-    VCallUPtr vcall = std::move(m_que.front());
+    CallerUPtr vcall = std::move(m_que.front());
     m_que.pop();
     return vcall;
 }
 
-void CallerQueue::recycleVCall(VCallUPtr vcall)
+void CallerQueue::releaseCaller(CallerUPtr vcall)
 {
     std::unique_lock<std::mutex> lock(m_que_mtx);
     m_que.push(std::move(vcall));
@@ -52,30 +44,30 @@ VCall
     ]
 }
 */
-void CallerQueue::fetch()
-{
-    std::vector<VAccountUPtr> vaccounts;
-    auto resp = voip::httpRequest(m_ioc, "localhost", "5000", "/accounts", voip::http::verb::get);
+// void CallerQueue::fetch()
+// {
+//     std::vector<AccountUPtr> vaccounts;
+//     auto resp = voip::httpRequest(m_ioc, "localhost", "5000", "/accounts", voip::http::verb::get);
 
-    if (resp.isMember("accounts") && resp["accounts"].isArray()) {
-        for (const auto &item : resp["accounts"]) {
-            std::string sip_user = item["sip_user"].asString();
-            std::string sip_domain = item["sip_domain"].asString();
-            std::string sip_password = item["sip_password"].asString();
-            VAccountUPtr vacc = createAccount(sip_user, sip_domain, sip_password);
-            vaccounts.push_back(std::move(vacc));
-        }
-    }
-    {
-        std::unique_lock<std::mutex> lock(m_que_mtx);
-        for (auto &vacc_uptr : vaccounts) {
-            auto vcall_uptr = createCall(std::move(vacc_uptr));
-            m_que.emplace(std::move(vcall_uptr));
-        }
-    }
-}
+//     if (resp.isMember("accounts") && resp["accounts"].isArray()) {
+//         for (const auto &item : resp["accounts"]) {
+//             std::string sip_user = item["sip_user"].asString();
+//             std::string sip_domain = item["sip_domain"].asString();
+//             std::string sip_password = item["sip_password"].asString();
+//             AccountUPtr acc = createAccount(sip_user, sip_domain, sip_password);
+//             vaccounts.push_back(std::move(acc));
+//         }
+//     }
+//     {
+//         std::unique_lock<std::mutex> lock(m_que_mtx);
+//         for (auto &vacc_uptr : vaccounts) {
+//             auto vcall_uptr = createCall(std::move(vacc_uptr));
+//             m_que.emplace(std::move(vcall_uptr));
+//         }
+//     }
+// }
 
-CallerQueue::VAccountUPtr CallerQueue::createAccount(
+CallerQueue::AccountUPtr CallerQueue::createAccount(
     const std::string &sip_user,
     const std::string &sip_domain,
     const std::string &sip_password)
@@ -91,8 +83,8 @@ CallerQueue::VAccountUPtr CallerQueue::createAccount(
     return account;
 }
 
-CallerQueue::VCallUPtr CallerQueue::createCall(VAccountUPtr vaccount)
+CallerQueue::CallerUPtr CallerQueue::createCaller(AccountUPtr vaccount)
 {
-    VCallUPtr account = std::make_unique<voip::VCall>(*vaccount);
-    return account;
+    CallerUPtr caller = std::make_unique<voip::Caller>(*vaccount);
+    return caller;
 }

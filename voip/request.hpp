@@ -12,7 +12,6 @@
 #include <chrono>
 #include <functional>
 #include <memory>
-#include <iostream>
 
 namespace voip {
 
@@ -69,11 +68,12 @@ inline json::Value httpRequest(
     return resp;
 }
 
-inline void heartbeatHttpPoll(asio::io_context &ioc, const std::string &id)
+inline void heartbeatRequest(asio::io_context &ioc, const std::string &id)
 {
     auto timer = std::make_shared<AsyncTimer>(ioc, std::chrono::seconds {1});
     timer->start([timer, &ioc, id]() {
-        httpRequest(ioc, "localhost", "5000", "/heartbeat/" + id, http::verb::post);
+        auto resp = httpRequest(ioc, "localhost", "5000", "/heartbeat/" + id, http::verb::post);
+        // 更新
     });
 }
 

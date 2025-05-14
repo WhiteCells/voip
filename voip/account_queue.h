@@ -12,22 +12,22 @@ namespace voip {
 class VAccount;
 }
 
-class VAccountPool : public Singleton<VAccountPool>
+class AccountQueue : public Singleton<AccountQueue>
 {
-    friend class Singleton<VAccountPool>;
+    friend class Singleton<AccountQueue>;
 
 public:
     using VAccountUPtr = std::unique_ptr<voip::VAccount>;
 
 public:
-    ~VAccountPool();
+    ~AccountQueue();
 
     void addVAccount(VAccountUPtr vaccount);
     VAccountUPtr getVAccount();
     void recycleVAccount(VAccountUPtr vaccount);
 
 private:
-    VAccountPool();
+    AccountQueue();
 
 private:
     std::size_t m_pool_size;

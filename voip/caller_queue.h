@@ -1,7 +1,7 @@
 #ifndef _CALLPOOL_H_
 #define _CALLPOOL_H_
 
-#include "vcall.h"
+#include "caller.h"
 #include "vaccount.h"
 
 #include <boost/asio.hpp>
@@ -10,39 +10,35 @@
 #include <memory>
 #include <condition_variable>
 
-namespace asio = boost::asio;
-
-class AsyncTimer;
-
 class CallerQueue
 {
-    using VCallUPtr = std::unique_ptr<voip::VCall>;
-    using VAccountUPtr = std::unique_ptr<voip::VAccount>;
+    using CallerUPtr = std::unique_ptr<voip::Caller>;
+    using AccountUPtr = std::unique_ptr<voip::VAccount>;
     // using AsyncTimerSPtr = std::shared_ptr<AsyncTimer>;
 
 public:
-    CallerQueue(asio::io_context &ioc);
+    CallerQueue();
     ~CallerQueue();
 
-    void addVCall(VCallUPtr vcall);
-    VCallUPtr getVCall();
-    void recycleVCall(VCallUPtr vcall);
+    void addCaller(CallerUPtr caller);
+    CallerUPtr getCaller();
+    void releaseCaller(CallerUPtr vcall);
 
-private:
-    void fetch();
-    VAccountUPtr createAccount(
+    AccountUPtr createAccount(
         const std::string &sip_user,
         const std::string &sip_domain,
         const std::string &sip_password);
-    VCallUPtr createCall(VAccountUPtr vaccount);
-    void initEndpoint();
+
+    CallerUPtr createCaller(AccountUPtr vaccount);
 
 private:
-    asio::io_context &m_ioc;
-    std::queue<VCallUPtr> m_que;
+    // void fetch();
+    // void initEndpoint();
+
+private:
+    std::queue<CallerUPtr> m_que;
     std::mutex m_que_mtx;
     std::condition_variable m_que_cond;
-    std::shared_ptr<AsyncTimer> m_fetch_timer;
 };
 
 #endif // _CALLPOOL_H_
