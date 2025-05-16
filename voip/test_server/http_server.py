@@ -132,6 +132,27 @@ def post_dial_wav(id):
         "id": id
     })
 
+@app.route('/', methods=['POST'])
+def handle_request():
+    # 获取 URL 参数
+    param1 = request.args.get("param1")
+    param2 = request.args.get("param2")
+
+    print(param1)
+    print(param2)
+
+    # 获取 body 数据（GET 请求不会有 body，一般用 POST/PUT/PATCH）
+    body = request.get_json(silent=True)  # `silent=True` 避免无 body 时抛异常
+
+    print(body)
+
+    return jsonify({
+        "params": {
+            "param1": param1,
+            "param2": param2
+        },
+        "body": body
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

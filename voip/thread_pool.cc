@@ -1,6 +1,8 @@
 #include "thread_pool.h"
 
 #include <iostream>
+#include <sstream>
+#include <pjsua2.hpp>
 
 ThreadPool::~ThreadPool()
 {
@@ -17,12 +19,25 @@ ThreadPool::ThreadPool(std::size_t size)
 {
     for (std::size_t i = 0; i < size; ++i) {
         m_threads.emplace_back([this]() {
-            loop();
+            //
+            // pj_thread_desc desc;
+            // pj_thread_t *pjThread = nullptr;
+            // if (!pj_thread_is_registered()) {
+            //     std::ostringstream oss;
+            //     oss << "Worker-" << std::this_thread::get_id();
+            //     std::string threadName = oss.str();
+            //     if (pj_thread_register(threadName.c_str(), desc, &pjThread) != PJ_SUCCESS) {
+            //         std::cerr << "Failed to register thread with PJLIB" << std::endl;
+            //         return;
+            //     }
+            // }
+            //
+            worker();
         });
     }
 }
 
-void ThreadPool::loop()
+void ThreadPool::worker()
 {
     while (m_running) {
         Task task;

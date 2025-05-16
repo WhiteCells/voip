@@ -9,26 +9,25 @@ add_subdirectory(tests)
 
 set(SRC 
 # account_queue.cc
-    global.cc
+# core.cc
+# global.cc
     async_timer.cc
+    dialplan_queue.cc
     caller_queue.cc
-    localhost.hpp
+    caller.cc
+    vaccount.cc
     client.cc
     request.hpp
-    vaccount.cc
     vaudiomediaport.cc
-    vcall.cc
-    core.cc
     handler.cc
     http.cc
     io_context_pool.cc
-    main.cc
     server.cc
     singleton.hpp
     ini.cc
     thread_pool.h
     thread_pool.cc
-    dialplan_queue.cc
+    main.cc
 )
 
 include_directories(${PROJECT_SOURCE_DIR})

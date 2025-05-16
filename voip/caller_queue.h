@@ -24,17 +24,6 @@ public:
     CallerUPtr getCaller();
     void releaseCaller(CallerUPtr vcall);
 
-    AccountUPtr createAccount(
-        const std::string &sip_user,
-        const std::string &sip_domain,
-        const std::string &sip_password);
-
-    CallerUPtr createCaller(AccountUPtr vaccount);
-
-private:
-    // void fetch();
-    // void initEndpoint();
-
 private:
     std::queue<CallerUPtr> m_que;
     std::mutex m_que_mtx;

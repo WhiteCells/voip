@@ -25,8 +25,7 @@ public:
     // 呼叫状态改变
     virtual void onCallMediaState(pj::OnCallMediaStateParam &prm) override;
 
-    // virtual void
-    // onStreamCreated(pj::OnStreamCreatedParam &prm) override;
+    // virtual void onStreamCreated(pj::OnStreamCreatedParam &prm) override;
 
 private:
     VAccount &acc_;

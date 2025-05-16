@@ -6,7 +6,7 @@
 #include <iostream>
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
-    Call(acc, call_id),
+    pj::Call(acc, call_id),
     acc_(acc),
     aud_media_port_(std::make_shared<VAudioMediaPort>()),
     aud_media_recorder_(std::make_shared<pj::AudioMediaRecorder>())
@@ -25,13 +25,13 @@ voip::Caller::Caller(voip::VAccount &acc, int call_id) :
 
 voip::Caller::~Caller()
 {
-    if (acc_.cur_call == this) {
-        acc_.cur_call = nullptr;
-        std::cout << ">>> Call object destroyed, account call pointer cleared." << std::endl;
-    }
-    else {
-        std::cout << ">>> Call object destroyed (was not the account's active call)." << std::endl;
-    }
+    // if (acc_.cur_call == this) {
+    //     acc_.cur_call = nullptr;
+    //     std::cout << ">>> Call object destroyed, account call pointer cleared." << std::endl;
+    // }
+    // else {
+    //     std::cout << ">>> Call object destroyed (was not the account's active call)." << std::endl;
+    // }
 }
 
 void voip::Caller::call(const std::string &phone)
@@ -98,7 +98,7 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
     aud_med->startTransmit(*aud_media_recorder_);
 }
 
-// void voip::VCall::onStreamCreated(pj::OnStreamCreatedParam &prm)
+// void voip::Caller::onStreamCreated(pj::OnStreamCreatedParam &prm)
 // {
 //     this->onStreamCreated(prm);
 //     std::ofstream out_file("stream", std::ios::binary | std::ios::app);

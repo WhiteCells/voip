@@ -1,7 +1,7 @@
 #include "handler.h"
 #include "http.h"
-#include "core.h"
 
+#include <pjsua2.hpp>
 #include <boost/beast.hpp>
 #include <json/json.h>
 #include <iostream>

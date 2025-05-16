@@ -34,7 +34,7 @@ private:
 
     ThreadPool &operator=(const ThreadPool &) = delete;
 
-    void loop();
+    void worker();
 
     void stop();
 

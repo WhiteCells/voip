@@ -44,8 +44,7 @@ AccountQueue::AccountQueue()
             ]
         }
    */
-    asio::io_context &ioc = IOContextPool::getInstance()->getIOContext();
-    auto resp = voip::httpRequest(ioc, "localhost", "5000", "/accounts/123", voip::http::verb::get);
+    auto resp = voip::httpRequest( "localhost", "5000", "/accounts/123", voip::http::verb::get);
     for (const auto &accounts : resp["accounts"]) {
         std::cout << accounts["name"].asString()
                   << accounts["password"].asString()
