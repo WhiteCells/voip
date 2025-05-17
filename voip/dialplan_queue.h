@@ -4,6 +4,7 @@
 #include <queue>
 #include <mutex>
 #include <string>
+#include <condition_variable>
 
 class DialPlanQueue
 {
@@ -16,8 +17,9 @@ public:
     void releaseDialPlan(const std::string &dialplan);
 
 private:
-    std::queue<std::string> m_dialplan_que;
+    std::queue<std::string> m_que;
     std::mutex m_que_mtx;
+    std::condition_variable m_que_cv;
 };
 
 #endif // _DIALPLAN_QUE_H_

@@ -10,9 +10,7 @@
 class Client
 {
 public:
-    Client(
-        unsigned client_port = 5060,
-        unsigned workers_num = std::thread::hardware_concurrency());
+    Client(unsigned workers_num = std::thread::hardware_concurrency());
     ~Client();
 
 private:
@@ -41,7 +39,6 @@ private:
     void pushDialStatus();
 
 private:
-    void startEndpointLib(unsigned port);
     void callTask();
 
 private:
@@ -49,7 +46,6 @@ private:
     CallerQueue m_caller_que;
     DialPlanQueue m_dialplan_que;
     std::string m_client_id;
-    pj::Endpoint m_endpoint;
 };
 
 #endif // _CLIENT_H_

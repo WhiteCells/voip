@@ -8,7 +8,9 @@ namespace voip {
 
 typedef std::unordered_map<std::string, std::string> cfg_map;
 
-cfg_map loadINICfg(const std::string &filename);
+void loadINICfg(const std::string &filename);
+
+extern cfg_map cfg;
 
 } // namespace voip
 

@@ -14,10 +14,9 @@
 namespace http = boost::beast::http;
 namespace json = Json;
 
-Client::Client(unsigned client_port, unsigned workers_num) :
-    m_thread_pool(10)
+Client::Client(unsigned workers_num) :
+    m_thread_pool(workers_num)
 {
-    startEndpointLib(client_port);
     notify();
     pullAccount();
     pullDialplan();
@@ -122,25 +121,14 @@ void Client::pushDialStatus()
 {
 }
 
-void Client::startEndpointLib(unsigned port)
-{
-    m_endpoint.libStart();
-    pj::EpConfig ep_cfg;
-    m_endpoint.libInit(ep_cfg);
-    pj::TransportConfig ts_cfg;
-    ts_cfg.port = port;
-    m_endpoint.transportCreate(PJSIP_TRANSPORT_UDP, ts_cfg);
-    m_endpoint.libStart();
-}
-
 void Client::callTask()
 {
-    // pj register
-    m_endpoint.libRegisterThread("Worker");
-
-    auto caller = m_caller_que.getCaller();
-    auto dialplan = m_dialplan_que.getDialPlan();
-    if (caller && !dialplan.empty()) {
-        caller->call(dialplan);
+    while (true) {
+        auto caller = m_caller_que.getCaller();
+        auto dialplan = m_dialplan_que.getDialPlan();
+        if (caller && !dialplan.empty()) {
+            caller->call(dialplan);
+            m_caller_que.releaseCaller(std::move(caller));
+        }
     }
 }

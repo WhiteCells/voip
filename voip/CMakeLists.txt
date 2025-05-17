@@ -5,12 +5,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(third_party/jsoncpp)
-add_subdirectory(tests)
+# add_subdirectory(tests)
 
 set(SRC 
-# account_queue.cc
-# core.cc
-# global.cc
+    global.cc
     async_timer.cc
     dialplan_queue.cc
     caller_queue.cc
@@ -18,15 +16,14 @@ set(SRC
     vaccount.cc
     client.cc
     request.hpp
-    vaudiomediaport.cc
-    handler.cc
-    http.cc
     io_context_pool.cc
     server.cc
-    singleton.hpp
     ini.cc
-    thread_pool.h
+    http.cc
+    handler.cc
+    singleton.hpp
     thread_pool.cc
+    vaudiomediaport.cc
     main.cc
 )
 

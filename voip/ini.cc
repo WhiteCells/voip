@@ -3,6 +3,12 @@
 #include <string>
 #include <fstream>
 
+// voip::cfg_map cfg;
+
+namespace voip {
+cfg_map cfg;
+}
+
 std::string trimSpace(const std::string &str)
 {
     std::size_t start = 0, end = str.size() - 1;
@@ -18,11 +24,11 @@ std::string trimSpace(const std::string &str)
     return str.substr(start, end - start + 1);
 }
 
-voip::cfg_map voip::loadINICfg(const std::string &filename)
+void voip::loadINICfg(const std::string &filename)
 {
     std::ifstream file(filename);
     std::string line;
-    voip::cfg_map cfg;
+    // voip::cfg_map cfg;
 
     while (std::getline(file, line)) {
         line = trimSpace(line);
@@ -43,20 +49,4 @@ voip::cfg_map voip::loadINICfg(const std::string &filename)
             //           << "val: " << val << "\n";
         }
     }
-
-    return cfg;
 }
-
-#ifdef TEST_INI
-
-int main(int argc, char *argv[])
-{
-    auto cfg_map = loadEnv(".env");
-    for (auto &p : cfg_map) {
-        std::cout << p.first << ", "
-                  << p.second << "\n";
-    }
-    return 0;
-}
-
-#endif

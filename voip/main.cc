@@ -1,10 +1,14 @@
 #include "server.h"
 #include "client.h"
+#include "global.h"
+#include "ini.h"
 
 #include <iostream>
 
 int main()
 {
+    voip::loadINICfg(".env");
+    startEndpointLib(5060);
     Client client;
     try {
         asio::io_context ioc(1);

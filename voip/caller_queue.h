@@ -27,7 +27,7 @@ public:
 private:
     std::queue<CallerUPtr> m_que;
     std::mutex m_que_mtx;
-    std::condition_variable m_que_cond;
+    std::condition_variable m_que_cv;
 };
 
 #endif // _CALLPOOL_H_

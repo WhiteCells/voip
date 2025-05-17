@@ -15,9 +15,6 @@ voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     fmt.init(PJMEDIA_FORMAT_PCM, 16000, 1, 20000, 16);
     aud_media_port_->createPort("aud_media_port_", fmt);
 
-    // recorder
-    // aud_media_recorder_->createRecorder(acc.phone_num_ + ".wav");
-
     pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
     cap_dev_med_ = mgr.getCaptureDevMedia();
     play_dev_med_ = mgr.getPlaybackDevMedia();
@@ -53,6 +50,8 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     std::cout << std::endl;
 
     switch (ci.state) {
+        case PJSIP_INV_STATE_CALLING:
+            break;
         case PJSIP_INV_STATE_DISCONNECTED:
             std::cout << ">>> call " << ci.id << " disconnected." << std::endl;
             break;
