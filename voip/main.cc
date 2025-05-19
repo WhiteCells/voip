@@ -2,14 +2,24 @@
 #include "client.h"
 #include "global.h"
 #include "ini.h"
+#include "logger.h"
 
 #include <iostream>
 
 int main()
 {
+    // config
     voip::loadINICfg(".env");
+
+    // logger
+    Logger::getInstance().init("./log/voip_client_log", Logger::Level::Info);
+    LOG_INFO("client start");
+
+    // endpoint
     startEndpointLib(5060);
+
     Client client;
+
     try {
         asio::io_context ioc(1);
         asio::signal_set signals(ioc, SIGINT, SIGTERM);

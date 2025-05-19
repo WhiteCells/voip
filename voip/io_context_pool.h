@@ -31,7 +31,8 @@ public:
     void stopAllIOContext();
 
 private:
-    IOContextPool(std::size_t size = 2);
+    IOContextPool(
+        std::size_t size = std::thread::hardware_concurrency());
 };
 
 #endif // _IO_CONTEXT_POOL_H_

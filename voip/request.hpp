@@ -2,12 +2,16 @@
 #define _REQUEST_H_
 
 #include "io_context_pool.h"
+#include "global.h"
 
 #include <boost/asio.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/core.hpp>
 #include <json/json.h>
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <filesystem>
 
 namespace voip {
 
@@ -70,7 +74,7 @@ inline json::Value httpRequest(
         return json::Value {};
     }
 
-    // close `stream`
+    // Close `stream`
     beast::error_code ec;
     ec = stream.socket().shutdown(tcp::socket::shutdown_both, ec);
     if (ec && ec != beast::errc::not_connected) {
@@ -78,6 +82,52 @@ inline json::Value httpRequest(
     }
 
     return resp;
+}
+
+inline void pushFile(const std::string file_path, const std::string &client_id)
+{
+    auto &ioc = IOContextPool::getInstance()->getIOContext();
+    tcp::resolver resolver(ioc);
+    beast::tcp_stream stream(ioc);
+
+    auto const results = resolver.resolve(backend_host, backend_port);
+    stream.connect(results);
+
+    std::ifstream file(file_path, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << file_path << std::endl;
+        return;
+    }
+
+    std::size_t file_size = file.tellg();
+    if (file_size == 0) {
+        std::cerr << "File is empty: " << file_path << std::endl;
+        return;
+    }
+
+    file.seekg(0);
+
+    std::string target_url = "/dial_wav/" + client_id;
+    http::request<http::dynamic_body> req {
+        http::verb::post, target_url, 11};
+    req.set(http::field::host, backend_host);
+    req.set("filename", std::filesystem::path(file_path).filename().string());
+
+    beast::ostream(req.body()) << file.rdbuf();
+    req.prepare_payload();
+
+    try {
+        http::write(stream, req);
+        beast::flat_buffer buffer_res;
+        http::response<http::dynamic_body> res;
+        http::read(stream, buffer_res, res);
+        std::cout << "Response: " << res << std::endl;
+    }
+    catch (const std::exception &e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+    }
+
+    stream.socket().shutdown(tcp::socket::shutdown_both);
 }
 
 } // namespace voip

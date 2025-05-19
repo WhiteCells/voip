@@ -1,7 +1,7 @@
 #ifndef _VCALL_H_
 #define _VCALL_H_
 
-#include "vaudiomediaport.h"
+// #include "vaudiomediaport.h"
 #include <pjsua2.hpp>
 #include <string>
 #include <memory>
@@ -9,7 +9,7 @@
 namespace voip {
 
 class VAccount;
-class VAudioMediaPort;
+// class VAudioMediaPort;
 
 class Caller : public pj::Call
 {
@@ -29,12 +29,14 @@ public:
 
 private:
     VAccount &acc_;
-    std::shared_ptr<VAudioMediaPort> aud_media_port_;
+    // std::shared_ptr<VAudioMediaPort> aud_media_port_;
 
     std::shared_ptr<pj::AudioMediaRecorder> aud_media_recorder_;
 
     pj::AudioMedia cap_dev_med_;
     pj::AudioMedia play_dev_med_;
+
+    std::string m_phone;
 };
 
 } // namespace voip

@@ -1,5 +1,4 @@
 #include <pjsua2.hpp>
-#include <vector>
 #include <string>
 
 namespace voip {
@@ -22,10 +21,17 @@ public:
     // 呼入
     // virtual void onIncomingCall(pj::OnIncomingCallParam &iprm) override;
 
-    // voip::Caller *cur_call = nullptr;
+    std::string getUser() const { return m_user; };
+    std::string getPass() const { return m_pass; };
+    std::string getHost() const { return m_host; };
 
+private:
     pj::AuthCredInfo m_auth_cred_info;
     pj::AccountConfig m_acc_cfg;
+
+    std::string m_user;
+    std::string m_pass;
+    std::string m_host;
 };
 
 } // namespace voip

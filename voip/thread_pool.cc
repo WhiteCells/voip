@@ -15,7 +15,8 @@ ThreadPool::~ThreadPool()
 //     return pool;
 // }
 
-ThreadPool::ThreadPool(std::size_t size)
+ThreadPool::ThreadPool(std::size_t size) :
+    m_running(true)
 {
     for (std::size_t i = 0; i < size; ++i) {
         m_threads.emplace_back([this]() {

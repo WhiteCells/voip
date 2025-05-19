@@ -1,6 +1,7 @@
 #include "caller.h"
 #include "vaccount.h"
-#include "vaudiomediaport.h"
+#include "request.hpp"
+// #include "vaudiomediaport.h"
 
 #include <pjsua2/call.hpp>
 #include <iostream>
@@ -8,12 +9,12 @@
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
     acc_(acc),
-    aud_media_port_(std::make_shared<VAudioMediaPort>()),
+    // aud_media_port_(std::make_shared<VAudioMediaPort>()),
     aud_media_recorder_(std::make_shared<pj::AudioMediaRecorder>())
 {
-    pj::MediaFormatAudio fmt;
-    fmt.init(PJMEDIA_FORMAT_PCM, 16000, 1, 20000, 16);
-    aud_media_port_->createPort("aud_media_port_", fmt);
+    // pj::MediaFormatAudio fmt;
+    // fmt.init(PJMEDIA_FORMAT_PCM, 16000, 1, 20000, 16);
+    // aud_media_port_->createPort("aud_media_port_", fmt);
 
     pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
     cap_dev_med_ = mgr.getCaptureDevMedia();
@@ -33,8 +34,10 @@ voip::Caller::~Caller()
 
 void voip::Caller::call(const std::string &phone)
 {
+    m_phone = phone;
     aud_media_recorder_->createRecorder(phone + ".wav");
-    const std::string dst_uri = "";
+    const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
+    std::cout << dst_uri << std::endl;
     const pj::CallOpParam prm {true};
     this->makeCall(dst_uri, prm);
 }
@@ -51,13 +54,21 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 
     switch (ci.state) {
         case PJSIP_INV_STATE_CALLING:
+            std::cout << ">>> call" << ci.id << " calling" << std::endl;
             break;
-        case PJSIP_INV_STATE_DISCONNECTED:
-            std::cout << ">>> call " << ci.id << " disconnected." << std::endl;
-            break;
-        case PJSIP_INV_STATE_CONFIRMED:
+        case PJSIP_INV_STATE_CONFIRMED: {
             std::cout << ">>> call " << ci.id << " connected/Confirmed." << std::endl;
+            // 挂断电话
+            pj::CallOpParam prm;
+            this->hangup(prm);
             break;
+        }
+        case PJSIP_INV_STATE_DISCONNECTED: {
+            std::cout << ">>> call " << ci.id << " disconnected." << std::endl;
+            // 推送文件
+            voip::pushFile(m_phone + ".wav", "00001");
+            break;
+        }
         default:
             break;
     }

@@ -23,11 +23,12 @@ set(SRC
     handler.cc
     singleton.hpp
     thread_pool.cc
-    vaudiomediaport.cc
+    logger.cc
     main.cc
 )
 
-include_directories(${PROJECT_SOURCE_DIR})
+find_package(Boost REQUIRED COMPONENTS log)
+include_directories(${Boost_INCLUDE_DIRS})
 
 # add_library(${PROJECT_NAME}_lib STATIC
 #     ${SRC}
@@ -37,6 +38,7 @@ add_executable(${PROJECT_NAME} ${SRC})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     jsoncpp
+    ${Boost_LIBRARIES}
     pjsua2-x86_64-pc-linux-gnu 
     pjsua-x86_64-pc-linux-gnu 
     pjsip-ua-x86_64-pc-linux-gnu 

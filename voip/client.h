@@ -6,6 +6,8 @@
 #include "dialplan_queue.h"
 
 #include <string>
+#include <vector>
+#include <memory>
 
 class Client
 {
@@ -32,11 +34,11 @@ private:
     // 异步心跳，客户端状态
     void heartbeat();
 
-    // 异步推送音频文件，失败后需要重试
-    void pushFile();
+    // 异步推送音频文件
+    void pushFile(const std::string &file_path, const std::string &target);
 
     // 异步推送呼叫状态
-    void pushDialStatus();
+    void pushDialStatus(const std::string &dial, const std::string &status);
 
 private:
     void callTask();
@@ -46,6 +48,8 @@ private:
     CallerQueue m_caller_que;
     DialPlanQueue m_dialplan_que;
     std::string m_client_id;
+
+    std::vector<std::shared_ptr<voip::VAccount>> m_vacc_vec;
 };
 
 #endif // _CLIENT_H_

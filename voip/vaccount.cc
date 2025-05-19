@@ -1,16 +1,19 @@
 #include "vaccount.h"
 #include "caller.h"
-#include "request.hpp"
+// #include "request.hpp"
 
 #include <iostream>
 
 voip::VAccount::VAccount(
     const std::string &user,
     const std::string &pass,
-    const std::string &host)
+    const std::string &host) :
+    m_user(user),
+    m_pass(pass),
+    m_host(host)
 {
     m_auth_cred_info = pj::AuthCredInfo("digest", "*",
-                                       user, 0, pass);
+                                        user, 0, pass);
     m_acc_cfg.idUri = "sip:" + user + "@" + host;
     m_acc_cfg.regConfig.registrarUri = "sip:" + host;
     m_acc_cfg.sipConfig.authCreds.push_back(m_auth_cred_info);
@@ -31,8 +34,8 @@ void voip::VAccount::onRegState(pj::OnRegStateParam &prm)
               << " reason=" << prm.reason
               << " (" << ai.uri << ")"
               << std::endl;
-    
-    voip::httpRequest("127.0.0.1", "5000", "/reg_status", http::verb::post);
+
+    // voip::httpRequest("127.0.0.1", "5000", "/status", http::verb::post);
 }
 
 // void voip::VAccount::onIncomingCall(pj::OnIncomingCallParam &iprm)

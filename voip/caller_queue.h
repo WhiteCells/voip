@@ -14,7 +14,6 @@ class CallerQueue
 {
     using CallerUPtr = std::unique_ptr<voip::Caller>;
     using AccountUPtr = std::unique_ptr<voip::VAccount>;
-    // using AsyncTimerSPtr = std::shared_ptr<AsyncTimer>;
 
 public:
     CallerQueue();
@@ -23,6 +22,8 @@ public:
     void addCaller(CallerUPtr caller);
     CallerUPtr getCaller();
     void releaseCaller(CallerUPtr vcall);
+
+    unsigned size() const { return m_que.size(); }
 
 private:
     std::queue<CallerUPtr> m_que;
