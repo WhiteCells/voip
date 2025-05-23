@@ -3,9 +3,9 @@
 #include "async_timer.h"
 #include "request.hpp"
 #include "thread_pool.h"
-// #include "ini.h"
 #include "global.h"
 #include "logger.h"
+#include "vaccount.h"
 
 #include <boost/beast.hpp>
 #include <json/json.h>
@@ -20,13 +20,14 @@ namespace json = Json;
 using tcp = asio::ip::tcp;
 
 Client::Client(unsigned workers_num) :
-    m_thread_pool(workers_num)
+    m_running(true),
+    m_thread_pool(workers_num) // todo thread_num
 {
     notify();
     pullAccount();
     pullDialplan();
     heartbeat();
-    for (unsigned i = 0; i < workers_num; ++i) {
+    for (unsigned i = 0; i < 2; ++i) {
         std::cout << "[addTask]" << std::endl;
         m_thread_pool.addTask(std::bind(&Client::callTask, this));
     }
@@ -34,34 +35,42 @@ Client::Client(unsigned workers_num) :
 
 Client::~Client()
 {
+    m_running = false;
 }
 
 void Client::notify()
 {
     std::cout << "[notify]" << std::endl;
     auto target_url = "/notify";
+    std::cout << backend_host << ":" << backend_port << std::endl;
+
     auto resp = voip::httpRequest(
         backend_host, backend_port, target_url, http::verb::post);
 
     std::cout << "Response: " << resp.toStyledString() << std::endl;
+    Logger::info("{} client connect backend: {}:{}", __FUNCTION__, backend_host, backend_port);
 
     // resp::code
     if (!resp.isMember("code") || !resp["code"].isInt() || resp["code"] != 200) {
         std::cerr << "code Invalid response format" << std::endl;
+        Logger::error("{} resp::code", __FUNCTION__);
         return;
     }
     // resp::data
     if (!resp.isMember("data") || !resp["data"].isObject()) {
         std::cerr << "data Invalid response format" << std::endl;
+        Logger::error("{} resp::data", __FUNCTION__);
         return;
     }
-    const json::Value data = resp["data"];
+    const json::Value &data = resp["data"];
     if (!data.isMember("clientId") || !data["clientId"].isString()) {
         std::cerr << "data Invalid response format" << std::endl;
+        Logger::error("{} resp::data::clientId", __FUNCTION__);
         return;
     }
     m_client_id = data["clientId"].asString();
     std::cerr << "[client]: " << m_client_id << std::endl;
+    Logger::info("{} current client ID: {}", __FUNCTION__, m_client_id);
 }
 
 /*
@@ -86,28 +95,31 @@ void Client::pullAccount()
         http::verb::get, params);
 
     std::cout << "Response: " << resp.toStyledString() << std::endl;
+    Logger::info("{} client pull Account {}", __FUNCTION__, resp.toStyledString());
 
     std::cout << target_url << std::endl;
     std::cout << resp.toStyledString() << std::endl;
 
     // resp::code
     if (!resp.isMember("code") || resp["code"].asInt() != 200) {
-        LOG_ERROR("Client::pullAccount failed: Invalid response format");
         std::cerr << "code Client::pullAccount failed: Invalid response format" << std::endl;
+        Logger::error("{} resp::code", __FUNCTION__);
         return;
     }
     // resp::data
     const json::Value &data = resp["data"];
     if (!data.isMember("accounts") || !data["accounts"].isArray()) {
-        LOG_ERROR("Client::pullAccount failed: Invalid response format");
         std::cerr << "accounts Client::pullAccount failed: Invalid response format" << std::endl;
+        Logger::error("{} resp::data", __FUNCTION__);
         return;
     }
     // resp::data::accounts
     const json::Value &accounts = data["accounts"];
+    m_caller_que = std::make_shared<CallerQueue>();
     for (const auto &acc : accounts) {
         if (!acc.isMember("user") || !acc.isMember("pass") || !acc.isMember("host")) {
             std::cerr << "acc Client::pullAccount failed: Invalid response format" << std::endl;
+            Logger::error("{} pull Account failed", __FUNCTION__);
             continue;
         }
         // 创建 VAccount
@@ -118,12 +130,13 @@ void Client::pullAccount()
         // 防止 vaccount 回收
         m_vacc_vec.push_back(vaccount);
         // 创建 Caller
-        auto caller = std::make_unique<voip::Caller>(*vaccount);
+        auto caller = std::make_shared<voip::Caller>(*vaccount);
         // 更新 m_caller_que
-        m_caller_que.addCaller(std::move(caller));
+        m_caller_que->addCaller(caller);
     }
 
-    std::cout << "caller que size: " << m_caller_que.size() << std::endl;
+    std::cout << "caller que size: " << m_caller_que->size() << std::endl;
+    Logger::info("{} caller que size: {}", __FUNCTION__, m_caller_que->size());
 }
 
 void Client::pushRegStatus()
@@ -143,25 +156,30 @@ void Client::pushRegStatus()
  */
 void Client::pullDialplan()
 {
+    std::cout << ">>> pullDialplan" << std::endl;
     auto target_url = "/dialplans/" + m_client_id;
     auto resp = voip::httpRequest(
         backend_host, backend_port, target_url, http::verb::get);
 
     std::cout << "Response: " << resp.toStyledString() << std::endl;
+    Logger::info("{} pull dialplan: {}", __FUNCTION__, resp.toStyledString());
 
     // resp::code
     if (!resp.isMember("code") || resp["code"] != 200) {
         std::cerr << "Client::pullDialplan failed: Invalid response format" << std::endl;
+        Logger::error("{} resp::code", __FUNCTION__);
         return;
     }
     // resp::data
     if (!resp.isMember("data")) {
         std::cerr << "Client::pullDialplan failed: Invalid response format" << std::endl;
+        Logger::error("{} resp::data", __FUNCTION__);
         return;
     }
     const json::Value data = resp["data"];
     if (!data.isMember("dialplans") || !data["dialplans"].isArray()) {
         std::cerr << "Invalid response format" << std::endl;
+        Logger::error("{} resp::data::dialplans", __FUNCTION__);
         return;
     }
     // resp::data::dialplans
@@ -169,6 +187,7 @@ void Client::pullDialplan()
     for (const auto &dialplan : dialplans) {
         if (!dialplan.isString()) {
             std::cerr << "Invalid dialplan format" << std::endl;
+            Logger::error("{} resp::data::dialplans format", __FUNCTION__);
             continue;
         }
         std::string phone_num = dialplan.asString();
@@ -177,6 +196,7 @@ void Client::pullDialplan()
     }
 
     std::cout << "dialplan que size: " << m_dialplan_que.size() << std::endl;
+    Logger::info("{} dialplan que size: {}", __FUNCTION__, m_dialplan_que.size());
 }
 
 void Client::heartbeat()
@@ -185,9 +205,16 @@ void Client::heartbeat()
     auto timer = std::make_shared<AsyncTimer>(ioc, std::chrono::seconds {5});
     auto target_url = "/heartbeat/" + m_client_id;
     timer->start([timer, target_url]() {
-        auto resp = voip::httpRequest(
-            backend_host, backend_port, target_url, http::verb::post);
-        std::cout << "heartbeat" << std::endl;
+        try {
+            auto resp = voip::httpRequest(
+                backend_host, backend_port, target_url, http::verb::post);
+            std::cout << "heartbeat" << std::endl;
+            Logger::info("Client send heartbeat");
+        }
+        catch (const std::exception &e) {
+            std::cout << "Exception: " << e.what() << std::endl;
+            Logger::warn("Client send heartbeat Exception: {}", e.what());
+        }
     });
 }
 
@@ -236,6 +263,7 @@ void Client::pushFile(const std::string &file_path, const std::string &target)
     }
     catch (const std::exception &e) {
         std::cerr << "Exception: " << e.what() << std::endl;
+        Logger::warn("Client send file Exception: {}", e.what());
     }
 
     stream.socket().shutdown(tcp::socket::shutdown_both);
@@ -259,17 +287,17 @@ void Client::pushDialStatus(const std::string &dial, const std::string &status)
 
 void Client::callTask()
 {
-    while (true) {
+    while (m_running) {
         std::cout << ">>> [callTask]: " << __FUNCTION__ << std::endl;
-        auto caller = m_caller_que.getCaller();
+        // 这里可能出现竟态
+        auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que.getDialPlan();
         std::cout << "<<< [callTask]: " << __FUNCTION__ << std::endl;
-        // std::cout << caller.get
         std::cout << "[Dialplan]: " << dialplan << std::endl;
         if (caller && !dialplan.empty()) {
             std::cout << "[callTask]" << std::endl;
-            caller->call(dialplan);
-            m_caller_que.releaseCaller(std::move(caller));
+            caller->call(dialplan, m_caller_que, caller);
+            // m_caller_que->releaseCaller(std::move(caller));
         }
     }
 }

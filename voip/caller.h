@@ -6,6 +6,8 @@
 #include <string>
 #include <memory>
 
+class CallerQueue;
+
 namespace voip {
 
 class VAccount;
@@ -17,7 +19,7 @@ public:
     Caller(VAccount &acc, int call_id = PJSUA_INVALID_ID);
     ~Caller();
 
-    void call(const std::string &phone);
+    void call(const std::string &phone, std::shared_ptr<CallerQueue> que, std::shared_ptr<Caller> caller);
 
     // 呼叫状态改变
     virtual void onCallState(pj::OnCallStateParam &prm) override;
@@ -33,10 +35,12 @@ private:
 
     std::shared_ptr<pj::AudioMediaRecorder> aud_media_recorder_;
 
-    pj::AudioMedia cap_dev_med_;
-    pj::AudioMedia play_dev_med_;
+    // pj::AudioMedia cap_dev_med_;
+    // pj::AudioMedia play_dev_med_;
 
     std::string m_phone;
+    std::shared_ptr<CallerQueue> m_que;
+    std::shared_ptr<Caller> m_caller;
 };
 
 } // namespace voip

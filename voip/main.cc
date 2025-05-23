@@ -8,12 +8,12 @@
 
 int main()
 {
-    // config
-    voip::loadINICfg(".env");
-
     // logger
-    Logger::getInstance().init("./log/voip_client_log", Logger::Level::Info);
-    LOG_INFO("client start");
+    Logger::init();
+    Logger::info("client start");
+
+    // config
+    loadINICfg();
 
     // endpoint
     startEndpointLib(5060);

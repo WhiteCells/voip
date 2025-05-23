@@ -9,7 +9,7 @@
 #include <vector>
 #include <memory>
 
-class Client
+class Client : public std::enable_shared_from_this<Client>
 {
 public:
     Client(unsigned workers_num = std::thread::hardware_concurrency());
@@ -44,8 +44,9 @@ private:
     void callTask();
 
 private:
+    std::atomic<bool> m_running;
     ThreadPool m_thread_pool;
-    CallerQueue m_caller_que;
+    std::shared_ptr<CallerQueue> m_caller_que;
     DialPlanQueue m_dialplan_que;
     std::string m_client_id;
 

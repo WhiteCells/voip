@@ -1,10 +1,7 @@
-cmake_minimum_required(VERSION 3.10)
-project(voip)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory(third_party/jsoncpp)
+# add_subdirectory(third_party/jsoncpp)
 # add_subdirectory(tests)
 
 set(SRC 
@@ -29,6 +26,7 @@ set(SRC
 
 find_package(Boost REQUIRED COMPONENTS log)
 include_directories(${Boost_INCLUDE_DIRS})
+include_directories(/usr/include/jsoncpp)
 
 # add_library(${PROJECT_NAME}_lib STATIC
 #     ${SRC}
@@ -37,6 +35,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME} ${SRC})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+    spdlog::spdlog_header_only
     jsoncpp
     ${Boost_LIBRARIES}
     pjsua2-x86_64-pc-linux-gnu 
@@ -63,12 +62,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ssl 
     crypto 
     vpx 
-    openh264 
-    stdc++ 
     upnp 
     ixml 
     uuid 
-    m 
     rt 
     pthread  
     asound 

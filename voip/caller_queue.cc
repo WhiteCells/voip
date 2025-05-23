@@ -1,6 +1,8 @@
 #include "caller_queue.h"
+#include "vaccount.h"
 
 #include <pjsua2.hpp>
+#include <iostream>
 
 CallerQueue::CallerQueue()
 {
@@ -10,14 +12,16 @@ CallerQueue::~CallerQueue()
 {
 }
 
-void CallerQueue::addCaller(CallerUPtr caller)
+void CallerQueue::addCaller(CallerSPtr caller)
 {
-    std::unique_lock<std::mutex> lock(m_que_mtx);
-    m_que.push(std::move(caller));
+    {
+        std::unique_lock<std::mutex> lock(m_que_mtx);
+        m_que.push(caller);
+    }
     m_que_cv.notify_one();
 }
 
-CallerQueue::CallerUPtr CallerQueue::getCaller()
+CallerQueue::CallerSPtr CallerQueue::getCaller()
 {
     std::unique_lock<std::mutex> lock(m_que_mtx);
     m_que_cv.wait(lock, [this]() {
@@ -28,9 +32,12 @@ CallerQueue::CallerUPtr CallerQueue::getCaller()
     return vcall;
 }
 
-void CallerQueue::releaseCaller(CallerUPtr caller)
+void CallerQueue::releaseCaller(CallerSPtr caller)
 {
-    std::unique_lock<std::mutex> lock(m_que_mtx);
-    m_que.push(std::move(caller));
+    {
+        std::unique_lock<std::mutex> lock(m_que_mtx);
+        m_que.push(caller);
+        std::cout << "---------- release Caller ----------" << std::endl;
+    }
     m_que_cv.notify_one();
 }

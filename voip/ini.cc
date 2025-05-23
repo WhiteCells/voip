@@ -1,13 +1,8 @@
 #include "ini.h"
+#include "global.h"
 
 #include <string>
 #include <fstream>
-
-// voip::cfg_map cfg;
-
-namespace voip {
-cfg_map cfg;
-}
 
 std::string trimSpace(const std::string &str)
 {
@@ -24,11 +19,13 @@ std::string trimSpace(const std::string &str)
     return str.substr(start, end - start + 1);
 }
 
-void voip::loadINICfg(const std::string &filename)
+void loadINICfg(const std::string &filename)
 {
     std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error{"load ini file failed"};
+    }
     std::string line;
-    // voip::cfg_map cfg;
 
     while (std::getline(file, line)) {
         line = trimSpace(line);
@@ -49,4 +46,7 @@ void voip::loadINICfg(const std::string &filename)
             //           << "val: " << val << "\n";
         }
     }
+
+    backend_host = cfg["BACKEND_HOST"];
+    backend_port = cfg["BACKEND_PORT"];
 }

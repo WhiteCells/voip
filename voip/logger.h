@@ -1,50 +1,109 @@
 #ifndef _LOGGER_H_
 #define _LOGGER_H_
 
-#include <boost/log/trivial.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/sources/global_logger_storage.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/sinks/async_frontend.hpp>
-#include <boost/log/sinks/text_file_backend.hpp>
-#include <boost/log/attributes/timer.hpp>
-#include <boost/log/attributes/clock.hpp>
-#include <boost/log/attributes/scoped_attribute.hpp>
-#include <boost/shared_ptr.hpp>
-#include <string>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/async.h>
+#include <spdlog/async_logger.h>
+#include <memory>
+#include <vector>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+// #include <mutex>
 
 class Logger
 {
 public:
-    enum class Level {
-        Trace = boost::log::trivial::trace,
-        Debug = boost::log::trivial::debug,
-        Info = boost::log::trivial::info,
-        Warn = boost::log::trivial::warning,
-        Error = boost::log::trivial::error,
-        Fatal = boost::log::trivial::fatal
-    };
+    static void init(
+        std::string title = "logger",
+        unsigned que_size = 8192,
+        unsigned thread_cnt = 1,
+        const std::string &log_dir = "logs",
+        unsigned max_byte = 1048576 * 5,
+        unsigned max_save = 3)
+    {
+        spdlog::init_thread_pool(que_size, thread_cnt);
 
-    static Logger &getInstance();
+        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        console_sink->set_pattern("[%H:%M:%S %z] [%^%L%$] %v");
 
-    void init(const std::string &logFile, Level level);
-    void setLogLevel(Level level);
-    void log(Level level, const std::string &message);
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::tm tm_now;
+
+#if defined(_WIN32)
+        localtime_s(&tm_now, &now_c);
+#else
+        localtime_r(&now_c, &tm_now);
+#endif
+        std::ostringstream oss;
+        oss << log_dir << "/"
+            << title << "_"
+            << std::put_time(&tm_now, "%Y-%m-%d_%H-%M-%S") << ".log";
+        std::string log_path = oss.str();
+
+        auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(log_path, max_byte, max_save);
+
+        std::vector<spdlog::sink_ptr> sinks {console_sink, file_sink};
+
+        logger = std::make_shared<spdlog::async_logger>(
+            title,
+            sinks.begin(), sinks.end(),
+            spdlog::thread_pool(),
+            spdlog::async_overflow_policy::block);
+
+        spdlog::register_logger(logger);
+        logger->set_level(spdlog::level::debug);
+        logger->flush_on(spdlog::level::info);
+    }
+
+    template <typename... Args>
+    static void debug(Args &&...args)
+    {
+        get()->debug(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    static void info(Args &&...args)
+    {
+        get()->info(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    static void warn(Args &&...args)
+    {
+        get()->warn(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    static void error(Args &&...args)
+    {
+        get()->error(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    static void critical(Args &&...args)
+    {
+        get()->critical(std::forward<Args>(args)...);
+    }
 
 private:
-    Logger() = default;
-    void configureSinks(const std::string &logFile, Level level);
+    static std::shared_ptr<spdlog::logger> get()
+    {
+        // std::call_once(init_flag, []() {
+        //     init();
+        // });
+        return logger;
+    }
 
-    boost::log::sources::severity_logger<boost::log::trivial::severity_level> logger_;
+private:
+    static std::shared_ptr<spdlog::logger> logger;
+    // static std::once_flag init_flag;
 };
 
-#define LOG_TRACE(msg) Logger::getInstance().log(Logger::Level::Trace, msg)
-#define LOG_DEBUG(msg) Logger::getInstance().log(Logger::Level::Debug, msg)
-#define LOG_INFO(msg)  Logger::getInstance().log(Logger::Level::Info, msg)
-#define LOG_WARN(msg)  Logger::getInstance().log(Logger::Level::Warn, msg)
-#define LOG_ERROR(msg) Logger::getInstance().log(Logger::Level::Error, msg)
-#define LOG_FATAL(msg) Logger::getInstance().log(Logger::Level::Fatal, msg)
+// std::once_flag Logger::init_flag;
 
-#endif // LOGGER_H
+#endif // _LOGGER_H_

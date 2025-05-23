@@ -12,8 +12,10 @@ DialPlanQueue::~DialPlanQueue()
 
 void DialPlanQueue::addDialPlan(const std::string &dialplan)
 {
-    std::unique_lock<std::mutex> lock {m_que_mtx};
-    m_que.push(dialplan);
+    {
+        std::unique_lock<std::mutex> lock {m_que_mtx};
+        m_que.push(dialplan);
+    }
     m_que_cv.notify_one();
 }
 
@@ -38,8 +40,10 @@ std::string DialPlanQueue::getDialPlan()
 
 void DialPlanQueue::releaseDialPlan(const std::string &dialplan)
 {
-    std::unique_lock<std::mutex> lock {m_que_mtx};
-    m_que.push(dialplan);
+    {
+        std::unique_lock<std::mutex> lock {m_que_mtx};
+        m_que.push(dialplan);
+    }
     m_que_cv.notify_one();
 }
 

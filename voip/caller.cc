@@ -1,7 +1,8 @@
 #include "caller.h"
 #include "vaccount.h"
 #include "request.hpp"
-// #include "vaudiomediaport.h"
+#include "caller_queue.h"
+#include "logger.h"
 
 #include <pjsua2/call.hpp>
 #include <iostream>
@@ -16,9 +17,9 @@ voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     // fmt.init(PJMEDIA_FORMAT_PCM, 16000, 1, 20000, 16);
     // aud_media_port_->createPort("aud_media_port_", fmt);
 
-    pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
-    cap_dev_med_ = mgr.getCaptureDevMedia();
-    play_dev_med_ = mgr.getPlaybackDevMedia();
+    // pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
+    // cap_dev_med_ = mgr.getCaptureDevMedia();
+    // play_dev_med_ = mgr.getPlaybackDevMedia();
 }
 
 voip::Caller::~Caller()
@@ -32,9 +33,11 @@ voip::Caller::~Caller()
     // }
 }
 
-void voip::Caller::call(const std::string &phone)
+void voip::Caller::call(const std::string &phone, std::shared_ptr<CallerQueue> que, std::shared_ptr<Caller> caller)
 {
     m_phone = phone;
+    m_que = que;
+    m_caller = caller;
     aud_media_recorder_->createRecorder(phone + ".wav");
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     std::cout << dst_uri << std::endl;
@@ -55,18 +58,23 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     switch (ci.state) {
         case PJSIP_INV_STATE_CALLING:
             std::cout << ">>> call" << ci.id << " calling" << std::endl;
+            Logger::info("calling: {}", m_phone);
             break;
         case PJSIP_INV_STATE_CONFIRMED: {
             std::cout << ">>> call " << ci.id << " connected/Confirmed." << std::endl;
             // 挂断电话
             pj::CallOpParam prm;
             this->hangup(prm);
+            Logger::info("hangup: {}", m_phone);
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
             std::cout << ">>> call " << ci.id << " disconnected." << std::endl;
             // 推送文件
             voip::pushFile(m_phone + ".wav", "00001");
+            // 回收
+            m_que->releaseCaller(m_caller);
+            Logger::info("phone: {} disconnected", m_phone);
             break;
         }
         default:
@@ -88,21 +96,6 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
         if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
             std::cout << "=== used media index: " << i << std::endl;
             aud_med = (pj::AudioMedia *)getMedia(i);
-            // if (ci.media[i].status == PJSUA_CALL_MEDIA_ACTIVE) {
-            //     // 正常通话逻辑
-            //     // cap_dev_med_.startTransmit(aud_med);
-            //     // aud_med.startTransmit(play_dev_med_);
-            //     aud_med->startTransmit(*aud_media_recorder_);
-            //     // aud_med.startTransmit(*aud_media_port_);
-            //     // cap_dev_med_.startTransmit(*aud_media_port_);
-            //     // play_dev_med_.startTransmit(*aud_media_port_);
-            //     // cap_dev_med_.startTransmit(aud_med);
-            //     // aud_med.startTransmit(*aud_media_port_);
-            //     // aud_med.startTransmit(play_dev_med);
-            //     // cap_dev_med_.startTransmit(*aud_media_recorder_);
-            //     // aud_media_port_->startTransmit(cap_dev_med_);
-            //     // play_dev_med.startTransmit(*aud_media_recorder_);
-            // }
         }
     }
     aud_med->startTransmit(*aud_media_recorder_);
