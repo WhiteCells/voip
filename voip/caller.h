@@ -19,7 +19,11 @@ public:
     Caller(VAccount &acc, int call_id = PJSUA_INVALID_ID);
     ~Caller();
 
-    void call(const std::string &phone, std::shared_ptr<CallerQueue> que, std::shared_ptr<Caller> caller);
+    void call(
+        const std::string &phone,
+        const std::string &client_id,
+        std::shared_ptr<CallerQueue> que = nullptr,
+        std::shared_ptr<Caller> caller = nullptr);
 
     // 呼叫状态改变
     virtual void onCallState(pj::OnCallStateParam &prm) override;
@@ -39,6 +43,7 @@ private:
     // pj::AudioMedia play_dev_med_;
 
     std::string m_phone;
+    std::string m_client_id;
     std::shared_ptr<CallerQueue> m_que;
     std::shared_ptr<Caller> m_caller;
 };

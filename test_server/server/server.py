@@ -44,7 +44,7 @@ def dialplans(clientId: str):
         "msg": "success",
         "data": {
             "dialplans": [
-                "18871357225", 
+                # "818871357225", 
                 # "13329715728",
                 # "13385281976",
 
@@ -65,12 +65,12 @@ def dialplans(clientId: str):
                 # "13661601089",
                 # "13171378333", # 空号没有提示音
 
-                # "813831662418",
-                # "818252353555",
-                # "818434050770",
-                # "818648184069",
-                # "813661601089",
-                # "813171378333",
+                "813831662418",
+                "818252353555",
+                "818434050770",
+                "818648184069",
+                "813661601089",
+                "813171378333",
 
                 # "100613831662418",
                 # "100618252353555",
@@ -107,6 +107,44 @@ def heartbeat(clientId: str):
         }
     })
 
+"""
+{
+    "user": ""
+    "status": "" // enum
+}
+"""
+@app.route("/reg_status/<clientId>", methods=["POST"])
+def reg_status(clientId: str):
+    data = request.get_json()
+    print(data)
+    print(clientId)
+    return jsonify({
+        "code": 200,
+        "msg": "success",
+        "data": {
+            "timestamp": int(time.time())
+        }
+    })
+
+"""
+{
+    "phoneNum": ""
+    "status": "" // enum
+}
+"""
+@app.route("/dial_status/<clientId>", methods=["POST"])
+def dial_status(clientId: str):
+    data = request.get_json()
+    print(data)
+    print(clientId)
+    return jsonify({
+        "code": 200,
+        "msg": "success",
+        "data": {
+            "timestamp": int(time.time())
+        }
+    })
+
 @app.route("/status/<clientId>", methods=["POST"])
 def status(clientId: str):
     print(clientId)
@@ -120,6 +158,8 @@ def status(clientId: str):
 
 @app.route('/dial_wav/<clientId>', methods=['POST'])
 def upload_file(clientId: str):
+    data = request.get_json()
+    print(data)
     print(clientId)
     filename = request.headers.get('filename')
     if not filename:

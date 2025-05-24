@@ -1,6 +1,7 @@
 #include "vaccount.h"
 #include "caller.h"
-// #include "request.hpp"
+#include "request.hpp"
+#include "global.h"
 
 #include <iostream>
 
@@ -29,13 +30,8 @@ voip::VAccount::~VAccount()
 void voip::VAccount::onRegState(pj::OnRegStateParam &prm)
 {
     pj::AccountInfo ai = getInfo();
-    std::cout << (ai.regIsActive ? ">>> Registered:" : ">>> Unregistered:")
-              << " code=" << prm.code
-              << " reason=" << prm.reason
-              << " (" << ai.uri << ")"
-              << std::endl;
-
-    // voip::httpRequest("127.0.0.1", "5000", "/status", http::verb::post);
+    LOG_INFO("code: {} reason: {} {}", prm.code, prm.reason, ai.uri);
+    voip::pushRegStatus(m_user, REG_STATE::SUCCESSED, "todo");
 }
 
 // void voip::VAccount::onIncomingCall(pj::OnIncomingCallParam &iprm)

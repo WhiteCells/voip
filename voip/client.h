@@ -12,7 +12,7 @@
 class Client : public std::enable_shared_from_this<Client>
 {
 public:
-    Client(unsigned workers_num = std::thread::hardware_concurrency());
+    Client(unsigned workers_num = 1 /*std::thread::hardware_concurrency()*/);
     ~Client();
 
 private:
@@ -35,10 +35,10 @@ private:
     void heartbeat();
 
     // 异步推送音频文件
-    void pushFile(const std::string &file_path, const std::string &target);
+    // void pushFile(const std::string &file_path, const std::string &target);
 
     // 异步推送呼叫状态
-    void pushDialStatus(const std::string &dial, const std::string &status);
+    // void pushDialStatus(const std::string &dial, const std::string &status);
 
 private:
     void callTask();
@@ -51,6 +51,8 @@ private:
     std::string m_client_id;
 
     std::vector<std::shared_ptr<voip::VAccount>> m_vacc_vec;
+
+    std::shared_ptr<voip::Caller> m_caller;
 };
 
 #endif // _CLIENT_H_

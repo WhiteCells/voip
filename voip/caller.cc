@@ -3,6 +3,8 @@
 #include "request.hpp"
 #include "caller_queue.h"
 #include "logger.h"
+#include "request.hpp"
+#include "global.h"
 
 #include <pjsua2/call.hpp>
 #include <iostream>
@@ -33,9 +35,14 @@ voip::Caller::~Caller()
     // }
 }
 
-void voip::Caller::call(const std::string &phone, std::shared_ptr<CallerQueue> que, std::shared_ptr<Caller> caller)
+void voip::Caller::call(
+    const std::string &phone,
+    const std::string &client_id,
+    std::shared_ptr<CallerQueue> que,
+    std::shared_ptr<Caller> caller)
 {
     m_phone = phone;
+    m_client_id = client_id;
     m_que = que;
     m_caller = caller;
     aud_media_recorder_->createRecorder(phone + ".wav");
@@ -48,33 +55,44 @@ void voip::Caller::call(const std::string &phone, std::shared_ptr<CallerQueue> q
 void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 {
     PJ_UNUSED_ARG(prm);
+
     pj::CallInfo ci = getInfo();
-    std::cout << ">>> call " << ci.id << " state: " << ci.stateText;
+    LOG_INFO("call id: {} state: {}", ci.id, ci.stateText);
     if (!ci.lastReason.empty()) {
-        std::cout << " (reason: " << ci.lastReason << ")";
+        LOG_INFO("call failed reason: {}", ci.lastReason);
     }
     std::cout << std::endl;
 
     switch (ci.state) {
         case PJSIP_INV_STATE_CALLING:
             std::cout << ">>> call" << ci.id << " calling" << std::endl;
-            Logger::info("calling: {}", m_phone);
+            //
+            voip::pushDialStatus(
+                m_phone,
+                DIAL_STATE::DURING,
+                m_client_id);
+            LOG_INFO("calling: {}", m_phone);
             break;
         case PJSIP_INV_STATE_CONFIRMED: {
             std::cout << ">>> call " << ci.id << " connected/Confirmed." << std::endl;
             // 挂断电话
             pj::CallOpParam prm;
             this->hangup(prm);
-            Logger::info("hangup: {}", m_phone);
+            //
+            voip::pushDialStatus(
+                m_phone,
+                DIAL_STATE::CONFIRMED,
+                m_client_id);
+            LOG_INFO("hangup: {}", m_phone);
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
             std::cout << ">>> call " << ci.id << " disconnected." << std::endl;
             // 推送文件
             voip::pushFile(m_phone + ".wav", "00001");
-            // 回收
-            m_que->releaseCaller(m_caller);
-            Logger::info("phone: {} disconnected", m_phone);
+            // single 回收
+            // m_que->releaseCaller(m_caller);
+            LOG_INFO("phone: {} disconnected", m_phone);
             break;
         }
         default:
@@ -87,14 +105,14 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
     PJ_UNUSED_ARG(prm);
 
     pj::CallInfo ci = getInfo();
-    std::cout << ">>> call " << ci.id << " Media State Changed" << std::endl;
-    std::cout << "=== media.size(): " << ci.media.size() << std::endl;
+    LOG_INFO("call: {} Media State Changed", ci.id);
+    LOG_INFO("media size: {}", ci.media.size());
 
     pj::AudioMedia *aud_med;
 
     for (unsigned i = 0; i < ci.media.size(); ++i) {
         if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
-            std::cout << "=== used media index: " << i << std::endl;
+            LOG_INFO("used media index: {}", i);
             aud_med = (pj::AudioMedia *)getMedia(i);
         }
     }

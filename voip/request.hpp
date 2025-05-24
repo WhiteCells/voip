@@ -2,6 +2,7 @@
 #define _REQUEST_H_
 
 #include "io_context_pool.h"
+#include "logger.h"
 #include "global.h"
 
 #include <boost/asio.hpp>
@@ -84,8 +85,16 @@ inline json::Value httpRequest(
     return resp;
 }
 
+/*
+ * 目前只做简单的tcp文件传输
+ * todo:
+ *  1. 断点续传
+ *  2. 分片传输
+ */
 inline void pushFile(const std::string file_path, const std::string &client_id)
 {
+    const auto target_url = genUrl(URL_DIAL_WAV, client_id);
+
     auto &ioc = IOContextPool::getInstance()->getIOContext();
     tcp::resolver resolver(ioc);
     beast::tcp_stream stream(ioc);
@@ -95,19 +104,18 @@ inline void pushFile(const std::string file_path, const std::string &client_id)
 
     std::ifstream file(file_path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << file_path << std::endl;
+        LOG_WARN("Failed to open file: {}", file_path);
         return;
     }
 
     std::size_t file_size = file.tellg();
     if (file_size == 0) {
-        std::cerr << "File is empty: " << file_path << std::endl;
+        LOG_WARN("File is empty: {}", file_path);
         return;
     }
 
     file.seekg(0);
 
-    std::string target_url = "/dial_wav/" + client_id;
     http::request<http::dynamic_body> req {
         http::verb::post, target_url, 11};
     req.set(http::field::host, backend_host);
@@ -121,13 +129,46 @@ inline void pushFile(const std::string file_path, const std::string &client_id)
         beast::flat_buffer buffer_res;
         http::response<http::dynamic_body> res;
         http::read(stream, buffer_res, res);
-        std::cout << "Response: " << res << std::endl;
     }
     catch (const std::exception &e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        LOG_WARN("Exception: ", e.what());
     }
 
     stream.socket().shutdown(tcp::socket::shutdown_both);
+
+    LOG_INFO("Push file success");
+}
+
+inline void pushRegStatus(const std::string &user, REG_STATE state, const std::string &client_id)
+{
+    const auto target_url = genUrl(URL_REG_STATUS, client_id);
+
+    json::Value body_json;
+    body_json["user"] = user;
+    body_json["status"] = state;
+    json::StreamWriterBuilder writer;
+    writer["indentation"] = "";
+    std::string body = json::writeString(writer, body_json);
+    auto resp = voip::httpRequest(
+        backend_host, backend_port, target_url,
+        http::verb::post, {}, body);
+}
+
+inline void pushDialStatus(const std::string &phone_num, DIAL_STATE state, const std::string &client_id)
+{
+    const auto target_url = genUrl(URL_DIAL_STATUS, client_id);
+
+    // std::string body = R"({"phoneNum": "dial", "dialStatus": "status"})";
+    json::Value body_json;
+    body_json["phoneNum"] = phone_num;
+    body_json["status"] = state;
+    json::StreamWriterBuilder writer;
+    writer["indentation"] = "";
+    std::string body = json::writeString(writer, body_json);
+    auto resp = voip::httpRequest(
+        backend_host, backend_port, target_url,
+        http::verb::post, {}, body);
+    //
 }
 
 } // namespace voip

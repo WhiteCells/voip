@@ -10,7 +10,8 @@ int main()
 {
     // logger
     Logger::init();
-    Logger::info("client start");
+    // LOG_INFO("client start");
+    LOG_INFO("client start");
 
     // config
     loadINICfg();
