@@ -11,9 +11,9 @@
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
-    acc_(acc),
-    // aud_media_port_(std::make_shared<VAudioMediaPort>()),
-    aud_media_recorder_(std::make_shared<pj::AudioMediaRecorder>())
+    acc_(acc)
+// aud_media_port_(std::make_shared<VAudioMediaPort>()),
+// aud_media_recorder_(std::make_shared<pj::AudioMediaRecorder>())
 {
     // pj::MediaFormatAudio fmt;
     // fmt.init(PJMEDIA_FORMAT_PCM, 16000, 1, 20000, 16);
@@ -45,6 +45,8 @@ void voip::Caller::call(
     m_client_id = client_id;
     m_que = que;
     m_caller = caller;
+    aud_media_recorder_.reset();
+    aud_media_recorder_ = std::make_shared<pj::AudioMediaRecorder>();
     aud_media_recorder_->createRecorder(phone + ".wav");
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     std::cout << dst_uri << std::endl;

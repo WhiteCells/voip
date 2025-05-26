@@ -4,6 +4,7 @@
 #include "thread_pool.h"
 #include "caller_queue.h"
 #include "dialplan_queue.h"
+#include "caller_vec.h"
 
 #include <string>
 #include <vector>
@@ -41,7 +42,7 @@ private:
     // void pushDialStatus(const std::string &dial, const std::string &status);
 
 private:
-    void callTask();
+    void callTask(unsigned i);
 
 private:
     std::atomic<bool> m_running;
@@ -52,7 +53,8 @@ private:
 
     std::vector<std::shared_ptr<voip::VAccount>> m_vacc_vec;
 
-    std::shared_ptr<voip::Caller> m_caller;
+    // std::shared_ptr<voip::Caller> m_caller;
+    std::shared_ptr<CallerVec> m_caller_vec;
 };
 
 #endif // _CLIENT_H_

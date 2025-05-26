@@ -30,7 +30,7 @@ voip::VAccount::~VAccount()
 void voip::VAccount::onRegState(pj::OnRegStateParam &prm)
 {
     pj::AccountInfo ai = getInfo();
-    LOG_INFO("code: {} reason: {} {}", prm.code, prm.reason, ai.uri);
+    LOG_INFO("code: {} reason: {} {}", static_cast<int>(prm.code), prm.reason, ai.uri);
     voip::pushRegStatus(m_user, REG_STATE::SUCCESSED, "todo");
 }
 

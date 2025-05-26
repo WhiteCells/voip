@@ -41,3 +41,9 @@ void CallerQueue::releaseCaller(CallerSPtr caller)
     }
     m_que_cv.notify_one();
 }
+
+std::size_t CallerQueue::size() const
+{
+    std::unique_lock<std::mutex> lock(m_que_mtx);
+    return m_que.size();
+}

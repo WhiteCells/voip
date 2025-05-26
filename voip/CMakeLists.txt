@@ -9,6 +9,7 @@ set(SRC
     async_timer.cc
     dialplan_queue.cc
     caller_queue.cc
+    caller_vec.cc
     caller.cc
     vaccount.cc
     client.cc

@@ -26,11 +26,11 @@ public:
     CallerSPtr getCaller();
     void releaseCaller(CallerSPtr vcall);
 
-    unsigned size() const { return m_que.size(); }
+    std::size_t size() const;
 
 private:
     std::queue<CallerSPtr> m_que;
-    std::mutex m_que_mtx;
+    mutable std::mutex m_que_mtx;
     std::condition_variable m_que_cv;
 };
 

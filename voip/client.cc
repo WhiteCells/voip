@@ -21,15 +21,15 @@ using tcp = asio::ip::tcp;
 
 Client::Client(unsigned workers_num) :
     m_running(true),
-    m_thread_pool(workers_num) // todo thread_num
+    m_thread_pool(3), // todo thread_num
+    m_caller_vec(std::make_shared<CallerVec>())
 {
     notify();
     pullAccount();
     pullDialplan();
     heartbeat();
-    for (unsigned i = 0; i < workers_num; ++i) {
-        std::cout << "[addTask]" << std::endl;
-        m_thread_pool.addTask(std::bind(&Client::callTask, this));
+    for (unsigned i = 0; i < 3 /*todo*/; ++i) {
+        m_thread_pool.addTask(std::bind(&Client::callTask, this, i));
     }
 }
 
@@ -83,6 +83,60 @@ void Client::notify()
  *     }
  * }
  */
+// void Client::pullAccount()
+// {
+//     const auto target_url = genUrl(URL_ACCOUNTS, m_client_id);
+
+//     std::map<std::string, std::string> params = {{"threadsNum", std::to_string(thread_num)}};
+
+//     auto resp = voip::httpRequest(
+//         backend_host, backend_port, target_url,
+//         http::verb::get, params);
+
+//     std::cout << "Response: " << resp.toStyledString() << std::endl;
+//     LOG_INFO("client pull Account {}", resp.toStyledString());
+
+//     std::cout << target_url << std::endl;
+//     std::cout << resp.toStyledString() << std::endl;
+
+//     // resp::code
+//     if (!resp.isMember("code") || resp["code"].asInt() != 200) {
+//         LOG_ERROR("resp::code");
+//         return;
+//     }
+//     // resp::data
+//     const json::Value &data = resp["data"];
+//     if (!data.isMember("accounts") || !data["accounts"].isArray()) {
+//         LOG_ERROR("resp::data");
+//         return;
+//     }
+//     // resp::data::accounts
+//     const json::Value &accounts = data["accounts"];
+//     m_caller_que = std::make_shared<CallerQueue>();
+//     for (const auto &acc : accounts) {
+//         if (!acc.isMember("user") || !acc.isMember("pass") || !acc.isMember("host")) {
+//             LOG_ERROR("pull Account failed");
+//             continue;
+//         }
+//         // 创建 VAccount
+//         std::string user = acc["user"].asString();
+//         std::string pass = acc["pass"].asString();
+//         std::string host = acc["host"].asString();
+//         auto vaccount = std::make_shared<voip::VAccount>(user, pass, host);
+//         // 防止 vaccount 回收
+//         m_vacc_vec.push_back(vaccount);
+//         // 创建 Caller
+//         auto caller = std::make_shared<voip::Caller>(*vaccount);
+//         // 更新 m_caller_que
+//         m_caller_que->addCaller(caller);
+
+//         // single
+//         // m_caller = caller;
+//     }
+
+//     LOG_INFO("caller que size: {}", m_caller_que->size());
+// }
+
 void Client::pullAccount()
 {
     const auto target_url = genUrl(URL_ACCOUNTS, m_client_id);
@@ -125,16 +179,12 @@ void Client::pullAccount()
         auto vaccount = std::make_shared<voip::VAccount>(user, pass, host);
         // 防止 vaccount 回收
         m_vacc_vec.push_back(vaccount);
-        // 创建 Caller
+        // // 创建 Caller
         auto caller = std::make_shared<voip::Caller>(*vaccount);
-        // 更新 m_caller_que
-        m_caller_que->addCaller(caller);
-
-        // single
-        m_caller = caller;
+        m_caller_vec->push(caller);
     }
 
-    LOG_INFO("caller que size: {}", m_caller_que->size());
+    // LOG_INFO("caller vec size: {}", m_caller_vec->size());
 }
 
 void Client::pushRegStatus()
@@ -270,21 +320,16 @@ void Client::heartbeat()
 //     //
 // }
 
-void Client::callTask()
+void Client::callTask(unsigned i)
 {
+    // 每个线程的任务的 caller 写为固定的形式（因为回收 caller 存在问题）
+    // 需要确保线程的数量 <= caller 的数量
+    auto caller = m_caller_vec->getCaller(i);
     while (m_running) {
-        std::cout << ">>> [callTask]: " << __FUNCTION__ << std::endl;
-        // 这里可能出现竟态
-        // auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que.getDialPlan();
-        std::cout << "<<< [callTask]: " << __FUNCTION__ << std::endl;
-        std::cout << "[Dialplan]: " << dialplan << std::endl;
-        if (m_caller && !dialplan.empty()) {
-            std::cout << "[callTask]" << std::endl;
-            // single
-            // m_caller->call(dialplan, m_client_id, m_caller_que, caller);
-            m_caller->call(dialplan, m_client_id);
-            // m_caller_que->releaseCaller(std::move(caller));
-        }
+        LOG_INFO("tasking: {}", dialplan);
+        caller->call(dialplan, m_client_id);
+        // sleep(60);
+        std::this_thread::sleep_for(std::chrono::seconds(60));
     }
 }
