@@ -7,6 +7,8 @@
 #include <sstream>
 #include <string>
 
+extern std::string g_client_id;
+
 extern pj::Endpoint endpoint;
 
 void startEndpointLib(unsigned port = 5060);

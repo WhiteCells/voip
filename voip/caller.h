@@ -25,6 +25,8 @@ public:
         std::shared_ptr<CallerQueue> que = nullptr,
         std::shared_ptr<Caller> caller = nullptr);
 
+    virtual void onCallTsxState(pj::OnCallTsxStateParam &prm) override;
+
     // 呼叫状态改变
     virtual void onCallState(pj::OnCallStateParam &prm) override;
 

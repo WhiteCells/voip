@@ -28,7 +28,7 @@ public:
         spdlog::init_thread_pool(que_size, thread_cnt);
 
         auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e %z] [%^%L%$] [thread %t] [%s:%# %!] %v");
+        console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%L%$] [thread %t] [%s:%# %!] %v");
 
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);
@@ -47,7 +47,7 @@ public:
 
         auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(log_path, max_byte, max_save);
         // file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e %z] [%^%L%$] [thread %t] %v");
-        file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e %z] [%^%L%$] [thread %t] [%s:%# %!] %v");
+        file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%L%$] [thread %t] [%s:%# %!] %v");
 
         std::vector<spdlog::sink_ptr> sinks {console_sink, file_sink};
 

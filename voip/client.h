@@ -6,14 +6,13 @@
 #include "dialplan_queue.h"
 #include "caller_vec.h"
 
-#include <string>
 #include <vector>
 #include <memory>
 
 class Client : public std::enable_shared_from_this<Client>
 {
 public:
-    Client(unsigned workers_num = 1 /*std::thread::hardware_concurrency()*/);
+    Client(unsigned workers_num = 2 /*std::thread::hardware_concurrency()*/);
     ~Client();
 
 private:
@@ -26,7 +25,7 @@ private:
     void pullAccount();
 
     // 同步推送注册结果
-    void pushRegStatus();
+    // void pushRegStatus();
 
     // 同步拉取拨号计划
     // 更新 m_dialplan_que
@@ -43,18 +42,20 @@ private:
 
 private:
     void callTask(unsigned i);
+    void fetchDialPlan();
 
 private:
     std::atomic<bool> m_running;
     ThreadPool m_thread_pool;
     std::shared_ptr<CallerQueue> m_caller_que;
     DialPlanQueue m_dialplan_que;
-    std::string m_client_id;
 
     std::vector<std::shared_ptr<voip::VAccount>> m_vacc_vec;
 
     // std::shared_ptr<voip::Caller> m_caller;
     std::shared_ptr<CallerVec> m_caller_vec;
+
+    std::atomic_bool m_fetching;
 };
 
 #endif // _CLIENT_H_

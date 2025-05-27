@@ -1,8 +1,9 @@
 #include "caller_queue.h"
 #include "vaccount.h"
+#include "logger.h"
 
 #include <pjsua2.hpp>
-#include <iostream>
+// #include <iostream>
 
 CallerQueue::CallerQueue()
 {
@@ -37,7 +38,7 @@ void CallerQueue::releaseCaller(CallerSPtr caller)
     {
         std::unique_lock<std::mutex> lock(m_que_mtx);
         m_que.push(caller);
-        std::cout << "---------- release Caller ----------" << std::endl;
+        LOG_INFO("release Caller");
     }
     m_que_cv.notify_one();
 }

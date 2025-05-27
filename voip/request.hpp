@@ -22,7 +22,17 @@ namespace http = beast::http;
 namespace json = Json;
 using tcp = asio::ip::tcp;
 
-// http 1.1
+/**
+ * @brief 封装 http 1.1 请求
+ *
+ * @param host 请求主机名
+ * @param port 请求端口
+ * @param target 请求路径
+ * @param method 请求方法
+ * @param params 可选请求路径查询参数
+ * @param body 可选请求体内容
+ * @return json::Value 响应数据回包
+ */
 inline json::Value httpRequest(
     const std::string &host,
     const std::string &port,
@@ -85,11 +95,14 @@ inline json::Value httpRequest(
     return resp;
 }
 
-/*
- * 目前只做简单的tcp文件传输
- * todo:
- *  1. 断点续传
- *  2. 分片传输
+/**
+ * @brief 推送音频文件
+ *
+ * @param file_path 文件路径
+ * @param client_id 客户端 ID
+ *
+ * @todo 断点续传
+ * @todo 分片传输
  */
 inline void pushFile(const std::string file_path, const std::string &client_id)
 {
@@ -139,6 +152,13 @@ inline void pushFile(const std::string file_path, const std::string &client_id)
     LOG_INFO("Push file success");
 }
 
+/**
+ * @brief 推送注册状态
+ *
+ * @param user 注册用户
+ * @param state 注册状态
+ * @param client_id 客户端 ID
+ */
 inline void pushRegStatus(const std::string &user, REG_STATE state, const std::string &client_id)
 {
     const auto target_url = genUrl(URL_REG_STATUS, client_id);
@@ -149,11 +169,18 @@ inline void pushRegStatus(const std::string &user, REG_STATE state, const std::s
     json::StreamWriterBuilder writer;
     writer["indentation"] = "";
     std::string body = json::writeString(writer, body_json);
-    auto resp = voip::httpRequest(
+    auto resp = httpRequest(
         backend_host, backend_port, target_url,
         http::verb::post, {}, body);
 }
 
+/**
+ * @brief 推送通话状态
+ *
+ * @param phone_num 通话手机号
+ * @param state 通话状态
+ * @param client_id 客户端 ID
+ */
 inline void pushDialStatus(const std::string &phone_num, DIAL_STATE state, const std::string &client_id)
 {
     const auto target_url = genUrl(URL_DIAL_STATUS, client_id);
@@ -165,10 +192,51 @@ inline void pushDialStatus(const std::string &phone_num, DIAL_STATE state, const
     json::StreamWriterBuilder writer;
     writer["indentation"] = "";
     std::string body = json::writeString(writer, body_json);
-    auto resp = voip::httpRequest(
+    auto resp = httpRequest(
         backend_host, backend_port, target_url,
         http::verb::post, {}, body);
     //
+}
+
+/**
+ * @brief 拉取拨号计划
+ *
+ * @param plans 传出参数，存储拨号计划
+ * @param client_id 客户端 ID
+ */
+inline void pullDialplan(std::vector<std::string> plans, const std::string &client_id)
+{
+    const auto target_url = genUrl(URL_DIALPLANS, client_id);
+
+    auto resp = httpRequest(backend_host, backend_port, target_url, http::verb::get);
+    LOG_INFO("pull dialplan: {}", resp.toStyledString());
+
+    // resp::code
+    if (!resp.isMember("code") || resp["code"] != 200) {
+        LOG_ERROR("resp::code");
+        return;
+    }
+    // resp::data
+    if (!resp.isMember("data")) {
+        LOG_ERROR("resp::data");
+        return;
+    }
+    const json::Value data = resp["data"];
+    if (!data.isMember("dialplans") || !data["dialplans"].isArray()) {
+        LOG_ERROR("resp::data::dialplans");
+        return;
+    }
+    // resp::data::dialplans
+    const json::Value &dialplans = data["dialplans"];
+    for (const auto &dialplan : dialplans) {
+        if (!dialplan.isString()) {
+            LOG_ERROR("resp::data::dialplans format");
+            continue;
+        }
+        std::string phone_num = dialplan.asString();
+        plans.push_back(phone_num);
+        LOG_INFO("fetch pull phone: {}", phone_num);
+    }
 }
 
 } // namespace voip

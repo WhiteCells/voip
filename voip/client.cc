@@ -21,14 +21,15 @@ using tcp = asio::ip::tcp;
 
 Client::Client(unsigned workers_num) :
     m_running(true),
-    m_thread_pool(3), // todo thread_num
-    m_caller_vec(std::make_shared<CallerVec>())
+    m_thread_pool(workers_num), // todo thread_num
+    m_caller_vec(std::make_shared<CallerVec>()),
+    m_fetching(false)
 {
     notify();
     pullAccount();
     pullDialplan();
     heartbeat();
-    for (unsigned i = 0; i < 3 /*todo*/; ++i) {
+    for (unsigned i = 0; i < workers_num /*todo*/; ++i) {
         m_thread_pool.addTask(std::bind(&Client::callTask, this, i));
     }
 }
@@ -63,8 +64,8 @@ void Client::notify()
             LOG_ERROR("resp::data::clientId");
             return;
         }
-        m_client_id = data["clientId"].asString();
-        LOG_INFO("current client ID: {}", m_client_id);
+        g_client_id = data["clientId"].asString();
+        LOG_INFO("current client ID: {}", g_client_id);
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
@@ -139,7 +140,7 @@ void Client::notify()
 
 void Client::pullAccount()
 {
-    const auto target_url = genUrl(URL_ACCOUNTS, m_client_id);
+    const auto target_url = genUrl(URL_ACCOUNTS, g_client_id);
 
     std::map<std::string, std::string> params = {{"threadsNum", std::to_string(thread_num)}};
 
@@ -187,10 +188,6 @@ void Client::pullAccount()
     // LOG_INFO("caller vec size: {}", m_caller_vec->size());
 }
 
-void Client::pushRegStatus()
-{
-}
-
 /*
  * {
  *     "code": 200,
@@ -204,7 +201,7 @@ void Client::pushRegStatus()
  */
 void Client::pullDialplan()
 {
-    const auto target_url = genUrl(URL_DIALPLANS, m_client_id);
+    const auto target_url = genUrl(URL_DIALPLANS, g_client_id);
 
     auto resp = voip::httpRequest(
         backend_host, backend_port, target_url, http::verb::get);
@@ -243,7 +240,7 @@ void Client::pullDialplan()
 
 void Client::heartbeat()
 {
-    const auto target_url = genUrl(URL_HEARTBEAT, m_client_id);
+    const auto target_url = genUrl(URL_HEARTBEAT, g_client_id);
 
     auto &ioc = IOContextPool::getInstance()->getIOContext();
     auto timer = std::make_shared<AsyncTimer>(ioc, std::chrono::seconds {5});
@@ -326,10 +323,17 @@ void Client::callTask(unsigned i)
     // 需要确保线程的数量 <= caller 的数量
     auto caller = m_caller_vec->getCaller(i);
     while (m_running) {
+        LOG_INFO("to get dualplan");
         auto dialplan = m_dialplan_que.getDialPlan();
+        // if (!m_fetching.exchange(true) && dialplan.empty()) {
+        //     LOG_INFO("===== dialplan empty =====");
+        //     m_dialplan_que.fetchDialPlan();
+        //     m_fetching.store(false);
+        //     continue;
+        // }
         LOG_INFO("tasking: {}", dialplan);
-        caller->call(dialplan, m_client_id);
-        // sleep(60);
-        std::this_thread::sleep_for(std::chrono::seconds(60));
+        caller->call(dialplan, g_client_id);
+        sleep(120);
+        // std::this_thread::sleep_for(std::chrono::seconds(120));
     }
 }

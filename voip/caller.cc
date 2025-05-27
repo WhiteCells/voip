@@ -54,6 +54,27 @@ void voip::Caller::call(
     this->makeCall(dst_uri, prm);
 }
 
+void voip::Caller::onCallTsxState(pj::OnCallTsxStateParam &prm)
+{
+    PJ_UNUSED_ARG(prm);
+
+    pj::CallInfo ci = getInfo();
+
+    int statusCode = ci.lastStatusCode;
+    std::string statusText = ci.lastReason;
+
+    LOG_INFO("call status: {} {}", statusCode, statusText);
+
+    // if (statusCode == 404) {
+    // }
+    // else if (statusCode == 486) {
+    // }
+    // else if (statusCode == 603) {
+    // }
+    // else if (statusCode >= 400) {
+    // }
+}
+
 void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 {
     PJ_UNUSED_ARG(prm);
@@ -61,7 +82,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     pj::CallInfo ci = getInfo();
     LOG_INFO("call id: {} state: {}", ci.id, ci.stateText);
     if (!ci.lastReason.empty()) {
-        LOG_INFO("call failed reason: {}", ci.lastReason);
+        LOG_INFO("call reason: {}", ci.lastReason);
     }
     std::cout << std::endl;
 

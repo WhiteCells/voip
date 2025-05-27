@@ -2,6 +2,8 @@
 
 #include <thread>
 
+std::string g_client_id;
+
 pj::Endpoint endpoint;
 
 unsigned thread_num = std::thread::hardware_concurrency();
