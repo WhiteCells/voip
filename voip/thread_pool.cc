@@ -9,12 +9,6 @@ ThreadPool::~ThreadPool()
     stop();
 }
 
-// ThreadPool &ThreadPool::getInstance()
-// {
-//     static ThreadPool pool;
-//     return pool;
-// }
-
 ThreadPool::ThreadPool(std::size_t size) :
     m_running(true)
 {

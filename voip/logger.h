@@ -100,7 +100,7 @@ public:
     static void critical(const spdlog::source_loc &loc, fmt::format_string<Args...> fmt, Args &&...args)
     {
         // get()->critical(std::forward<Args>(args)...);
-        get()->critical(loc, spdlog::level::err, fmt, std::forward<Args>(args)...);
+        get()->log(loc, spdlog::level::critical, fmt, std::forward<Args>(args)...);
     }
 
 private:

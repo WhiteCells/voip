@@ -24,8 +24,7 @@ public:
     void stopAllIOContext();
 
 private:
-    IOContextPool(
-        std::size_t size = std::thread::hardware_concurrency());
+    IOContextPool(std::size_t size = std::thread::hardware_concurrency());
 
 private:
     std::vector<IOContext> iocontexts_;

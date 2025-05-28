@@ -3,8 +3,6 @@
 #include "request.hpp"
 #include "global.h"
 
-#include <iostream>
-
 voip::VAccount::VAccount(
     const std::string &user,
     const std::string &pass,

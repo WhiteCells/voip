@@ -96,6 +96,85 @@ inline json::Value httpRequest(
 }
 
 /**
+ * @brief 通知服务端该客户端上线，同时获取客户端 ID
+ */
+inline void notify()
+{
+    const auto target_url = genUrl(URL_NOTIFY);
+    LOG_INFO("Client notify target_url: {}", target_url);    
+
+    auto resp = httpRequest(backend_host, backend_port, target_url, http::verb::get);
+    LOG_INFO("Client connect backend: {}:{} Response: {}", backend_host, backend_port, resp.toStyledString());
+
+    // resp::code
+    if (!resp.isMember("code") || !resp["code"].isInt() || resp["code"] != 200) {
+        LOG_ERROR("resp::code");
+        return;
+    }
+    // resp::data
+    if (!resp.isMember("data") || !resp["data"].isObject()) {
+        LOG_ERROR("resp::data");
+        return;
+    }
+    const json::Value &data = resp["data"];
+    if (!data.isMember("clientId") || !data["clientId"].isString()) {
+        LOG_ERROR("resp::data::clientId");
+        return;
+    }
+
+    // update g_client_id
+    g_client_id = data["clientId"].asString();
+    LOG_INFO("current client ID: {}", g_client_id);
+}
+
+// inline void pullAccount(std::shared_ptr<>, const std::string &client_id)
+// {
+//     const auto target_url = genUrl(URL_ACCOUNTS, client_id);
+//     LOG_INFO("Client pull Account target_url: {}", target_url);
+
+//     std::map<std::string, std::string> params = {
+//         {"threadsNum", std::to_string(g_thread_num)},
+//     };
+
+//     auto resp = httpRequest(
+//         backend_host, backend_port, target_url,
+//         http::verb::get, params);
+//     LOG_INFO("Client pull Account response: {}", resp.toStyledString());
+
+//         // resp::code
+//     if (!resp.isMember("code") || resp["code"].asInt() != 200) {
+//         LOG_ERROR("resp::code");
+//         return;
+//     }
+//     // resp::data
+//     const json::Value &data = resp["data"];
+//     if (!data.isMember("accounts") || !data["accounts"].isArray()) {
+//         LOG_ERROR("resp::data");
+//         return;
+//     }
+//     // resp::data::accounts
+//     const json::Value &accounts = data["accounts"];
+//     m_caller_que = std::make_shared<CallerQueue>();
+//     for (const auto &acc : accounts) {
+//         if (!acc.isMember("user") || !acc.isMember("pass") || !acc.isMember("host")) {
+//             LOG_ERROR("pull Account failed");
+//             continue;
+//         }
+//         // 创建 VAccount
+//         std::string user = acc["user"].asString();
+//         std::string pass = acc["pass"].asString();
+//         std::string host = acc["host"].asString();
+//         auto vaccount = std::make_shared<voip::VAccount>(user, pass, host);
+//         // 防止 vaccount 回收
+//         m_vacc_vec.push_back(vaccount);
+//         // // 创建 Caller
+//         auto caller = std::make_shared<voip::Caller>(*vaccount);
+//         m_caller_vec->push(caller);
+//     }
+//     // LOG_INFO("caller vec size: {}", m_caller_vec->size());
+// }
+
+/**
  * @brief 推送音频文件
  *
  * @param file_path 文件路径
@@ -107,6 +186,7 @@ inline json::Value httpRequest(
 inline void pushFile(const std::string file_path, const std::string &client_id)
 {
     const auto target_url = genUrl(URL_DIAL_WAV, client_id);
+    LOG_INFO("Client push File target_url: {}", target_url);
 
     auto &ioc = IOContextPool::getInstance()->getIOContext();
     tcp::resolver resolver(ioc);
@@ -195,7 +275,6 @@ inline void pushDialStatus(const std::string &phone_num, DIAL_STATE state, const
     auto resp = httpRequest(
         backend_host, backend_port, target_url,
         http::verb::post, {}, body);
-    //
 }
 
 /**
@@ -204,7 +283,7 @@ inline void pushDialStatus(const std::string &phone_num, DIAL_STATE state, const
  * @param plans 传出参数，存储拨号计划
  * @param client_id 客户端 ID
  */
-inline void pullDialplan(std::vector<std::string> plans, const std::string &client_id)
+inline void pullDialplan(std::vector<std::string> &plans /* & */, const std::string &client_id)
 {
     const auto target_url = genUrl(URL_DIALPLANS, client_id);
 
@@ -235,7 +314,7 @@ inline void pullDialplan(std::vector<std::string> plans, const std::string &clie
         }
         std::string phone_num = dialplan.asString();
         plans.push_back(phone_num);
-        LOG_INFO("fetch pull phone: {}", phone_num);
+        // LOG_INFO("fetch pull phone: {}", phone_num); // 日志误导 bug
     }
 }
 

@@ -1,14 +1,15 @@
 #include "async_timer.h"
 
-AsyncTimer::AsyncTimer(asio::io_context &ioc, std::chrono::seconds interval_sec) :
+AsyncTimer::AsyncTimer(asio::io_context &ioc, std::chrono::seconds interval) :
     m_timer(ioc),
-    m_interval_sec(interval_sec),
+    m_interval_sec(interval),
     m_running(false)
 {
 }
 
 AsyncTimer::~AsyncTimer()
 {
+    stop();
 }
 
 void AsyncTimer::start(Task task)
@@ -34,9 +35,9 @@ void AsyncTimer::stop()
     m_timer.cancel();
 }
 
-void AsyncTimer::reset(std::chrono::seconds interval_sec)
+void AsyncTimer::reset(std::chrono::seconds interval)
 {
-    m_interval_sec = interval_sec;
+    m_interval_sec = interval;
     if (m_running) {
         stop();
         start(m_task);

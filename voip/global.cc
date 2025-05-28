@@ -6,12 +6,10 @@ std::string g_client_id;
 
 pj::Endpoint endpoint;
 
-unsigned thread_num = std::thread::hardware_concurrency();
-
-// std::string backend_host = "127.0.0.1";
-// std::string backend_port = "5000";
+unsigned g_thread_num = std::thread::hardware_concurrency();
 
 std::string backend_host;
+
 std::string backend_port;
 
 cfg_map cfg;

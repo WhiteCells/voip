@@ -3,7 +3,6 @@
 #include "logger.h"
 
 #include <pjsua2.hpp>
-// #include <iostream>
 
 CallerQueue::CallerQueue()
 {
@@ -47,4 +46,10 @@ std::size_t CallerQueue::size() const
 {
     std::unique_lock<std::mutex> lock(m_que_mtx);
     return m_que.size();
+}
+
+bool CallerQueue::empty() const
+{
+    std::unique_lock<std::mutex> lock(m_que_mtx);
+    return m_que.empty();
 }

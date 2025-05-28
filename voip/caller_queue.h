@@ -13,6 +13,10 @@ namespace voip {
 class VAccount;
 }
 
+/**
+ * @brief 呼叫者队列
+ * 线程安全
+ */
 class CallerQueue
 {
     using CallerSPtr = std::shared_ptr<voip::Caller>;
@@ -20,6 +24,8 @@ class CallerQueue
 
 public:
     CallerQueue();
+    CallerQueue(const CallerQueue &) = delete;
+    CallerQueue &operator=(const CallerQueue &) = delete;
     ~CallerQueue();
 
     void addCaller(CallerSPtr caller);
@@ -27,6 +33,7 @@ public:
     void releaseCaller(CallerSPtr vcall);
 
     std::size_t size() const;
+    bool empty() const;
 
 private:
     std::queue<CallerSPtr> m_que;

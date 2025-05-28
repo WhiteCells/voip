@@ -7,13 +7,20 @@
 #include <sstream>
 #include <string>
 
+/**
+ * @brief 客户端 ID
+ */
 extern std::string g_client_id;
 
+/**
+ * @brief SIP 端点
+ * 全局是为了在线程池中能够调用 endpoint 的注册方法
+ */
 extern pj::Endpoint endpoint;
 
 void startEndpointLib(unsigned port = 5060);
 
-extern unsigned thread_num;
+extern unsigned g_thread_num;
 
 extern std::string backend_host;
 
@@ -30,6 +37,9 @@ extern cfg_map cfg;
 #define URL_DIAL_WAV    "dial_wav"    // 推送音频
 #define URL_DIAL_STATUS "dial_status" // 呼叫状态
 
+/**
+ * @brief 构建请求路径
+ */
 template <typename... Args>
 inline std::string genUrl(Args &&...args)
 {

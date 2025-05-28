@@ -21,13 +21,12 @@ using tcp = asio::ip::tcp;
 
 Client::Client(unsigned workers_num) :
     m_running(true),
-    m_thread_pool(workers_num), // todo thread_num
-    m_caller_vec(std::make_shared<CallerVec>()),
-    m_fetching(false)
+    m_thread_pool(workers_num),
+    m_caller_vec(std::make_shared<CallerVec>())
 {
     notify();
     pullAccount();
-    pullDialplan();
+    // pullDialplan(); // 改为自动拉取
     heartbeat();
     for (unsigned i = 0; i < workers_num /*todo*/; ++i) {
         m_thread_pool.addTask(std::bind(&Client::callTask, this, i));
@@ -130,9 +129,6 @@ void Client::notify()
 //         auto caller = std::make_shared<voip::Caller>(*vaccount);
 //         // 更新 m_caller_que
 //         m_caller_que->addCaller(caller);
-
-//         // single
-//         // m_caller = caller;
 //     }
 
 //     LOG_INFO("caller que size: {}", m_caller_que->size());
@@ -142,7 +138,7 @@ void Client::pullAccount()
 {
     const auto target_url = genUrl(URL_ACCOUNTS, g_client_id);
 
-    std::map<std::string, std::string> params = {{"threadsNum", std::to_string(thread_num)}};
+    std::map<std::string, std::string> params = {{"threadsNum", std::to_string(g_thread_num)}};
 
     auto resp = voip::httpRequest(
         backend_host, backend_port, target_url,
@@ -256,81 +252,12 @@ void Client::heartbeat()
     });
 }
 
-// void Client::pushFile(const std::string &file_path, const std::string &target)
-// {
-//     auto &ioc = IOContextPool::getInstance()->getIOContext();
-//     tcp::resolver resolver(ioc);
-//     beast::tcp_stream stream(ioc);
-
-//     auto const results = resolver.resolve(backend_host, backend_port);
-//     stream.connect(results);
-
-//     std::ifstream file(file_path, std::ios::binary | std::ios::ate);
-//     if (!file.is_open()) {
-//         std::cerr << "Failed to open file: " << file_path << std::endl;
-//         return;
-//     }
-
-//     std::size_t file_size = file.tellg();
-//     if (file_size == 0) {
-//         std::cerr << "File is empty: " << file_path << std::endl;
-//         return;
-//     }
-
-//     file.seekg(0);
-
-//     http::request<http::dynamic_body> req {http::verb::post, target, 11};
-//     req.set(http::field::host, backend_host);
-//     req.set("filename", std::filesystem::path(file_path).filename().string());
-
-//     beast::ostream(req.body()) << file.rdbuf();
-//     req.prepare_payload();
-
-//     try {
-//         http::write(stream, req);
-//         beast::flat_buffer buffer_res;
-//         http::response<http::dynamic_body> res;
-//         http::read(stream, buffer_res, res);
-//         std::cout << "Response: " << res << std::endl;
-//     }
-//     catch (const std::exception &e) {
-//         std::cerr << "Exception: " << e.what() << std::endl;
-//         Logger::warn("Client send file Exception: {}", e.what());
-//     }
-
-//     stream.socket().shutdown(tcp::socket::shutdown_both);
-// }
-
-// void Client::pushDialStatus(const std::string &dial, const std::string &status)
-// {
-//     auto target_url = "/status/" + m_client_id;
-//     // std::string body = R"({"phoneNum": "dial", "dialStatus": "status"})";
-//     json::Value body_json;
-//     body_json["phoneNum"] = dial;
-//     body_json["dialStatus"] = status;
-//     json::StreamWriterBuilder writer;
-//     writer["indentation"] = "";
-//     std::string body = Json::writeString(writer, body_json);
-//     auto resp = voip::httpRequest(
-//         backend_host, backend_port, target_url,
-//         http::verb::post, {}, body);
-//     //
-// }
-
 void Client::callTask(unsigned i)
 {
-    // 每个线程的任务的 caller 写为固定的形式（因为回收 caller 存在问题）
-    // 需要确保线程的数量 <= caller 的数量
     auto caller = m_caller_vec->getCaller(i);
     while (m_running) {
         LOG_INFO("to get dualplan");
         auto dialplan = m_dialplan_que.getDialPlan();
-        // if (!m_fetching.exchange(true) && dialplan.empty()) {
-        //     LOG_INFO("===== dialplan empty =====");
-        //     m_dialplan_que.fetchDialPlan();
-        //     m_fetching.store(false);
-        //     continue;
-        // }
         LOG_INFO("tasking: {}", dialplan);
         caller->call(dialplan, g_client_id);
         sleep(120);

@@ -42,20 +42,14 @@ private:
 
 private:
     void callTask(unsigned i);
-    void fetchDialPlan();
 
 private:
-    std::atomic<bool> m_running;
-    ThreadPool m_thread_pool;
-    std::shared_ptr<CallerQueue> m_caller_que;
-    DialPlanQueue m_dialplan_que;
-
-    std::vector<std::shared_ptr<voip::VAccount>> m_vacc_vec;
-
-    // std::shared_ptr<voip::Caller> m_caller;
-    std::shared_ptr<CallerVec> m_caller_vec;
-
-    std::atomic_bool m_fetching;
+    std::atomic_bool m_running;                              // 运行标志
+    ThreadPool m_thread_pool;                                // 线程池
+    std::shared_ptr<CallerQueue> m_caller_que;               // 呼叫者队列
+    DialPlanQueue m_dialplan_que;                            // 拨号计划队列
+    std::vector<std::shared_ptr<voip::VAccount>> m_vacc_vec; // SIP 账号容器
+    std::shared_ptr<CallerVec> m_caller_vec;                 // 呼叫者容器
 };
 
 #endif // _CLIENT_H_

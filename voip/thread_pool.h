@@ -17,10 +17,11 @@ class ThreadPool
 
 public:
     explicit ThreadPool(std::size_t size = std::thread::hardware_concurrency());
+    ThreadPool(const ThreadPool &) = delete;
+    ThreadPool &operator=(const ThreadPool &) = delete;
     ~ThreadPool();
 
-    // static ThreadPool &getInstance();
-
+public:
     template <typename Func, typename... Args>
     auto addTask(Func &&func, Args &&...)
         -> std::future<std::invoke_result_t<Func, Args...>>;
@@ -30,10 +31,6 @@ public:
         -> std::future<std::invoke_result_t<Func, Args...>>;
 
 private:
-    ThreadPool(const ThreadPool &) = delete;
-
-    ThreadPool &operator=(const ThreadPool &) = delete;
-
     void worker();
 
     void stop();

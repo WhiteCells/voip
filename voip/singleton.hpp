@@ -4,6 +4,11 @@
 #include <memory>
 #include <mutex>
 
+/**
+ * @brief 单例模板
+ * 
+ * @tparam T 
+ */
 template <typename T>
 class Singleton
 {

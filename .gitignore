@@ -1,22 +1,33 @@
+# VSCode project settings
 .vscode/
 
 # clangd cache
 .cache/
 
-# 
+# CMake build directory
 build/
 
-# 
+# Test
 test/
 
-#
+# Log files
 logs/
 
-# 
-pa/
+# Binary files
+*.bin
+*.exe
+*.dll
+*.so
+*.a
+*.o
 
-# bin
-*.out
+# Backup files
+*~
+*.swp
+*.swo
 
-# wav
+# MacOS system files
+.DS_Store
+
+# Audio files
 *.wav

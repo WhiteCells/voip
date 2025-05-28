@@ -5,6 +5,10 @@ namespace voip {
 
 class Caller;
 
+/**
+ * @brief SIP 用户对象
+ * 
+ */
 class VAccount : public pj::Account
 {
 public:

@@ -7,6 +7,10 @@
 #include <condition_variable>
 #include <atomic>
 
+/**
+ * @brief 拨号计划队列
+ * 线程安全
+ */
 class DialPlanQueue
 {
 public:
@@ -20,7 +24,7 @@ public:
     std::size_t size() const;
     bool empty() const;
 
-// private:
+private:
     void fetchDialPlan();
 
 private:
