@@ -58,12 +58,12 @@ void voip::Caller::onCallTsxState(pj::OnCallTsxStateParam &prm)
 {
     PJ_UNUSED_ARG(prm);
 
-    pj::CallInfo ci = getInfo();
+    // pj::CallInfo ci = getInfo();
 
-    int statusCode = ci.lastStatusCode;
-    std::string statusText = ci.lastReason;
+    // int statusCode = ci.lastStatusCode;
+    // std::string statusText = ci.lastReason;
 
-    LOG_INFO("call status: {} {}", statusCode, statusText);
+    // LOG_INFO("call status: {} {}", statusCode, statusText);
 
     // if (statusCode == 404) {
     // }
@@ -80,7 +80,8 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     PJ_UNUSED_ARG(prm);
 
     pj::CallInfo ci = getInfo();
-    LOG_INFO("call id: {} state: {}", ci.id, ci.stateText);
+    LOG_INFO("call id: {} phone: {} state: {} code:{}",
+             ci.id, m_phone, ci.stateText, (int)ci.lastStatusCode);
     if (!ci.lastReason.empty()) {
         LOG_INFO("call reason: {}", ci.lastReason);
     }
@@ -144,7 +145,7 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
 
 // void voip::Caller::onStreamCreated(pj::OnStreamCreatedParam &prm)
 // {
-//     this->onStreamCreated(prm);
+//     pj::Call::onStreamCreated(prm);
 //     std::ofstream out_file("stream", std::ios::binary | std::ios::app);
 //     if (out_file.is_open()) {
 //         out_file.write(reinterpret_cast<const char *>(prm.stream), sizeof(prm.stream));

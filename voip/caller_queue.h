@@ -36,9 +36,14 @@ public:
     bool empty() const;
 
 private:
+    void fetchCaller();
+
+private:
     std::queue<CallerSPtr> m_que;
     mutable std::mutex m_que_mtx;
     std::condition_variable m_que_cv;
+    std::atomic_bool m_fetching;
+    std::vector<std::shared_ptr<voip::VAccount>> m_acc;
 };
 
 #endif // _CALLPOOL_H_

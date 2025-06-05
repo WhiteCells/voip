@@ -16,32 +16,7 @@ public:
     ~Client();
 
 private:
-    // 同步通知服务端，客户端上线通知
-    // 获取 m_client_id
-    void notify();
-
-    // 同步拉取账户，需要将注册结果返回
-    // 更新 m_caller_que
-    void pullAccount();
-
-    // 同步推送注册结果
-    // void pushRegStatus();
-
-    // 同步拉取拨号计划
-    // 更新 m_dialplan_que
-    void pullDialplan();
-
-    // 异步心跳，客户端状态
-    void heartbeat();
-
-    // 异步推送音频文件
-    // void pushFile(const std::string &file_path, const std::string &target);
-
-    // 异步推送呼叫状态
-    // void pushDialStatus(const std::string &dial, const std::string &status);
-
-private:
-    void callTask(unsigned i);
+    void callTask();
 
 private:
     std::atomic_bool m_running;                              // 运行标志

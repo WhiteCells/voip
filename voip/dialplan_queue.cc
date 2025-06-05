@@ -44,7 +44,7 @@ std::string DialPlanQueue::getDialPlan()
             LOG_INFO("Fetching: {}", m_fetching.load());
         }
         // todo 线程拉取拨号计划为空时需要等待
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(3));
     }
 
     auto dialplan = m_que.front();
@@ -76,23 +76,23 @@ bool DialPlanQueue::empty() const
 
 void DialPlanQueue::fetchDialPlan()
 {
-    std::vector<std::string> plans;
-    voip::pullDialplan(plans, g_client_id);
+    try {
+        std::vector<std::string> plans;
+        voip::pullDialplan(plans, g_client_id);
 
-    // for (;;) {
-    //     LOG_INFO("Dialplans size: {}", plans.size());
-    //     std::this_thread::sleep_for(std::chrono::seconds(1));
-    // }
-
-    {
-        std::unique_lock<std::mutex> lock(m_que_mtx);
-        for (const auto &plan : plans) {
-            m_que.push(plan);
-            LOG_INFO("=== push plan: {} ===", plan);
+        {
+            std::unique_lock<std::mutex> lock(m_que_mtx);
+            for (const auto &plan : plans) {
+                m_que.push(plan);
+                LOG_INFO("=== push plan: {} ===", plan);
+            }
+            m_fetching.store(false);
+            LOG_INFO("m_fetching set to false. Queue size now: {}", m_que.size());
         }
-        m_fetching.store(false);
-        LOG_INFO("m_fetching set to false. Queue size now: {}", m_que.size());
-    }
 
-    m_que_cv.notify_all();
+        m_que_cv.notify_all();
+    }
+    catch (const std::exception &e) {
+        LOG_ERROR("{}", e.what());
+    }
 }

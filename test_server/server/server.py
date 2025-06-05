@@ -7,9 +7,11 @@ from collections import deque
 app = Flask(__name__)
 UPLOAD_DIR = "./uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+i = True
+j = True
 
 # 返回客户端 ID
-@app.route("/notify", methods=["POST"])
+@app.route("/voip/notify", methods=["POST"])
 def notify():
     return jsonify({
         "code": 200,
@@ -19,26 +21,47 @@ def notify():
         }
     }), 200
 
-@app.route("/accounts/<clientId>", methods=["GET"])
+@app.route("/voip/accounts/<clientId>", methods=["GET"])
 def accounts(clientId: str):
     print(clientId)
-    return jsonify({
-        "code": 200,
-        "msg": "success",
-        "data": {
-            "accounts": [
-                {"user": "1001", "pass": "1001", "host": "192.168.10.51:5060"},
-                {"user": "1002", "pass": "1002", "host": "192.168.10.51:5060"},
-                {"user": "1003", "pass": "1003", "host": "192.168.10.51:5060"},
-                # {"user": "1001", "pass": "1001", "host": "192.168.10.62:5060"},
-                # {"user": "1002", "pass": "1002", "host": "192.168.2.243:5060"},
-                # {"user": "1003", "pass": "1003", "host": "192.168.10.63:5060"},
-                # {"user": "1004", "pass": "1004", "host": "192.168.10.51:5060"},
-                # {"user": "1005", "pass": "1005", "host": "192.168.10.51:5060"},
-                # {"user": "1006", "pass": "1006", "host": "192.168.10.51:5060"},
-            ]
-        }
-    })
+    global j
+    if (j):
+        j = False
+        return jsonify({
+            "code": 200,
+            "msg": "success",
+            "data": {
+                "accounts": [
+                    # {"user": "1001", "pass": "1001", "host": "192.168.10.51:5060"},
+                    # {"user": "1002", "pass": "1002", "host": "192.168.10.51:5060"},
+                    # {"user": "1003", "pass": "1003", "host": "192.168.10.51:5060"},
+                    # {"user": "1001", "pass": "1001", "host": "192.168.10.62:5060"},
+                    # {"user": "1002", "pass": "1002", "host": "192.168.2.243:5060"},
+                    # {"user": "1003", "pass": "1003", "host": "192.168.10.63:5060"},
+                    {"user": "1004", "pass": "1004", "host": "192.168.10.51:5060"},
+                    {"user": "1005", "pass": "1005", "host": "192.168.10.51:5060"},
+                    {"user": "1006", "pass": "1006", "host": "192.168.10.51:5060"},
+                ]
+            }
+        })
+    else:
+        return jsonify({
+            "code": 200,
+            "msg": "success",
+            "data": {
+                "accounts": [
+                    {"user": "1001", "pass": "1001", "host": "192.168.10.51:5060"},
+                    {"user": "1002", "pass": "1002", "host": "192.168.10.51:5060"},
+                    {"user": "1003", "pass": "1003", "host": "192.168.10.51:5060"},
+                    # {"user": "1001", "pass": "1001", "host": "192.168.10.62:5060"},
+                    # {"user": "1002", "pass": "1002", "host": "192.168.2.243:5060"},
+                    # {"user": "1003", "pass": "1003", "host": "192.168.10.63:5060"},
+                    # {"user": "1004", "pass": "1004", "host": "192.168.10.51:5060"},
+                    # {"user": "1005", "pass": "1005", "host": "192.168.10.51:5060"},
+                    # {"user": "1006", "pass": "1006", "host": "192.168.10.51:5060"},
+                ]
+            }
+        })
 
 dialplan_queue = deque([
     # "818871357225",
@@ -57,9 +80,8 @@ dialplan_queue = deque([
 
 queue_lock = threading.Lock()  # 锁
 
-i = True
 
-@app.route("/dialplans/<clientId>", methods=["GET"])
+@app.route("/voip/dialplans/<clientId>", methods=["GET"])
 def get_dialplan(clientId: str):
     global i
     if (i):
@@ -69,15 +91,19 @@ def get_dialplan(clientId: str):
             "msg": "success",
             "data": {
                 "dialplans": [
+                    # "18434050770",
+                    # "18648184069"
                     # "13385281972",
                     # "13385281973",
                     # "13831662418",
-                    "813831662418",
-                    "818252353555",
+                    # "13831662418",
+                    # "13831662418",
+                    # "818252353555",
                     # "818434050770",
-                    # "818648184069",
                     # "813661601089",
                     # "813171378333",
+                    "818648184069",
+                    "818871357225",
                 ]
             }
         })
@@ -88,11 +114,14 @@ def get_dialplan(clientId: str):
             "msg": "success",
             "data": {
                 "dialplans": [
+                    "13661601089",
+                    "13171378333"
                     # "813385281975",
-                    # "818871357225",
+                    # "18871357225",
                     # "818252353555",
-                    "818252353555",
-                    "818434050770",
+                    # "18252353555",
+                    # "18252353555",
+                    # "818434050770",
                     # "818648184069",
                     # "813661601089",
                     # "813171378333",
@@ -100,7 +129,7 @@ def get_dialplan(clientId: str):
             }
         })
 
-# @app.route("/dialplans/<clientId>", methods=["GET"])
+# @app.route("/voip/dialplans/<clientId>", methods=["GET"])
 # def dialplans(clientId: str):
 #     print(clientId)
 #     return jsonify({
@@ -146,7 +175,7 @@ def get_dialplan(clientId: str):
 #         }
 #     })
 
-@app.route("/dialplans2/<clientId>", methods=["GET"])
+@app.route("/voip/dialplans2/<clientId>", methods=["GET"])
 def dialplans2(clientId: str):
     print(clientId)
     return jsonify({
@@ -160,7 +189,7 @@ def dialplans2(clientId: str):
         }
     })
 
-@app.route("/heartbeat/<clientId>", methods=["POST"])
+@app.route("/voip/heartbeat/<clientId>", methods=["POST"])
 def heartbeat(clientId: str):
     print(clientId)
     return jsonify({
@@ -177,7 +206,7 @@ def heartbeat(clientId: str):
     "status": "" // enum
 }
 """
-@app.route("/reg_status/<clientId>", methods=["POST"])
+@app.route("/voip/reg_status/<clientId>", methods=["POST"])
 def reg_status(clientId: str):
     data = request.get_json()
     print(data)
@@ -196,7 +225,7 @@ def reg_status(clientId: str):
     "status": "" // enum
 }
 """
-@app.route("/dial_status/<clientId>", methods=["POST"])
+@app.route("/voip/dial_status/<clientId>", methods=["POST"])
 def dial_status(clientId: str):
     data = request.get_json()
     print(data)
@@ -209,7 +238,7 @@ def dial_status(clientId: str):
         }
     })
 
-@app.route("/status/<clientId>", methods=["POST"])
+@app.route("/voip/status/<clientId>", methods=["POST"])
 def status(clientId: str):
     print(clientId)
     return jsonify({
@@ -220,7 +249,7 @@ def status(clientId: str):
         }
     })
 
-@app.route('/dial_wav/<clientId>', methods=['POST'])
+@app.route('/voip/dial_wav/<clientId>', methods=['POST'])
 def upload_file(clientId: str):
     print(clientId)
     filename = request.headers.get('filename')

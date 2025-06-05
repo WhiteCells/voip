@@ -44,6 +44,7 @@ template <typename... Args>
 inline std::string genUrl(Args &&...args)
 {
     std::ostringstream oss;
+    oss << "/voip";
     ((oss << "/" << args), ...);
     return oss.str();
 }

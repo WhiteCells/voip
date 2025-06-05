@@ -25,7 +25,6 @@ set(SRC
     main.cc
 )
 
-find_package(Boost REQUIRED COMPONENTS log)
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(/usr/include/jsoncpp)
 

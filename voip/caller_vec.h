@@ -24,6 +24,7 @@ public:
 
     CallerSPtr getCaller(unsigned i);
     void push(CallerSPtr caller);
+    std::size_t size() const;
 
 private:
     std::vector<CallerSPtr> m_caller_vec;

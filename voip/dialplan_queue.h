@@ -31,7 +31,7 @@ private:
     std::queue<std::string> m_que;
     mutable std::mutex m_que_mtx;
     std::condition_variable m_que_cv;
-    std::atomic<bool> m_fetching;
+    std::atomic_bool m_fetching;
 };
 
 #endif // _DIALPLAN_QUE_H_

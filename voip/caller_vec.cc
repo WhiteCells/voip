@@ -17,3 +17,8 @@ void CallerVec::push(CallerSPtr caller)
 {
     m_caller_vec.push_back(caller);
 }
+
+std::size_t CallerVec::size() const
+{
+    return m_caller_vec.size();
+}

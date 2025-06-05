@@ -2,6 +2,7 @@
 #define _REQUEST_H_
 
 #include "io_context_pool.h"
+#include "async_timer.h"
 #include "logger.h"
 #include "global.h"
 
@@ -101,78 +102,98 @@ inline json::Value httpRequest(
 inline void notify()
 {
     const auto target_url = genUrl(URL_NOTIFY);
-    LOG_INFO("Client notify target_url: {}", target_url);    
+    for (;;) {
+        try {
+            LOG_INFO("Client notify target_url: {}", target_url);
 
-    auto resp = httpRequest(backend_host, backend_port, target_url, http::verb::get);
-    LOG_INFO("Client connect backend: {}:{} Response: {}", backend_host, backend_port, resp.toStyledString());
+            auto resp = httpRequest(backend_host, backend_port, target_url, http::verb::post);
+            LOG_INFO("Client connect backend: {}:{} Response: {}", backend_host, backend_port, resp.toStyledString());
 
-    // resp::code
-    if (!resp.isMember("code") || !resp["code"].isInt() || resp["code"] != 200) {
-        LOG_ERROR("resp::code");
-        return;
-    }
-    // resp::data
-    if (!resp.isMember("data") || !resp["data"].isObject()) {
-        LOG_ERROR("resp::data");
-        return;
-    }
-    const json::Value &data = resp["data"];
-    if (!data.isMember("clientId") || !data["clientId"].isString()) {
-        LOG_ERROR("resp::data::clientId");
-        return;
-    }
+            // resp::code
+            if (!resp.isMember("code") || !resp["code"].isInt() || resp["code"] != 200) {
+                LOG_ERROR("resp::code");
+                return;
+            }
+            // resp::data
+            if (!resp.isMember("data") || !resp["data"].isObject()) {
+                LOG_ERROR("resp::data");
+                return;
+            }
+            const json::Value &data = resp["data"];
+            if (!data.isMember("clientId") || !data["clientId"].isString()) {
+                LOG_ERROR("resp::data::clientId");
+                return;
+            }
 
-    // update g_client_id
-    g_client_id = data["clientId"].asString();
-    LOG_INFO("current client ID: {}", g_client_id);
+            // update g_client_id
+            g_client_id = data["clientId"].asString();
+            LOG_INFO("current client ID: {}", g_client_id);
+            break;
+        }
+        catch (const std::exception &e) {
+            LOG_WARN("Exception: {}", e.what());
+            std::this_thread::sleep_for(std::chrono::seconds {3});
+            LOG_INFO("retry notify");
+        }
+    }
 }
 
-// inline void pullAccount(std::shared_ptr<>, const std::string &client_id)
-// {
-//     const auto target_url = genUrl(URL_ACCOUNTS, client_id);
-//     LOG_INFO("Client pull Account target_url: {}", target_url);
+/**
+ * @brief 拉取 Account
+ *
+ * @param accounts 传出参数
+ * @param client_id 客户端 ID
+ */
+inline void pullAccount(std::vector<std::vector<std::string>> &accounts, const std::string &client_id)
+{
+    const auto target_url = genUrl(URL_ACCOUNTS, client_id);
 
-//     std::map<std::string, std::string> params = {
-//         {"threadsNum", std::to_string(g_thread_num)},
-//     };
+    try {
+        LOG_INFO("Client pull Account target_url: {}", target_url);
 
-//     auto resp = httpRequest(
-//         backend_host, backend_port, target_url,
-//         http::verb::get, params);
-//     LOG_INFO("Client pull Account response: {}", resp.toStyledString());
+        std::map<std::string, std::string> params = {
+            {"threadsNum", std::to_string(g_thread_num)},
+        };
 
-//         // resp::code
-//     if (!resp.isMember("code") || resp["code"].asInt() != 200) {
-//         LOG_ERROR("resp::code");
-//         return;
-//     }
-//     // resp::data
-//     const json::Value &data = resp["data"];
-//     if (!data.isMember("accounts") || !data["accounts"].isArray()) {
-//         LOG_ERROR("resp::data");
-//         return;
-//     }
-//     // resp::data::accounts
-//     const json::Value &accounts = data["accounts"];
-//     m_caller_que = std::make_shared<CallerQueue>();
-//     for (const auto &acc : accounts) {
-//         if (!acc.isMember("user") || !acc.isMember("pass") || !acc.isMember("host")) {
-//             LOG_ERROR("pull Account failed");
-//             continue;
-//         }
-//         // 创建 VAccount
-//         std::string user = acc["user"].asString();
-//         std::string pass = acc["pass"].asString();
-//         std::string host = acc["host"].asString();
-//         auto vaccount = std::make_shared<voip::VAccount>(user, pass, host);
-//         // 防止 vaccount 回收
-//         m_vacc_vec.push_back(vaccount);
-//         // // 创建 Caller
-//         auto caller = std::make_shared<voip::Caller>(*vaccount);
-//         m_caller_vec->push(caller);
-//     }
-//     // LOG_INFO("caller vec size: {}", m_caller_vec->size());
-// }
+        auto resp = httpRequest(
+            backend_host, backend_port, target_url,
+            http::verb::get, params);
+        LOG_INFO("Client pull Account response: {}", resp.toStyledString());
+
+        // resp::code
+        if (!resp.isMember("code") || resp["code"].asInt() != 200) {
+            LOG_ERROR("resp::code");
+            return;
+        }
+        // resp::data
+        const json::Value &data = resp["data"];
+        if (!data.isMember("accounts") || !data["accounts"].isArray()) {
+            LOG_ERROR("resp::data");
+            return;
+        }
+        // resp::data::accounts
+        const json::Value &accs = data["accounts"];
+        for (const auto &acc : accs) {
+            if (!acc.isMember("user") || !acc.isMember("pass") || !acc.isMember("host")) {
+                LOG_ERROR("pull Account failed");
+                continue;
+            }
+            std::string user = acc["user"].asString();
+            std::string pass = acc["pass"].asString();
+            std::string host = acc["host"].asString();
+            std::vector<std::string> acc_vec;
+            acc_vec.push_back(user);
+            acc_vec.push_back(pass);
+            acc_vec.push_back(host);
+            accounts.push_back(acc_vec);
+        }
+    }
+    catch (const std::exception &e) {
+        LOG_WARN("Exception: {}", e.what());
+        // std::this_thread::sleep_for(std::chrono::seconds {3});
+        // LOG_INFO("retry notify");
+    }
+}
 
 /**
  * @brief 推送音频文件
@@ -188,48 +209,53 @@ inline void pushFile(const std::string file_path, const std::string &client_id)
     const auto target_url = genUrl(URL_DIAL_WAV, client_id);
     LOG_INFO("Client push File target_url: {}", target_url);
 
-    auto &ioc = IOContextPool::getInstance()->getIOContext();
-    tcp::resolver resolver(ioc);
-    beast::tcp_stream stream(ioc);
-
-    auto const results = resolver.resolve(backend_host, backend_port);
-    stream.connect(results);
-
-    std::ifstream file(file_path, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        LOG_WARN("Failed to open file: {}", file_path);
-        return;
-    }
-
-    std::size_t file_size = file.tellg();
-    if (file_size == 0) {
-        LOG_WARN("File is empty: {}", file_path);
-        return;
-    }
-
-    file.seekg(0);
-
-    http::request<http::dynamic_body> req {
-        http::verb::post, target_url, 11};
-    req.set(http::field::host, backend_host);
-    req.set("filename", std::filesystem::path(file_path).filename().string());
-
-    beast::ostream(req.body()) << file.rdbuf();
-    req.prepare_payload();
-
     try {
-        http::write(stream, req);
-        beast::flat_buffer buffer_res;
-        http::response<http::dynamic_body> res;
-        http::read(stream, buffer_res, res);
+        auto &ioc = IOContextPool::getInstance()->getIOContext();
+        tcp::resolver resolver(ioc);
+        beast::tcp_stream stream(ioc);
+
+        auto const results = resolver.resolve(backend_host, backend_port);
+        stream.connect(results);
+
+        std::ifstream file(file_path, std::ios::binary | std::ios::ate);
+        if (!file.is_open()) {
+            LOG_WARN("Failed to open file: {}", file_path);
+            return;
+        }
+
+        std::size_t file_size = file.tellg();
+        if (file_size == 0) {
+            LOG_WARN("File is empty: {}", file_path);
+            return;
+        }
+
+        file.seekg(0);
+
+        http::request<http::dynamic_body> req {
+            http::verb::post, target_url, 11};
+        req.set(http::field::host, backend_host);
+        req.set("filename", std::filesystem::path(file_path).filename().string());
+
+        beast::ostream(req.body()) << file.rdbuf();
+        req.prepare_payload();
+
+        try {
+            http::write(stream, req);
+            beast::flat_buffer buffer_res;
+            http::response<http::dynamic_body> res;
+            http::read(stream, buffer_res, res);
+        }
+        catch (const std::exception &e) {
+            LOG_WARN("Exception: ", e.what());
+        }
+
+        stream.socket().shutdown(tcp::socket::shutdown_both);
+
+        LOG_INFO("Push file success");
     }
     catch (const std::exception &e) {
-        LOG_WARN("Exception: ", e.what());
+        LOG_WARN("Exception: {}", e.what());
     }
-
-    stream.socket().shutdown(tcp::socket::shutdown_both);
-
-    LOG_INFO("Push file success");
 }
 
 /**
@@ -242,16 +268,20 @@ inline void pushFile(const std::string file_path, const std::string &client_id)
 inline void pushRegStatus(const std::string &user, REG_STATE state, const std::string &client_id)
 {
     const auto target_url = genUrl(URL_REG_STATUS, client_id);
-
-    json::Value body_json;
-    body_json["user"] = user;
-    body_json["status"] = state;
-    json::StreamWriterBuilder writer;
-    writer["indentation"] = "";
-    std::string body = json::writeString(writer, body_json);
-    auto resp = httpRequest(
-        backend_host, backend_port, target_url,
-        http::verb::post, {}, body);
+    try {
+        json::Value body_json;
+        body_json["user"] = user;
+        body_json["status"] = state;
+        json::StreamWriterBuilder writer;
+        writer["indentation"] = "";
+        std::string body = json::writeString(writer, body_json);
+        auto resp = httpRequest(
+            backend_host, backend_port, target_url,
+            http::verb::post, {}, body);
+    }
+    catch (const std::exception &e) {
+        LOG_WARN("Exception: {}", e.what());
+    }
 }
 
 /**
@@ -265,16 +295,21 @@ inline void pushDialStatus(const std::string &phone_num, DIAL_STATE state, const
 {
     const auto target_url = genUrl(URL_DIAL_STATUS, client_id);
 
-    // std::string body = R"({"phoneNum": "dial", "dialStatus": "status"})";
-    json::Value body_json;
-    body_json["phoneNum"] = phone_num;
-    body_json["status"] = state;
-    json::StreamWriterBuilder writer;
-    writer["indentation"] = "";
-    std::string body = json::writeString(writer, body_json);
-    auto resp = httpRequest(
-        backend_host, backend_port, target_url,
-        http::verb::post, {}, body);
+    try {
+        // std::string body = R"({"phoneNum": "dial", "dialStatus": "status"})";
+        json::Value body_json;
+        body_json["phoneNum"] = phone_num;
+        body_json["status"] = state;
+        json::StreamWriterBuilder writer;
+        writer["indentation"] = "";
+        std::string body = json::writeString(writer, body_json);
+        auto resp = httpRequest(
+            backend_host, backend_port, target_url,
+            http::verb::post, {}, body);
+    }
+    catch (const std::exception &e) {
+        LOG_WARN("Exception: {}", e.what());
+    }
 }
 
 /**
@@ -287,35 +322,61 @@ inline void pullDialplan(std::vector<std::string> &plans /* & */, const std::str
 {
     const auto target_url = genUrl(URL_DIALPLANS, client_id);
 
-    auto resp = httpRequest(backend_host, backend_port, target_url, http::verb::get);
-    LOG_INFO("pull dialplan: {}", resp.toStyledString());
+    try {
+        auto resp = httpRequest(backend_host, backend_port, target_url, http::verb::get);
+        LOG_INFO("pull dialplan: {}", resp.toStyledString());
 
-    // resp::code
-    if (!resp.isMember("code") || resp["code"] != 200) {
-        LOG_ERROR("resp::code");
-        return;
-    }
-    // resp::data
-    if (!resp.isMember("data")) {
-        LOG_ERROR("resp::data");
-        return;
-    }
-    const json::Value data = resp["data"];
-    if (!data.isMember("dialplans") || !data["dialplans"].isArray()) {
-        LOG_ERROR("resp::data::dialplans");
-        return;
-    }
-    // resp::data::dialplans
-    const json::Value &dialplans = data["dialplans"];
-    for (const auto &dialplan : dialplans) {
-        if (!dialplan.isString()) {
-            LOG_ERROR("resp::data::dialplans format");
-            continue;
+        // resp::code
+        if (!resp.isMember("code") || resp["code"] != 200) {
+            LOG_ERROR("resp::code");
+            return;
         }
-        std::string phone_num = dialplan.asString();
-        plans.push_back(phone_num);
-        // LOG_INFO("fetch pull phone: {}", phone_num); // 日志误导 bug
+        // resp::data
+        if (!resp.isMember("data")) {
+            LOG_ERROR("resp::data");
+            return;
+        }
+        const json::Value data = resp["data"];
+        if (!data.isMember("dialplans") || !data["dialplans"].isArray()) {
+            LOG_ERROR("resp::data::dialplans");
+            return;
+        }
+        // resp::data::dialplans
+        const json::Value &dialplans = data["dialplans"];
+        for (const auto &dialplan : dialplans) {
+            if (!dialplan.isString()) {
+                LOG_ERROR("resp::data::dialplans format");
+                continue;
+            }
+            std::string phone_num = dialplan.asString();
+            plans.push_back(phone_num);
+            // LOG_INFO("fetch pull phone: {}", phone_num); // 日志误导 bug
+        }
     }
+    catch (const std::exception &e) {
+        LOG_WARN("Exception: {}", e.what());
+    }
+}
+
+/**
+ * @brief 客户端心跳
+ */
+inline void heartbeat()
+{
+    const auto target_url = genUrl(URL_HEARTBEAT, g_client_id);
+
+    auto &ioc = IOContextPool::getInstance()->getIOContext();
+    auto timer = std::make_shared<AsyncTimer>(ioc, std::chrono::seconds {5});
+    timer->start([timer, target_url]() {
+        try {
+            auto resp = voip::httpRequest(
+                backend_host, backend_port, target_url, http::verb::post);
+            LOG_INFO("Client send heartbeat");
+        }
+        catch (const std::exception &e) {
+            LOG_WARN("Client send heartbeat Exception: {}", e.what());
+        }
+    });
 }
 
 } // namespace voip
