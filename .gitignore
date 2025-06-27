@@ -31,3 +31,10 @@ logs/
 
 # Audio files
 *.wav
+
+
+/jrtp
+
+/assert
+
+g_client_id

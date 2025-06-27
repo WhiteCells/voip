@@ -12,44 +12,38 @@
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
     acc_(acc)
-// aud_media_port_(std::make_shared<VAudioMediaPort>()),
-// aud_media_recorder_(std::make_shared<pj::AudioMediaRecorder>())
 {
-    // pj::MediaFormatAudio fmt;
-    // fmt.init(PJMEDIA_FORMAT_PCM, 16000, 1, 20000, 16);
-    // aud_media_port_->createPort("aud_media_port_", fmt);
-
-    // pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
-    // cap_dev_med_ = mgr.getCaptureDevMedia();
-    // play_dev_med_ = mgr.getPlaybackDevMedia();
 }
 
 voip::Caller::~Caller()
 {
-    // if (acc_.cur_call == this) {
-    //     acc_.cur_call = nullptr;
-    //     std::cout << ">>> Call object destroyed, account call pointer cleared." << std::endl;
-    // }
-    // else {
-    //     std::cout << ">>> Call object destroyed (was not the account's active call)." << std::endl;
-    // }
 }
 
 void voip::Caller::call(
     const std::string &phone,
     const std::string &client_id,
+    const int dialplan_id,
     std::shared_ptr<CallerQueue> que,
     std::shared_ptr<Caller> caller)
 {
+    m_dialplan_id = dialplan_id;
     m_phone = phone;
     m_client_id = client_id;
     m_que = que;
     m_caller = caller;
     aud_media_recorder_.reset();
     aud_media_recorder_ = std::make_shared<pj::AudioMediaRecorder>();
-    aud_media_recorder_->createRecorder(phone + ".wav");
+    // boost::uuids::random_generator gen;
+    // boost::uuids::uuid uuid;
+    // std::string uuid_str = boost::uuids::to_string(uuid);
+    auto now = std::chrono::system_clock::now();
+    now_time = std::chrono::system_clock::to_time_t(now);
+    m_filename = phone + "_" +
+                 std::to_string(dialplan_id) + "_" +
+                 std::to_string(now_time) + ".wav";
+    aud_media_recorder_->createRecorder(m_filename);
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
-    std::cout << dst_uri << std::endl;
+    LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
     this->makeCall(dst_uri, prm);
 }
@@ -90,11 +84,13 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     switch (ci.state) {
         case PJSIP_INV_STATE_CALLING:
             std::cout << ">>> call" << ci.id << " calling" << std::endl;
-            //
+            // 推送 processing 状态
             voip::pushDialStatus(
+                m_dialplan_id,
                 m_phone,
-                DIAL_STATE::DURING,
-                m_client_id);
+                STATUS_DIALPLAN_PROCESSING,
+                m_client_id,
+                acc_.getId());
             LOG_INFO("calling: {}", m_phone);
             break;
         case PJSIP_INV_STATE_CONFIRMED: {
@@ -102,18 +98,29 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             // 挂断电话
             pj::CallOpParam prm;
             this->hangup(prm);
-            //
+            // 推送文件
+            voip::pushFile(m_filename, g_client_id);
+            // 推送状态
             voip::pushDialStatus(
+                m_dialplan_id,
                 m_phone,
-                DIAL_STATE::CONFIRMED,
-                m_client_id);
+                STATUS_DIALPLAN_FINISH,
+                m_client_id,
+                acc_.getId());
             LOG_INFO("hangup: {}", m_phone);
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
             std::cout << ">>> call " << ci.id << " disconnected." << std::endl;
             // 推送文件
-            voip::pushFile(m_phone + ".wav", "00001");
+            voip::pushFile(m_filename, g_client_id);
+            // 推送状态
+            voip::pushDialStatus(
+                m_dialplan_id,
+                m_phone,
+                STATUS_DIALPLAN_FINISH,
+                m_client_id,
+                acc_.getId());
             // single 回收
             // m_que->releaseCaller(m_caller);
             LOG_INFO("phone: {} disconnected", m_phone);

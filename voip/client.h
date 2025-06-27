@@ -12,7 +12,8 @@
 class Client : public std::enable_shared_from_this<Client>
 {
 public:
-    Client(unsigned workers_num = 2 /*std::thread::hardware_concurrency()*/);
+    // Client(unsigned workers_num = std::thread::hardware_concurrency());
+    Client(unsigned workers_num = 3);
     ~Client();
 
 private:

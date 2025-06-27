@@ -12,7 +12,7 @@ DialPlanQueue::~DialPlanQueue()
     m_fetching = false;
 }
 
-void DialPlanQueue::addDialPlan(const std::string &dialplan)
+void DialPlanQueue::addDialPlan(const std::pair<int, std::string> &dialplan)
 {
     {
         std::unique_lock<std::mutex> lock {m_que_mtx};
@@ -21,7 +21,7 @@ void DialPlanQueue::addDialPlan(const std::string &dialplan)
     m_que_cv.notify_one();
 }
 
-std::string DialPlanQueue::getDialPlan()
+std::pair<int, std::string> DialPlanQueue::getDialPlan()
 {
     std::unique_lock<std::mutex> lock(m_que_mtx);
 
@@ -49,11 +49,11 @@ std::string DialPlanQueue::getDialPlan()
 
     auto dialplan = m_que.front();
     m_que.pop();
-    LOG_INFO("popped: {}", dialplan);
+    LOG_INFO("popped: {} {}", dialplan.first, dialplan.second);
     return dialplan;
 }
 
-void DialPlanQueue::releaseDialPlan(const std::string &dialplan)
+void DialPlanQueue::releaseDialPlan(const std::pair<int, std::string> &dialplan)
 {
     {
         std::unique_lock<std::mutex> lock {m_que_mtx};
@@ -77,14 +77,14 @@ bool DialPlanQueue::empty() const
 void DialPlanQueue::fetchDialPlan()
 {
     try {
-        std::vector<std::string> plans;
+        std::vector<std::pair<int, std::string>> plans;
         voip::pullDialplan(plans, g_client_id);
 
         {
             std::unique_lock<std::mutex> lock(m_que_mtx);
             for (const auto &plan : plans) {
                 m_que.push(plan);
-                LOG_INFO("=== push plan: {} ===", plan);
+                LOG_INFO("=== push plan: {} ===", plan.second);
             }
             m_fetching.store(false);
             LOG_INFO("m_fetching set to false. Queue size now: {}", m_que.size());

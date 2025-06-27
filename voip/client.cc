@@ -32,8 +32,8 @@ void Client::callTask()
         LOG_INFO("to get dualplan");
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que.getDialPlan();
-        LOG_INFO("tasking: {}", dialplan);
-        caller->call(dialplan, g_client_id);
+        LOG_INFO("tasking: {} {}", dialplan.first, dialplan.second);
+        caller->call(dialplan.second, g_client_id, dialplan.first);
         std::this_thread::sleep_for(std::chrono::seconds(120));
     }
 }

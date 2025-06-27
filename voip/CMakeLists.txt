@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # add_subdirectory(tests)
 
 set(SRC 
+    agent_audiomediaport.cc
     global.cc
     async_timer.cc
     dialplan_queue.cc
@@ -27,12 +28,17 @@ set(SRC
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(/usr/include/jsoncpp)
+include_directories(/usr/local/include/jrtplib3)
 
 # add_library(${PROJECT_NAME}_lib STATIC
 #     ${SRC}
 # )
 
 add_executable(${PROJECT_NAME} ${SRC})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    /usr/local/lib/libjrtp.so
+)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     spdlog::spdlog_header_only

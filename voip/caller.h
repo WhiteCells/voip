@@ -5,6 +5,11 @@
 #include <pjsua2.hpp>
 #include <string>
 #include <memory>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
+#include "agent_audiomediaport.h"
 
 class CallerQueue;
 
@@ -47,10 +52,14 @@ public:
      */
     void call(const std::string &phone,
               const std::string &client_id,
+              const int dialplan_id,
               std::shared_ptr<CallerQueue> que = nullptr,
               std::shared_ptr<Caller> caller = nullptr);
 
 private:
+    int m_dialplan_id;
+    std::time_t now_time;
+    std::string m_filename;
     VAccount &acc_;
     // std::shared_ptr<VAudioMediaPort> aud_media_port_;
 
@@ -63,6 +72,7 @@ private:
     std::string m_client_id;
     std::shared_ptr<CallerQueue> m_que;
     std::shared_ptr<Caller> m_caller;
+    std::shared_ptr<AgentAudioMediaPort> m_aud_media_port;
 };
 
 } // namespace voip

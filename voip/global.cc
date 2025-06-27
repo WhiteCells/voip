@@ -20,6 +20,7 @@ void startEndpointLib(unsigned port)
 
     pj::EpConfig ep_cfg;
     endpoint.libInit(ep_cfg);
+    // endpoint.audDevManager().setNullDev();
 
     pj::TransportConfig ts_cfg;
     ts_cfg.port = port;

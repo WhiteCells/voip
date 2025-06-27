@@ -29,13 +29,13 @@ extern std::string backend_port;
 extern cfg_map cfg;
 
 // url
-#define URL_NOTIFY      "notify"      // 客户端通知
-#define URL_HEARTBEAT   "heartbeat"   // 客户端心跳
-#define URL_ACCOUNTS    "accounts"    // 拉取账号
-#define URL_REG_STATUS  "reg_status"  // 注册状态
-#define URL_DIALPLANS   "dialplans"   // 拉取呼叫计划
-#define URL_DIAL_WAV    "dial_wav"    // 推送音频
-#define URL_DIAL_STATUS "dial_status" // 呼叫状态
+#define URL_NOTIFY      "notify"          // 客户端通知
+#define URL_HEARTBEAT   "heartbeat"       // 客户端心跳
+#define URL_ACCOUNTS    "account"         // 拉取账号
+#define URL_REG_STATUS  "account/status"  // 注册状态
+#define URL_DIALPLANS   "dialplan"        // 拉取呼叫计划
+#define URL_DIAL_WAV    "dial_wav"        // 推送音频
+#define URL_DIAL_STATUS "dialplan/status" // 呼叫状态
 
 /**
  * @brief 构建请求路径
@@ -56,9 +56,15 @@ enum DIAL_STATE {
     DISCON,    // 断连
 };
 
+#define STATUS_DIALPLAN_PROCESSING "processing"
+#define STATUS_DIALPLAN_FINISH     "finish"
+
 enum REG_STATE {
     SUCCESSED,
     FAILED,
 };
+
+#define STATUS_ACCOUNT_REGISTERED "registered"
+#define STATUS_ACCOUNT_UNREGISTERED "unregistered"
 
 #endif // _GLOBAL_H_

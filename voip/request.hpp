@@ -9,6 +9,9 @@
 #include <boost/asio.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/core.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <json/json.h>
 #include <string>
 #include <iostream>
@@ -101,13 +104,49 @@ inline json::Value httpRequest(
  */
 inline void notify()
 {
-    const auto target_url = genUrl(URL_NOTIFY);
+    // 读取 g_client_id 文件
+    // 如果文件不存在则创建文件，创建 g_client_id(uuid) 并存储至文件
+    if (std::filesystem::exists("./g_client_id")) {
+        std::ifstream in("./g_client_id");
+        if (!in.is_open()) {
+            LOG_INFO("open g_client_id file failed");
+            return;
+        }
+        else {
+            std::getline(in, g_client_id);
+            in.close();
+        }
+    }
+    else {
+        boost::uuids::random_generator gen;
+        boost::uuids::uuid uuid = gen();
+        g_client_id = boost::uuids::to_string(uuid);
+        LOG_INFO("gen g_client_id: {}", g_client_id);
+        std::ofstream out("./g_client_id");
+        if (!out.is_open()) {
+            LOG_ERROR("open g_client_id file failed");
+            return;
+        }
+        out << g_client_id;
+        out.close();
+    }
+    const auto target_url = genUrl(URL_NOTIFY, g_client_id);
     for (;;) {
         try {
+            json::Value body_json;
+            body_json["threads_num"] = g_thread_num;
+            json::StreamWriterBuilder writer;
+            writer["indentation"] = "";
+            std::string body = json::writeString(writer, body_json);
+
             LOG_INFO("Client notify target_url: {}", target_url);
 
-            auto resp = httpRequest(backend_host, backend_port, target_url, http::verb::post);
+            auto resp = httpRequest(
+                backend_host, backend_port,
+                target_url, http::verb::post,
+                {}, body);
             LOG_INFO("Client connect backend: {}:{} Response: {}", backend_host, backend_port, resp.toStyledString());
+            LOG_INFO("body json: {}", body);
 
             // resp::code
             if (!resp.isMember("code") || !resp["code"].isInt() || resp["code"] != 200) {
@@ -126,7 +165,7 @@ inline void notify()
             }
 
             // update g_client_id
-            g_client_id = data["clientId"].asString();
+            // g_client_id = data["clientId"].asString();
             LOG_INFO("current client ID: {}", g_client_id);
             break;
         }
@@ -151,13 +190,15 @@ inline void pullAccount(std::vector<std::vector<std::string>> &accounts, const s
     try {
         LOG_INFO("Client pull Account target_url: {}", target_url);
 
-        std::map<std::string, std::string> params = {
-            {"threadsNum", std::to_string(g_thread_num)},
-        };
-
+        // std::map<std::string, std::string> params = {
+        //     {"threadsNum", std::to_string(g_thread_num)},
+        // };
+        // auto resp = httpRequest(
+        //     backend_host, backend_port, target_url,
+        //     http::verb::get, params);
         auto resp = httpRequest(
             backend_host, backend_port, target_url,
-            http::verb::get, params);
+            http::verb::get);
         LOG_INFO("Client pull Account response: {}", resp.toStyledString());
 
         // resp::code
@@ -174,18 +215,20 @@ inline void pullAccount(std::vector<std::vector<std::string>> &accounts, const s
         // resp::data::accounts
         const json::Value &accs = data["accounts"];
         for (const auto &acc : accs) {
-            if (!acc.isMember("user") || !acc.isMember("pass") || !acc.isMember("host")) {
+            if (!acc.isMember("name") || !acc.isMember("pwd") || !acc.isMember("host")) {
                 LOG_ERROR("pull Account failed");
                 continue;
             }
-            std::string user = acc["user"].asString();
-            std::string pass = acc["pass"].asString();
+            std::string id = acc["id"].asString();
+            std::string user = acc["name"].asString();
+            std::string pass = acc["pwd"].asString();
             std::string host = acc["host"].asString();
-            std::vector<std::string> acc_vec;
-            acc_vec.push_back(user);
-            acc_vec.push_back(pass);
-            acc_vec.push_back(host);
-            accounts.push_back(acc_vec);
+            std::vector<std::string> acc_info;
+            acc_info.push_back(id);
+            acc_info.push_back(user);
+            acc_info.push_back(pass);
+            acc_info.push_back(host);
+            accounts.push_back(acc_info);
         }
     }
     catch (const std::exception &e) {
@@ -265,19 +308,19 @@ inline void pushFile(const std::string file_path, const std::string &client_id)
  * @param state 注册状态
  * @param client_id 客户端 ID
  */
-inline void pushRegStatus(const std::string &user, REG_STATE state, const std::string &client_id)
+inline void pushRegStatus(const std::string &id, const std::string &state, const std::string &client_id)
 {
     const auto target_url = genUrl(URL_REG_STATUS, client_id);
     try {
         json::Value body_json;
-        body_json["user"] = user;
+        body_json["account_id"] = id;
         body_json["status"] = state;
         json::StreamWriterBuilder writer;
         writer["indentation"] = "";
         std::string body = json::writeString(writer, body_json);
         auto resp = httpRequest(
             backend_host, backend_port, target_url,
-            http::verb::post, {}, body);
+            http::verb::put, {}, body);
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
@@ -291,21 +334,29 @@ inline void pushRegStatus(const std::string &user, REG_STATE state, const std::s
  * @param state 通话状态
  * @param client_id 客户端 ID
  */
-inline void pushDialStatus(const std::string &phone_num, DIAL_STATE state, const std::string &client_id)
+inline void pushDialStatus(
+    const int dialplan_id,
+    const std::string &phone_num,
+    const std::string state,
+    const std::string &client_id,
+    const std::string &account_id
+)
 {
     const auto target_url = genUrl(URL_DIAL_STATUS, client_id);
 
     try {
-        // std::string body = R"({"phoneNum": "dial", "dialStatus": "status"})";
         json::Value body_json;
-        body_json["phoneNum"] = phone_num;
+        body_json["id"] = dialplan_id;
+        body_json["phone"] = phone_num;
         body_json["status"] = state;
+        body_json["account_id"] = account_id;
         json::StreamWriterBuilder writer;
         writer["indentation"] = "";
         std::string body = json::writeString(writer, body_json);
+        LOG_INFO("dialplan status: {}", body);
         auto resp = httpRequest(
             backend_host, backend_port, target_url,
-            http::verb::post, {}, body);
+            http::verb::put, {}, body);
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
@@ -318,12 +369,14 @@ inline void pushDialStatus(const std::string &phone_num, DIAL_STATE state, const
  * @param plans 传出参数，存储拨号计划
  * @param client_id 客户端 ID
  */
-inline void pullDialplan(std::vector<std::string> &plans /* & */, const std::string &client_id)
+inline void pullDialplan(std::vector<std::pair<int, std::string>> &plans /* & */, const std::string &client_id)
 {
     const auto target_url = genUrl(URL_DIALPLANS, client_id);
 
     try {
-        auto resp = httpRequest(backend_host, backend_port, target_url, http::verb::get);
+        auto resp = httpRequest(
+            backend_host, backend_port,
+            target_url, http::verb::get);
         LOG_INFO("pull dialplan: {}", resp.toStyledString());
 
         // resp::code
@@ -344,13 +397,19 @@ inline void pullDialplan(std::vector<std::string> &plans /* & */, const std::str
         // resp::data::dialplans
         const json::Value &dialplans = data["dialplans"];
         for (const auto &dialplan : dialplans) {
-            if (!dialplan.isString()) {
-                LOG_ERROR("resp::data::dialplans format");
+            if (!dialplan.isMember("phone") || !dialplan.isMember("id")) {
+                LOG_ERROR("resp::data::dialplans::phone");
                 continue;
             }
-            std::string phone_num = dialplan.asString();
-            plans.push_back(phone_num);
-            // LOG_INFO("fetch pull phone: {}", phone_num); // 日志误导 bug
+            int id = dialplan["id"].asInt();
+            std::string phone = dialplan["phone"].asString();
+            // if (!dialplan.isString()) {
+            //     LOG_ERROR("resp::data::dialplans format");
+            //     continue;
+            // }
+            // std::string phone_num = dialplan.asString();
+            std::pair p = std::make_pair(id, phone);
+            plans.push_back(p);
         }
     }
     catch (const std::exception &e) {

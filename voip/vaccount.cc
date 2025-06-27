@@ -4,9 +4,11 @@
 #include "global.h"
 
 voip::VAccount::VAccount(
+    const std::string &id,
     const std::string &user,
     const std::string &pass,
     const std::string &host) :
+    m_id(id),
     m_user(user),
     m_pass(pass),
     m_host(host)
@@ -29,7 +31,7 @@ void voip::VAccount::onRegState(pj::OnRegStateParam &prm)
 {
     pj::AccountInfo ai = getInfo();
     LOG_INFO("code: {} reason: {} {}", static_cast<int>(prm.code), prm.reason, ai.uri);
-    voip::pushRegStatus(m_user, REG_STATE::SUCCESSED, "todo");
+    voip::pushRegStatus(m_id, STATUS_ACCOUNT_REGISTERED, g_client_id);
 }
 
 // void voip::VAccount::onIncomingCall(pj::OnIncomingCallParam &iprm)
