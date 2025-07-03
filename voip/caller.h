@@ -1,7 +1,6 @@
 #ifndef _VCALL_H_
 #define _VCALL_H_
 
-// #include "vaudiomediaport.h"
 #include <pjsua2.hpp>
 #include <string>
 #include <memory>
@@ -10,6 +9,7 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include "agent_audiomediaport.h"
+#include "agent_audiomediaport2.h"
 
 class CallerQueue;
 
@@ -52,27 +52,21 @@ public:
      */
     void call(const std::string &phone,
               const std::string &client_id,
-              const int dialplan_id,
-              std::shared_ptr<CallerQueue> que = nullptr,
-              std::shared_ptr<Caller> caller = nullptr);
+              const int dialplan_id);
 
 private:
     int m_dialplan_id;
     std::time_t now_time;
     std::string m_filename;
     VAccount &acc_;
-    // std::shared_ptr<VAudioMediaPort> aud_media_port_;
 
     std::shared_ptr<pj::AudioMediaRecorder> aud_media_recorder_;
 
-    // pj::AudioMedia cap_dev_med_;
-    // pj::AudioMedia play_dev_med_;
-
     std::string m_phone;
     std::string m_client_id;
-    std::shared_ptr<CallerQueue> m_que;
-    std::shared_ptr<Caller> m_caller;
     std::shared_ptr<AgentAudioMediaPort> m_aud_media_port;
+    // std::shared_ptr<AgentAudioMediaPort> m_aud_media_port2;
+    std::shared_ptr<AgentAudioMediaPort2> m_aud_media_port2;
 };
 
 } // namespace voip

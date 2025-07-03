@@ -19,6 +19,8 @@ public:
 private:
     void callTask();
 
+    void batchTask();
+
 private:
     std::atomic_bool m_running;                              // 运行标志
     ThreadPool m_thread_pool;                                // 线程池

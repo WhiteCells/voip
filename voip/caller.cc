@@ -6,42 +6,46 @@
 #include "request.hpp"
 #include "global.h"
 
-#include <pjsua2/call.hpp>
-#include <iostream>
-
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
-    acc_(acc)
+    acc_(acc),
+    m_aud_media_port(std::make_shared<AgentAudioMediaPort>()),
+    m_aud_media_port2(std::make_shared<AgentAudioMediaPort2>())
 {
+    pj::MediaFormatAudio fmt;
+    fmt.type = PJMEDIA_TYPE_AUDIO;
+    fmt.id = PJMEDIA_FORMAT_PCMA; // 或 PCM16, PCMA, etc.
+    fmt.clockRate = 8000;
+    fmt.channelCount = 1;
+    fmt.frameTimeUsec = 20000; // 20ms
+    fmt.bitsPerSample = 16;
+
+    m_aud_media_port->createPort("media-port", fmt);
+
+    m_aud_media_port2->createPort("media-port2", fmt);
 }
 
 voip::Caller::~Caller()
 {
+    // this->hangup(const CallOpParam &prm);
 }
 
 void voip::Caller::call(
     const std::string &phone,
     const std::string &client_id,
-    const int dialplan_id,
-    std::shared_ptr<CallerQueue> que,
-    std::shared_ptr<Caller> caller)
+    const int dialplan_id)
 {
     m_dialplan_id = dialplan_id;
     m_phone = phone;
     m_client_id = client_id;
-    m_que = que;
-    m_caller = caller;
     aud_media_recorder_.reset();
     aud_media_recorder_ = std::make_shared<pj::AudioMediaRecorder>();
-    // boost::uuids::random_generator gen;
-    // boost::uuids::uuid uuid;
-    // std::string uuid_str = boost::uuids::to_string(uuid);
     auto now = std::chrono::system_clock::now();
     now_time = std::chrono::system_clock::to_time_t(now);
     m_filename = phone + "_" +
                  std::to_string(dialplan_id) + "_" +
                  std::to_string(now_time) + ".wav";
-    aud_media_recorder_->createRecorder(m_filename);
+    // aud_media_recorder_->createRecorder(m_filename);
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
@@ -79,51 +83,28 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     if (!ci.lastReason.empty()) {
         LOG_INFO("call reason: {}", ci.lastReason);
     }
-    std::cout << std::endl;
 
     switch (ci.state) {
-        case PJSIP_INV_STATE_CALLING:
-            std::cout << ">>> call" << ci.id << " calling" << std::endl;
-            // 推送 processing 状态
-            voip::pushDialStatus(
-                m_dialplan_id,
-                m_phone,
-                STATUS_DIALPLAN_PROCESSING,
-                m_client_id,
-                acc_.getId());
-            LOG_INFO("calling: {}", m_phone);
+        case PJSIP_INV_STATE_CONNECTING: {
+            LOG_INFO(">>> call: {}, phone: {} connecting", ci.id, m_phone);
             break;
+        }
+        case PJSIP_INV_STATE_NULL: {
+            LOG_INFO(">>> call: {}, phone: {} null", ci.id, m_phone);
+            break;
+        }
+        case PJSIP_INV_STATE_CALLING: {
+            LOG_INFO(">>> call: {}, phone: {} calling", ci.id, m_phone);
+            // 其他线程接收到已经接通的线程的通知后，会结束拨打
+            break;
+        }
         case PJSIP_INV_STATE_CONFIRMED: {
-            std::cout << ">>> call " << ci.id << " connected/Confirmed." << std::endl;
-            // 挂断电话
-            pj::CallOpParam prm;
-            this->hangup(prm);
-            // 推送文件
-            voip::pushFile(m_filename, g_client_id);
-            // 推送状态
-            voip::pushDialStatus(
-                m_dialplan_id,
-                m_phone,
-                STATUS_DIALPLAN_FINISH,
-                m_client_id,
-                acc_.getId());
-            LOG_INFO("hangup: {}", m_phone);
+            LOG_INFO(">>> call: {}, phone: {} confirmed", ci.id, m_phone);
+            // 当前线程如果已经接通了，通知其他线程挂断电话
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
-            std::cout << ">>> call " << ci.id << " disconnected." << std::endl;
-            // 推送文件
-            voip::pushFile(m_filename, g_client_id);
-            // 推送状态
-            voip::pushDialStatus(
-                m_dialplan_id,
-                m_phone,
-                STATUS_DIALPLAN_FINISH,
-                m_client_id,
-                acc_.getId());
-            // single 回收
-            // m_que->releaseCaller(m_caller);
-            LOG_INFO("phone: {} disconnected", m_phone);
+            LOG_INFO(">>> call: {}, phone: {} disconnected", ci.id, m_phone);
             break;
         }
         default:
@@ -136,18 +117,33 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
     PJ_UNUSED_ARG(prm);
 
     pj::CallInfo ci = getInfo();
-    LOG_INFO("call: {} Media State Changed", ci.id);
-    LOG_INFO("media size: {}", ci.media.size());
+    LOG_INFO("call: {} Media State Changed, media size: {}", ci.id, ci.media.size());
 
     pj::AudioMedia *aud_med;
+    // pj::AudioMedia aud_med;
+    pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
+    auto cap_dev_med = mgr.getCaptureDevMedia();
+    auto play_dev_med = mgr.getPlaybackDevMedia();
 
     for (unsigned i = 0; i < ci.media.size(); ++i) {
         if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
             LOG_INFO("used media index: {}", i);
             aud_med = (pj::AudioMedia *)getMedia(i);
+            // aud_med = getAudioMedia(i);
+
+            // cap_dev_med.startTransmit(*aud_med);
+            // aud_med->startTransmit(play_dev_med);
+
+            // LOG_INFO("audio media: {}", aud_med->getPortId());
+            // LOG_INFO("audio media port: {}", m_aud_media_port->getPortId());
+            // LOG_INFO("audio media2 port: {}", m_aud_media_port2->getPortId());
+            // LOG_INFO("cap dev: {}", cap_dev_med.getPortId());
+            // LOG_INFO("paly dev: {}", play_dev_med.getPortId());
+
+            // m_aud_media_port2->startTransmit(*aud_med);
+            aud_med->startTransmit(*m_aud_media_port);
         }
     }
-    aud_med->startTransmit(*aud_media_recorder_);
 }
 
 // void voip::Caller::onStreamCreated(pj::OnStreamCreatedParam &prm)

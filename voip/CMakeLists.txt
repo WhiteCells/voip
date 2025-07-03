@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SRC 
     agent_audiomediaport.cc
+    agent_audiomediaport2.cc
     global.cc
     async_timer.cc
     dialplan_queue.cc

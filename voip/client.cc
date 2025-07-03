@@ -27,13 +27,19 @@ Client::~Client()
 
 void Client::callTask()
 {
-    // auto caller = m_caller_vec->getCaller(i);
     while (m_running) {
-        LOG_INFO("to get dualplan");
+        LOG_INFO("call task");
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que.getDialPlan();
         LOG_INFO("tasking: {} {}", dialplan.first, dialplan.second);
         caller->call(dialplan.second, g_client_id, dialplan.first);
-        std::this_thread::sleep_for(std::chrono::seconds(120));
+        std::this_thread::sleep_for(std::chrono::seconds(1200));
+        // std::this_thread::sleep_for(std::chrono::seconds(120));
     }
+}
+
+void Client::batchTask()
+{
+    // auto caller = m_caller_que.get();
+    
 }
