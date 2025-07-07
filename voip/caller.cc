@@ -9,20 +9,22 @@
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
     acc_(acc),
-    m_aud_media_port(std::make_shared<AgentAudioMediaPort>()),
-    m_aud_media_port2(std::make_shared<AgentAudioMediaPort2>())
+    // m_aud_media_port(std::make_shared<AgentAudioMediaPort>()),
+    m_aud_media_player(std::make_shared<pj::AudioMediaPlayer>())
+// m_aud_media_port2(std::make_shared<AgentAudioMediaPort2>())
 {
-    pj::MediaFormatAudio fmt;
-    fmt.type = PJMEDIA_TYPE_AUDIO;
-    fmt.id = PJMEDIA_FORMAT_PCMA; // 或 PCM16, PCMA, etc.
-    fmt.clockRate = 8000;
-    fmt.channelCount = 1;
-    fmt.frameTimeUsec = 20000; // 20ms
-    fmt.bitsPerSample = 16;
+    // m_aud_media_player->createPlayer("input.wav");
+    // pj::MediaFormatAudio fmt;
+    // fmt.type = PJMEDIA_TYPE_AUDIO;
+    // fmt.id = PJMEDIA_FORMAT_PCMA; // 或 PCM16, PCMA, etc.
+    // fmt.clockRate = 8000;         // 8000Hz
+    // fmt.channelCount = 1;         //
+    // fmt.frameTimeUsec = 20000;    // 20ms
+    // fmt.bitsPerSample = 16;
 
-    m_aud_media_port->createPort("media-port", fmt);
+    // m_aud_media_port->createPort("media-port", fmt);
 
-    m_aud_media_port2->createPort("media-port2", fmt);
+    // m_aud_media_port2->createPort("media-port2", fmt);
 }
 
 voip::Caller::~Caller()
@@ -117,10 +119,9 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
     PJ_UNUSED_ARG(prm);
 
     pj::CallInfo ci = getInfo();
-    LOG_INFO("call: {} Media State Changed, media size: {}", ci.id, ci.media.size());
+    LOG_INFO("call: {} Media State Changed: {}, media size: {}", ci.id, ci.stateText, ci.media.size());
 
     pj::AudioMedia *aud_med;
-    // pj::AudioMedia aud_med;
     pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
     auto cap_dev_med = mgr.getCaptureDevMedia();
     auto play_dev_med = mgr.getPlaybackDevMedia();
@@ -129,22 +130,39 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
         if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
             LOG_INFO("used media index: {}", i);
             aud_med = (pj::AudioMedia *)getMedia(i);
-            // aud_med = getAudioMedia(i);
 
-            // cap_dev_med.startTransmit(*aud_med);
-            // aud_med->startTransmit(play_dev_med);
-
-            // LOG_INFO("audio media: {}", aud_med->getPortId());
-            // LOG_INFO("audio media port: {}", m_aud_media_port->getPortId());
-            // LOG_INFO("audio media2 port: {}", m_aud_media_port2->getPortId());
-            // LOG_INFO("cap dev: {}", cap_dev_med.getPortId());
-            // LOG_INFO("paly dev: {}", play_dev_med.getPortId());
-
-            // m_aud_media_port2->startTransmit(*aud_med);
-            aud_med->startTransmit(*m_aud_media_port);
+            // m_aud_media_player->startTransmit(*aud_med);
+            cap_dev_med.startTransmit(*aud_med);
+            aud_med->startTransmit(play_dev_med);
         }
     }
 }
+
+// pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
+// auto cap_dev_med = mgr.getCaptureDevMedia();
+// auto play_dev_med = mgr.getPlaybackDevMedia();
+
+// aud_med->startTransmit(*m_aud_media_port);
+
+// m_aud_media_port->startTransmit(cap_dev_med);
+// cap_dev_med.startTransmit(*aud_med);
+// 传输自定义音频帧
+// pj::AudioMedia aud_med;
+
+// m_aud_media_port->startTransmit(*aud_med);
+// 接收音频帧存为文件
+// aud_med->startTransmit(*m_aud_media_port);
+
+// aud_med = getAudioMedia(i);
+
+// cap_dev_med.startTransmit(*aud_med);
+// aud_med->startTransmit(play_dev_med);
+
+// LOG_INFO("audio media: {}", aud_med->getPortId());
+// LOG_INFO("audio media port: {}", m_aud_media_port->getPortId());
+// LOG_INFO("audio media2 port: {}", m_aud_media_port2->getPortId());
+// LOG_INFO("cap dev: {}", cap_dev_med.getPortId());
+// LOG_INFO("paly dev: {}", play_dev_med.getPortId());
 
 // void voip::Caller::onStreamCreated(pj::OnStreamCreatedParam &prm)
 // {

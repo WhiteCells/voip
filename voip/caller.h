@@ -67,6 +67,7 @@ private:
     std::shared_ptr<AgentAudioMediaPort> m_aud_media_port;
     // std::shared_ptr<AgentAudioMediaPort> m_aud_media_port2;
     std::shared_ptr<AgentAudioMediaPort2> m_aud_media_port2;
+    std::shared_ptr<pj::AudioMediaPlayer> m_aud_media_player;
 };
 
 } // namespace voip

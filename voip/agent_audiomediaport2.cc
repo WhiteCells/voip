@@ -53,7 +53,7 @@ void AgentAudioMediaPort2::onFrameRequested(pj::MediaFrame &frame)
     pcm_out.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
 
     ++frameCount;
-    LOG_INFO("Simulated frame {} with freq {}", frameCount, freq);
+    // LOG_INFO("Simulated frame {} with freq {}", frameCount, freq);
 }
 
 void AgentAudioMediaPort2::onFrameReceived(pj::MediaFrame &frame)
