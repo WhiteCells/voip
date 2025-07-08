@@ -38,3 +38,5 @@ logs/
 /assert
 
 g_client_id
+
+*.pcm

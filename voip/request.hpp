@@ -159,13 +159,13 @@ inline void notify()
                 return;
             }
             const json::Value &data = resp["data"];
-            if (!data.isMember("clientId") || !data["clientId"].isString()) {
-                LOG_ERROR("resp::data::clientId");
+            if (!data.isMember("client_id")) {
+                LOG_ERROR("resp::data::client_id");
                 return;
             }
 
             // update g_client_id
-            // g_client_id = data["clientId"].asString();
+            // g_client_id = data["client_id"].asString();
             LOG_INFO("current client ID: {}", g_client_id);
             break;
         }

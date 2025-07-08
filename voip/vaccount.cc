@@ -13,6 +13,7 @@ voip::VAccount::VAccount(
     m_pass(pass),
     m_host(host)
 {
+    LOG_INFO("register Account: {} {} {} {}", id, user, pass, host);
     m_auth_cred_info = pj::AuthCredInfo("digest", "*",
                                         user, 0, pass);
     m_acc_cfg.idUri = "sip:" + user + "@" + host;
