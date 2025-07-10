@@ -1,0 +1,1 @@
+ffmpeg -f s16le -ar 8000 -ac 1 -i output.pcm output.wav

@@ -9,7 +9,6 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include "agent_audiomediaport.h"
-#include "agent_audiomediaport2.h"
 
 class CallerQueue;
 
@@ -65,8 +64,6 @@ private:
     std::string m_phone;
     std::string m_client_id;
     std::shared_ptr<AgentAudioMediaPort> m_aud_media_port;
-    // std::shared_ptr<AgentAudioMediaPort> m_aud_media_port2;
-    std::shared_ptr<AgentAudioMediaPort2> m_aud_media_port2;
     std::shared_ptr<pj::AudioMediaPlayer> m_aud_media_player;
 };
 

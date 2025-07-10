@@ -1,12 +1,5 @@
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# add_subdirectory(third_party/jsoncpp)
-# add_subdirectory(tests)
-
 set(SRC 
     agent_audiomediaport.cc
-    agent_audiomediaport2.cc
     global.cc
     async_timer.cc
     dialplan_queue.cc
@@ -27,13 +20,13 @@ set(SRC
     main.cc
 )
 
-include_directories(${Boost_INCLUDE_DIRS})
-include_directories(/usr/include/jsoncpp)
-include_directories(/usr/local/include/jrtplib3)
-
-# add_library(${PROJECT_NAME}_lib STATIC
-#     ${SRC}
-# )
+include_directories(
+    ${Boost_INCLUDE_DIRS}
+    /usr/include/jsoncpp
+    /usr/local/include/jrtplib3
+)
+# include_directories(/usr/include/jsoncpp)
+# include_directories(/usr/local/include/jrtplib3)
 
 add_executable(${PROJECT_NAME} ${SRC})
 
