@@ -20,23 +20,19 @@ set(SRC
     main.cc
 )
 
-include_directories(
-    ${Boost_INCLUDE_DIRS}
-    /usr/include/jsoncpp
-    /usr/local/include/jrtplib3
-)
-# include_directories(/usr/include/jsoncpp)
-# include_directories(/usr/local/include/jrtplib3)
-
 add_executable(${PROJECT_NAME} ${SRC})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-    /usr/local/lib/libjrtp.so
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${Boost_INCLUDE_DIRS}
+)
+
+target_link_directories(${PROJECT_NAME} PRIVATE
+    ../third_party/src/lib_json
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     spdlog::spdlog_header_only
-    jsoncpp
+    libjsoncpp.a
     ${Boost_LIBRARIES}
     pjsua2-x86_64-pc-linux-gnu 
     pjsua-x86_64-pc-linux-gnu 
