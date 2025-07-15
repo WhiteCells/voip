@@ -1,12 +1,17 @@
 #ifndef _AGENT_AUDIOMEDIAPORT_H_
 #define _AGENT_AUDIOMEDIAPORT_H_
 
-// #include <jrtplib3/rtpsession.h>
-// #include <jrtplib3/rtppacket.h>
-// #include <jrtplib3/rtpipv4address.h>
-// #include <jrtplib3/rtpsessionparams.h>
-// #include <jrtplib3/rtpudpv4transmitter.h>
+#include <jrtplib3/rtpsession.h>
+#include <jrtplib3/rtppacket.h>
+#include <jrtplib3/rtpipv4address.h>
+#include <jrtplib3/rtpsessionparams.h>
+#include <jrtplib3/rtpudpv4transmitter.h>
 #include <pjsua2.hpp>
+#include <thread>
+#include <vector>
+#include <deque>
+#include <mutex>
+#include <atomic>
 
 class AgentAudioMediaPort : public pj::AudioMediaPort
 {
@@ -36,6 +41,13 @@ public:
      * @param frame       The frame.
      */
     virtual void onFrameReceived(pj::MediaFrame &frame) override;
+
+private:
+    jrtplib::RTPSession m_session;
+    std::thread m_rtp_recv_thread;
+    std::atomic<bool> m_running;
+    std::deque<std::vector<uint8_t>> m_rtp_recv_buffer;
+    std::mutex m_buffer_mtx;
 };
 
 #endif // _AGENT_AUDIOMEDIAPORT_H_

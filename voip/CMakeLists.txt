@@ -33,6 +33,7 @@ target_link_directories(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE
     spdlog::spdlog_header_only
     libjsoncpp.a
+    /usr/local/lib/libjrtp.so
     ${Boost_LIBRARIES}
     pjsua2-x86_64-pc-linux-gnu 
     pjsua-x86_64-pc-linux-gnu 
