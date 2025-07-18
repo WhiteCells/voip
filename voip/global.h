@@ -67,4 +67,6 @@ enum REG_STATE {
 #define STATUS_ACCOUNT_REGISTERED "registered"
 #define STATUS_ACCOUNT_UNREGISTERED "unregistered"
 
+
+
 #endif // _GLOBAL_H_

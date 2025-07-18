@@ -48,6 +48,8 @@ public:
               const std::string &client_id,
               const int dialplan_id);
 
+    void hangup_();
+
 private:
     int m_dialplan_id;
     std::time_t now_time;

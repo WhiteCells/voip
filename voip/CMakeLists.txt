@@ -17,6 +17,7 @@ set(SRC
     singleton.hpp
     thread_pool.cc
     logger.cc
+    coordinator.cc
     main.cc
 )
 

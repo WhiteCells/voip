@@ -61,7 +61,7 @@ AgentAudioMediaPort::AgentAudioMediaPort()
                                 m_rtp_recv_buffer.pop_front(); // 限制缓冲大小
                                 LOG_INFO("Rtp Recv Buffer pop font");
                             }
-                            LOG_INFO("Recv RTP");
+                            // LOG_INFO("Recv RTP");
                         }
                         m_session.DeletePacket(packet);
                     }
@@ -159,7 +159,7 @@ void AgentAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         if (status < 0) {
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
         }
-        LOG_INFO("Send RTP");
+        // LOG_INFO("Send RTP");
     }
 
     static std::ofstream pcm_out(

@@ -1,66 +1,37 @@
 #ifndef _COORDINATOR_H_
 #define _COORDINATOR_H_
 
-#include "logger.h"
-
-#include <pjsua2.hpp>
-#include <vector>
+#include "singleton.hpp"
 #include <mutex>
-// #include <iostream>
+#include <condition_variable>
+#include <atomic>
+#include <thread>
 
-class Coordinator
+class Coordinator : public Singleton<Coordinator>
 {
 public:
-    Coordinator() :
-        m_connected(false)
-    {
-    }
+    friend class Singleton<Coordinator>;
+    ~Coordinator() = default;
 
-    ~Coordinator()
-    {
-        for (auto caller : m_callers) {
-            caller->hangup(m_hangup_param);
-        }
-    }
+    void notifyCallConfirmed();
+    void notifyCallDisconnected();
 
-    void registerCall(pj::Call *caller)
-    {
-        std::lock_guard<std::mutex> lock(m_mtx);
-        if (m_connected) {
-            return;
-        }
-        m_callers.push_back(caller);
-    }
+    void waitForWinner();
+    void waitForCallFinished();
 
-    void clearCall()
-    {
-        m_callers.clear();
-    }
+    bool isWinner() const;
+    bool shouldAbort() const;
+    std::thread::id getThreadId() const;
 
-    void onCallConnected(pj::Call *connected_caller)
-    {
-        std::lock_guard<std::mutex> lock(m_mtx);
-        if (m_connected) {
-            return;
-        }
-        m_connected = true;
-        for (auto *caller : m_callers) {
-            if (caller != connected_caller) {
-                try {
-                    caller->hangup(m_hangup_param);
-                }
-                catch (...) {
-                    LOG_ERROR("failed to hangup"); // todo
-                }
-            }
-        }
-    }
+    void reset();
 
 private:
-    bool m_connected;
-    std::mutex m_mtx;
-    std::vector<pj::Call *> m_callers;
-    pj::CallOpParam m_hangup_param;
+    mutable std::mutex m_mtx;
+    std::condition_variable m_confirmed_cv;
+    std::condition_variable m_disconnected_cv;
+    std::atomic<bool> m_confirmed = false;
+    std::atomic<bool> m_finished = false;
+    std::thread::id m_winner_tid;
 };
 
 #endif // _COORDINATOR_H_
