@@ -17,7 +17,7 @@ class AgentAudioMediaPort : public pj::AudioMediaPort
 {
 public:
     AgentAudioMediaPort();
-    ~AgentAudioMediaPort() = default;
+    ~AgentAudioMediaPort();
 
     /*
      * Callbacks

@@ -1,21 +1,16 @@
 #ifndef _VCALL_H_
 #define _VCALL_H_
 
+#include "agent_audiomediaport.h"
 #include <pjsua2.hpp>
 #include <string>
 #include <memory>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-
-#include "agent_audiomediaport.h"
 
 class CallerQueue;
 
 namespace voip {
 
 class VAccount;
-// class VAudioMediaPort;
 
 /**
  * @brief 呼叫者

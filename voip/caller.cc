@@ -94,6 +94,10 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
 
     pj::AudioMedia *aud_med;
 
+    pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
+    auto cap_dev_med = mgr.getCaptureDevMedia();
+    auto play_dev_med = mgr.getPlaybackDevMedia();
+
     for (unsigned i = 0; i < ci.media.size(); ++i) {
         if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
             LOG_INFO("used media index: {}", i);
@@ -102,6 +106,9 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             // m_aud_media_player->startTransmit(*aud_med);
             m_aud_media_port->startTransmit(*aud_med);
             aud_med->startTransmit(*m_aud_media_port);
+            // cap_dev_med.startTransmit(*m_aud_media_port);
+            // cap_dev_med.startTransmit(*aud_med);
+            // aud_med->startTransmit(play_dev_med);
         }
     }
 }

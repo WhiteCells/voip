@@ -6,13 +6,17 @@ AgentAudioMediaPort::AgentAudioMediaPort()
 {
     pj::MediaFormatAudio fmt;      //
     fmt.type = PJMEDIA_TYPE_AUDIO; //
-    fmt.id = PJMEDIA_FORMAT_ULAW;  //
-    fmt.clockRate = 8000;          //
-    fmt.channelCount = 1;          //
-    fmt.bitsPerSample = 8;         //
-    fmt.frameTimeUsec = 20000;     //
-    fmt.avgBps = 64000;            //
-    fmt.maxBps = 64000;            //
+    // fmt.id = PJMEDIA_FORMAT_ULAW;  //
+    fmt.id = PJMEDIA_FORMAT_PCM; //
+    fmt.clockRate = 8000;        //
+    fmt.channelCount = 1;        //
+    // fmt.bitsPerSample = 8; //
+    fmt.bitsPerSample = 16;    //
+    fmt.frameTimeUsec = 20000; //
+    // fmt.avgBps = 64000;        //
+    // fmt.maxBps = 64000;        //
+    fmt.avgBps = 128000; //
+    fmt.maxBps = 128000; //
     this->createPort("port", fmt);
 
     // RTP 会话初始化
@@ -30,6 +34,10 @@ AgentAudioMediaPort::AgentAudioMediaPort()
         m_running = false;
         return;
     }
+
+    m_session.SetDefaultPayloadType(0);
+    m_session.SetDefaultMark(false);
+    m_session.SetDefaultTimestampIncrement(160);
 
     uint32_t ip = inet_addr("127.0.0.1");
     ip = ntohl(ip);
@@ -51,7 +59,9 @@ AgentAudioMediaPort::AgentAudioMediaPort()
                             m_rtp_recv_buffer.push_back(std::move(data));
                             if (m_rtp_recv_buffer.size() > 50) {
                                 m_rtp_recv_buffer.pop_front(); // 限制缓冲大小
+                                LOG_INFO("Rtp Recv Buffer pop font");
                             }
+                            LOG_INFO("Recv RTP");
                         }
                         m_session.DeletePacket(packet);
                     }
@@ -62,12 +72,20 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     });
 }
 
+AgentAudioMediaPort::~AgentAudioMediaPort()
+{
+    m_running = false;
+    if (m_rtp_recv_thread.joinable()) {
+        m_rtp_recv_thread.join();
+    }
+}
+
 // 向客户推送音频
 // 接收 rtp server 的音频数据
 void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
     frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
-    frame.size = 160;
+    frame.size = 320;
     frame.buf.resize(frame.size);
 
     std::lock_guard<std::mutex> lock(m_buffer_mtx);
@@ -78,7 +96,7 @@ void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
         m_rtp_recv_buffer.pop_front();
     }
     else {
-        memset(frame.buf.data(), 0xFF, frame.size);
+        memset(frame.buf.data(), 0, frame.size);
     }
     // static double phase = 0.0;
     // static int frameCount = 0;
@@ -137,9 +155,11 @@ void AgentAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
     if (frame.size > 0) {
         int status = m_session.SendPacket(frame.buf.data(), frame.size);
+        // LOG_INFO("SendPacket: {}", std::string(reinterpret_cast<const char*>(frame.buf.data()), frame.size));
         if (status < 0) {
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
         }
+        LOG_INFO("Send RTP");
     }
 
     static std::ofstream pcm_out(
