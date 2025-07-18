@@ -30,22 +30,10 @@ void Client::callTask()
 {
     while (m_running) {
         LOG_INFO("call task");
-        auto coordinator = Coordinator::getInstance();
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que.getDialPlan();
         LOG_INFO("tasking: {} {}", dialplan.first, dialplan.second);
         caller->call(dialplan.second, g_client_id, dialplan.first);
-
-        coordinator->waitForWinner();
-
-        if (coordinator->shouldAbort()) {
-            LOG_INFO("");
-            caller->hangup_();
-            continue;
-        }
-
-        coordinator->waitForCallFinished();
-
         // std::this_thread::sleep_for(std::chrono::seconds(1200));
         // std::this_thread::sleep_for(std::chrono::seconds(120));
     }

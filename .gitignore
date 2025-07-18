@@ -1,6 +1,12 @@
 # VSCode project settings
 .vscode/
 
+# VS
+.vs
+
+# idea
+.idea
+
 # clangd cache
 .cache/
 

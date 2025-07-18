@@ -2,6 +2,7 @@
 #define _COORDINATOR_H_
 
 #include "singleton.hpp"
+#include "caller.h"
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
@@ -13,17 +14,17 @@ public:
     friend class Singleton<Coordinator>;
     ~Coordinator() = default;
 
-    void notifyCallConfirmed();
-    void notifyCallDisconnected();
+    void notifyCallConfirmed(std::shared_ptr<voip::Caller> winner);
+    void notifyCallDisconnected(std::shared_ptr<voip::Caller> winner);
 
     void waitForWinner();
     void waitForCallFinished();
 
-    bool isWinner() const;
-    bool shouldAbort() const;
+    bool isWinner(std::shared_ptr<voip::Caller> winner) const;
+    bool shouldAbort(std::shared_ptr<voip::Caller> winner) const;
     std::thread::id getThreadId() const;
 
-    void reset();
+    void reset_();
 
 private:
     mutable std::mutex m_mtx;
@@ -31,7 +32,8 @@ private:
     std::condition_variable m_disconnected_cv;
     std::atomic<bool> m_confirmed = false;
     std::atomic<bool> m_finished = false;
-    std::thread::id m_winner_tid;
+    // std::thread::id m_winner_tid;
+    std::shared_ptr<voip::Caller> m_winner_caller;
 };
 
 #endif // _COORDINATOR_H_

@@ -5,6 +5,7 @@
 #include "logger.h"
 #include "request.hpp"
 #include "global.h"
+#include "coordinator.h"
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
@@ -24,6 +25,9 @@ void voip::Caller::call(
     const std::string &client_id,
     const int dialplan_id)
 {
+    auto coordinator = Coordinator::getInstance();
+    coordinator->reset_();
+
     m_dialplan_id = dialplan_id;
     m_phone = phone;
     m_client_id = client_id;
@@ -39,6 +43,15 @@ void voip::Caller::call(
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
     this->makeCall(dst_uri, prm);
+
+    coordinator->waitForWinner();
+
+    if (coordinator->shouldAbort(shared_from_this())) {
+        LOG_WARN("should abort");
+        hangup_();
+    }
+
+    coordinator->waitForCallFinished();
 }
 
 void voip::Caller::hangup_()
@@ -74,16 +87,19 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         }
         case PJSIP_INV_STATE_CALLING: {
             LOG_INFO(">>> call: {}, phone: {} calling", ci.id, m_phone);
-            // 其他线程接收到已经接通的线程的通知后，会结束拨打
             break;
         }
         case PJSIP_INV_STATE_CONFIRMED: {
             LOG_INFO(">>> call: {}, phone: {} confirmed", ci.id, m_phone);
+            auto coordinator = Coordinator::getInstance();
             // 当前线程如果已经接通了，通知其他线程挂断电话
+            coordinator->notifyCallConfirmed(shared_from_this());
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
             LOG_INFO(">>> call: {}, phone: {} disconnected", ci.id, m_phone);
+            auto coordinator = Coordinator::getInstance();
+            coordinator->notifyCallDisconnected(shared_from_this());
             break;
         }
         default:

@@ -74,4 +74,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     v4l2 
     opencore-amrnb 
     opencore-amrwb
+    bcg729
 )

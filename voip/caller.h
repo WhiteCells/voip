@@ -17,7 +17,9 @@ class VAccount;
  * 继承 pj::Call
  * 通过重载父类虚函数实现对状态的获取
  */
-class Caller : public pj::Call
+class Caller :
+    public pj::Call,
+    public std::enable_shared_from_this<Caller>
 {
 public:
     Caller(VAccount &acc, int call_id = PJSUA_INVALID_ID);
