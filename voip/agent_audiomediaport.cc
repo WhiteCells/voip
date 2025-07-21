@@ -6,8 +6,8 @@ AgentAudioMediaPort::AgentAudioMediaPort()
 {
     pj::MediaFormatAudio fmt;      //
     fmt.type = PJMEDIA_TYPE_AUDIO; //
-    // fmt.id = PJMEDIA_FORMAT_ULAW;  //
-    fmt.id = PJMEDIA_FORMAT_PCM; //
+    fmt.id = PJMEDIA_FORMAT_ULAW;  //
+    // fmt.id = PJMEDIA_FORMAT_PCM; //
     fmt.clockRate = 8000;        //
     fmt.channelCount = 1;        //
     // fmt.bitsPerSample = 8; //
@@ -35,7 +35,7 @@ AgentAudioMediaPort::AgentAudioMediaPort()
         return;
     }
 
-    m_session.SetDefaultPayloadType(0);
+    m_session.SetDefaultPayloadType(96);
     m_session.SetDefaultMark(false);
     m_session.SetDefaultTimestampIncrement(160);
 
@@ -59,7 +59,7 @@ AgentAudioMediaPort::AgentAudioMediaPort()
                             m_rtp_recv_buffer.push_back(std::move(data));
                             if (m_rtp_recv_buffer.size() > 50) {
                                 m_rtp_recv_buffer.pop_front(); // 限制缓冲大小
-                                LOG_INFO("Rtp Recv Buffer pop font");
+                                // LOG_INFO("Rtp Recv Buffer pop font");
                             }
                             // LOG_INFO("Recv RTP");
                         }
@@ -84,8 +84,12 @@ AgentAudioMediaPort::~AgentAudioMediaPort()
 // 接收 rtp server 的音频数据
 void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
+    const int sampleRate = 8000;
+    const int channels = 1;
+    const int duration_ms = 20;
+    const int samplesPerFrame = sampleRate * duration_ms / 1000;
     frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
-    frame.size = 320;
+    frame.size = samplesPerFrame * sizeof(int16_t);
     frame.buf.resize(frame.size);
 
     std::lock_guard<std::mutex> lock(m_buffer_mtx);
@@ -98,6 +102,7 @@ void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     else {
         memset(frame.buf.data(), 0, frame.size);
     }
+    // ///////////// 测试模拟音频 //////////// //
     // static double phase = 0.0;
     // static int frameCount = 0;
 

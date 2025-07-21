@@ -1,7 +1,7 @@
 set(SRC
-    audio_dev.cc
-    audio_queue.cc
-    rtp_server.cc
+    # audio_dev.cc
+    # audio_queue.cc
+    # rtp_server.cc
     main.cc
 )
 

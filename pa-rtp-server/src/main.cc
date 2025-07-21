@@ -1,11 +1,8 @@
 #include "rtp_server.h"
 #include "audio_dev.h"
 #include "audio_queue.h"
-#include <vector>
 #include <thread>
 #include <csignal>
-#include <iostream>
-#include <cmath>
 #include <cstring>
 
 std::atomic<bool> running {true};
@@ -31,7 +28,7 @@ static int inputCallback(const void *inputBuffer, void *,
         return paContinue;
     }
 
-    uint16_t *copy = new uint16_t[framesPerBuffer];
+    int16_t *copy = new int16_t[framesPerBuffer];
     std::memcpy(copy, input, framesPerBuffer * sizeof(int16_t));
     input_que.push(copy, framesPerBuffer * sizeof(int16_t));
 
@@ -55,8 +52,10 @@ static int outputCallback(const void *, void *outputBuffer,
 
     if (!output_que.empty()) {
         AudioQueue::FrameType p = output_que.pop();
-        std::memcpy(output, p.first, framesPerBuffer * sizeof(int16_t));
+        size_t copy_len = std::min(p.second, framesPerBuffer * sizeof(int16_t));
+        std::memcpy(output, p.first, copy_len);
         // delete[] static_cast<int8_t *>(p.first);
+        delete[] p.first;
     }
     else {
         std::memset(output, 0, framesPerBuffer * sizeof(int16_t));
@@ -76,23 +75,24 @@ static int outputCallback(const void *, void *outputBuffer,
 
 int main(int argc, char *argv[])
 {
+    signal(SIGINT, signal_handler);
+
     AudioDev dev(8000, 160, 1, paInt16);
     dev.openStream(outputCallback, inputCallback);
     dev.startStream();
 
-    signal(SIGINT, signal_handler);
     RtpServer server(output_que, input_que, "127.0.0.1",
                      8002,
                      8000,
                      1.0 / 8000.0,
-                     320);
+                     160);
 
     std::thread t([&]() {
         server.poll(running);
     });
 
     std::thread t2([&]() {
-        server.send();
+        server.send(running);
     });
 
     // for (;;) {
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
     // }
 
     t.join();
-    // t2.join();
+    t2.join();
 
     return 0;
 }

@@ -38,7 +38,7 @@ void voip::Caller::call(
     m_filename = phone + "_" +
                  std::to_string(dialplan_id) + "_" +
                  std::to_string(now_time) + ".wav";
-    // aud_media_recorder_->createRecorder(m_filename);
+    aud_media_recorder_->createRecorder(m_filename);
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
@@ -128,13 +128,15 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             //
             // m_aud_media_player->startTransmit(*aud_med);
             //
-            // m_aud_media_port->startTransmit(*aud_med);
-            // aud_med->startTransmit(*m_aud_media_port);
+            m_aud_media_port->startTransmit(*aud_med);
+            aud_med->startTransmit(*m_aud_media_port);
+            // m_aud_media_port->startTransmit(*aud_media_recorder_);
             //
             // cap_dev_med.startTransmit(*m_aud_media_port);
             //
-            cap_dev_med.startTransmit(*aud_med);
-            aud_med->startTransmit(play_dev_med);
+            // cap_dev_med.startTransmit(*aud_med);
+            // aud_med->startTransmit(*aud_media_recorder_); // 录音无噪音
+            // aud_med->startTransmit(play_dev_med);         // 播放设备有明显电流声
         }
     }
 }
