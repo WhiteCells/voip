@@ -78,6 +78,10 @@ AgentAudioMediaPort::~AgentAudioMediaPort()
     if (m_rtp_recv_thread.joinable()) {
         m_rtp_recv_thread.join();
     }
+    const char *reason = "session closed";
+    size_t reason_len = strlen(reason);
+    m_session.BYEDestroy(jrtplib::RTPTime(1.0), reason, reason_len);
+    // m_session.Destroy();
 }
 
 // 向客户推送音频
