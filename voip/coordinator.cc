@@ -1,5 +1,6 @@
 #include "coordinator.h"
 #include "logger.h"
+#include "caller.h"
 
 void Coordinator::notifyCallConfirmed(std::shared_ptr<voip::Caller> winner)
 {

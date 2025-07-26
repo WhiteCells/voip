@@ -2,7 +2,6 @@
 #define _LOGIC_H_
 
 #include "singleton.hpp"
-
 #include <string>
 #include <memory>
 #include <functional>

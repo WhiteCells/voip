@@ -1,7 +1,6 @@
 #include "ini.h"
 #include "global.h"
 #include "logger.h"
-
 #include <string>
 #include <fstream>
 

@@ -9,11 +9,8 @@
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
-    acc_(acc),
-    m_aud_media_port(std::make_shared<AgentAudioMediaPort>()),
-    m_aud_media_player(std::make_shared<pj::AudioMediaPlayer>())
+    acc_(acc)
 {
-    // m_aud_media_player->createPlayer("input.wav");
 }
 
 voip::Caller::~Caller()
@@ -23,35 +20,29 @@ voip::Caller::~Caller()
 void voip::Caller::call(
     const std::string &phone,
     const std::string &client_id,
-    const int dialplan_id)
+    const int dialplan_id,
+    std::shared_ptr<Coordinator> coordinator)
 {
-    auto coordinator = Coordinator::getInstance();
-    coordinator->reset_();
+    // auto coordinator = Coordinator::getInstance();
+    // coordinator->reset_();
+    m_coordinator = coordinator;
 
     m_dialplan_id = dialplan_id;
     m_phone = phone;
     m_client_id = client_id;
-    aud_media_recorder_.reset();
-    aud_media_recorder_ = std::make_shared<pj::AudioMediaRecorder>();
-    auto now = std::chrono::system_clock::now();
-    now_time = std::chrono::system_clock::to_time_t(now);
-    m_filename = phone + "_" +
-                 std::to_string(dialplan_id) + "_" +
-                 std::to_string(now_time) + ".wav";
-    aud_media_recorder_->createRecorder(m_filename);
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
     this->makeCall(dst_uri, prm);
 
-    coordinator->waitForWinner();
+    m_coordinator->waitForWinner();
 
-    if (coordinator->shouldAbort(shared_from_this())) {
+    if (m_coordinator->shouldAbort(shared_from_this())) {
         LOG_WARN("should abort");
         hangup_();
     }
 
-    coordinator->waitForCallFinished();
+    m_coordinator->waitForCallFinished();
 }
 
 void voip::Caller::hangup_()
@@ -91,15 +82,15 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         }
         case PJSIP_INV_STATE_CONFIRMED: {
             LOG_INFO(">>> call: {}, phone: {} confirmed", ci.id, m_phone);
-            auto coordinator = Coordinator::getInstance();
+            // auto coordinator = Coordinator::getInstance();
             // 当前线程如果已经接通了，通知其他线程挂断电话
-            coordinator->notifyCallConfirmed(shared_from_this());
+            m_coordinator->notifyCallConfirmed(shared_from_this());
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
             LOG_INFO(">>> call: {}, phone: {} disconnected", ci.id, m_phone);
-            auto coordinator = Coordinator::getInstance();
-            coordinator->notifyCallDisconnected(shared_from_this());
+            // auto coordinator = Coordinator::getInstance();
+            m_coordinator->notifyCallDisconnected(shared_from_this());
             break;
         }
         default:
@@ -125,18 +116,9 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             LOG_INFO("used media index: {}", i);
             aud_med = (pj::AudioMedia *)getMedia(i);
 
-            //
-            // m_aud_media_player->startTransmit(*aud_med);
-            //
-            m_aud_media_port->startTransmit(*aud_med);
-            aud_med->startTransmit(*m_aud_media_port);
-            // m_aud_media_port->startTransmit(*aud_media_recorder_);
-            //
-            // cap_dev_med.startTransmit(*m_aud_media_port);
-            //
-            // cap_dev_med.startTransmit(*aud_med);
+            cap_dev_med.startTransmit(*aud_med);
             // aud_med->startTransmit(*aud_media_recorder_); // 录音无噪音
-            // aud_med->startTransmit(play_dev_med);         // 播放设备有明显电流声
+            aud_med->startTransmit(play_dev_med); // 播放设备有明显电流声
         }
     }
 }

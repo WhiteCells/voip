@@ -1,6 +1,6 @@
 #define BOOST_TEST_MODULE REQUEST_TEST
 
-#include "../request.hpp"
+#include "../voip/request.hpp"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/beast/http.hpp>

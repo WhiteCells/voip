@@ -2,7 +2,6 @@
 #define _IO_CONTEXT_POOL_H_
 
 #include "singleton.hpp"
-
 #include <boost/asio.hpp>
 #include <thread>
 #include <vector>

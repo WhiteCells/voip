@@ -2,7 +2,6 @@
 #include "vaccount.h"
 #include "logger.h"
 #include "request.hpp"
-
 #include <pjsua2.hpp>
 
 CallerQueue::CallerQueue() :

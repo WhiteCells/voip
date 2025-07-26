@@ -2,11 +2,15 @@
 #define _COORDINATOR_H_
 
 #include "singleton.hpp"
-#include "caller.h"
+// #include "caller.h"
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
 #include <thread>
+
+namespace voip {
+class Caller;
+}
 
 class Coordinator : public Singleton<Coordinator>
 {

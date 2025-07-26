@@ -2,7 +2,6 @@
 #define _GLOBAL_H_
 
 #include "ini.h"
-
 #include <pjsua2.hpp>
 #include <sstream>
 #include <string>

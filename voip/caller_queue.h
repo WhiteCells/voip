@@ -2,7 +2,6 @@
 #define _CALLPOOL_H_
 
 #include "caller.h"
-
 #include <boost/asio.hpp>
 #include <queue>
 #include <mutex>

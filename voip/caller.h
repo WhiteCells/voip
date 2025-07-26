@@ -1,10 +1,11 @@
 #ifndef _VCALL_H_
 #define _VCALL_H_
 
-#include "agent_audiomediaport.h"
+#include "coordinator.h"
 #include <pjsua2.hpp>
 #include <string>
 #include <memory>
+#include <ctime>
 
 class CallerQueue;
 
@@ -48,7 +49,8 @@ public:
      */
     void call(const std::string &phone,
               const std::string &client_id,
-              const int dialplan_id);
+              const int dialplan_id,
+              std::shared_ptr<Coordinator> coordinator);
 
     void hangup_();
 
@@ -58,12 +60,9 @@ private:
     std::string m_filename;
     VAccount &acc_;
 
-    std::shared_ptr<pj::AudioMediaRecorder> aud_media_recorder_;
-
     std::string m_phone;
     std::string m_client_id;
-    std::shared_ptr<AgentAudioMediaPort> m_aud_media_port;
-    std::shared_ptr<pj::AudioMediaPlayer> m_aud_media_player;
+    std::shared_ptr<Coordinator> m_coordinator;
 };
 
 } // namespace voip
