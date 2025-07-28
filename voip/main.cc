@@ -15,12 +15,9 @@ int main()
     // endpoint
     startEndpointLib(5060);
 
-    net::io_context ioc;
-    auto client = std::make_shared<VoipClient>(ioc);
+    auto client = std::make_shared<VoipClient>();
     client->start_ws_client();
-    ioc.run();
+    client->start_call_client();
 
-    while (1) {
-    }
     return 0;
 }

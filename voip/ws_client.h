@@ -8,6 +8,7 @@
 #include "thread_pool.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
+#include <json/json.h>
 #include <functional>
 #include <memory>
 #include <string>
@@ -17,6 +18,7 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 namespace websocket = beast::websocket;
 namespace net = boost::asio;
+namespace json = Json;
 using tcp = net::ip::tcp;
 
 class VoipClient :
@@ -42,7 +44,7 @@ public:
     VoipClient(net::io_context &ioc = IOContextPool::getInstance()->getIOContext()) :
         m_resolver(net::make_strand(ioc)),
         m_ws(net::make_strand(ioc)),
-        m_thread_pool(5)
+        m_thread_pool(4)
     {
         m_on_read_handler = [](const std::string &msg) {
             // 程序启动后
@@ -50,7 +52,6 @@ public:
             // 2. 接收拨号信息，存放队列
             LOG_INFO("recv: {}", msg);
             // 使用 jsoncpp 对接收到的数据进行解析
-            
         };
     }
 
@@ -85,6 +86,7 @@ public:
 
     void call_task(std::size_t i, std::shared_ptr<Coordinator> coordinator)
     {
+        // caller->call(dialplan, coordinator);
     }
 
     void set_on_read_handler(std::function<void(const std::string &)> on_read_handler)
@@ -95,6 +97,7 @@ public:
             // 1. 接收账号信息
             // 2. 接收拨号信息，存放队列
             LOG_INFO("recv: {}", msg);
+            json::Reader reader;
         };
     }
 
