@@ -25,6 +25,8 @@ extern std::string backend_host;
 
 extern std::string backend_port;
 
+extern std::string client_id;
+
 extern cfg_map cfg;
 
 // url
@@ -63,9 +65,7 @@ enum REG_STATE {
     FAILED,
 };
 
-#define STATUS_ACCOUNT_REGISTERED "registered"
+#define STATUS_ACCOUNT_REGISTERED   "registered"
 #define STATUS_ACCOUNT_UNREGISTERED "unregistered"
-
-
 
 #endif // _GLOBAL_H_

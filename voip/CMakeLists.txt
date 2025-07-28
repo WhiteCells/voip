@@ -8,10 +8,7 @@ set(SRC
     client.cc
     request.hpp
     io_context_pool.cc
-    server.cc
     ini.cc
-    http.cc
-    handler.cc
     singleton.hpp
     thread_pool.cc
     logger.cc

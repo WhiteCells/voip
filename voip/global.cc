@@ -11,6 +11,8 @@ std::string backend_host;
 
 std::string backend_port;
 
+std::string client_id;
+
 cfg_map cfg;
 
 void startEndpointLib(unsigned port)

@@ -1,15 +1,12 @@
-#include "server.h"
-#include "client.h"
 #include "global.h"
 #include "ini.h"
 #include "logger.h"
-#include <iostream>
+#include "ws_client.h"
 
 int main()
 {
     // logger
     Logger::init();
-    // LOG_INFO("client start");
     LOG_INFO("client start");
 
     // config
@@ -18,24 +15,12 @@ int main()
     // endpoint
     startEndpointLib(5060);
 
-    Client client;
+    net::io_context ioc;
+    auto client = std::make_shared<VoipClient>(ioc);
+    client->start_ws_client();
+    ioc.run();
 
-    // try {
-    //     asio::io_context ioc(1);
-    //     asio::signal_set signals(ioc, SIGINT, SIGTERM);
-    //     signals.async_wait([&ioc](boost::system::error_code ec, int signal_num) {
-    //         if (ec) {
-    //             std::cerr << "[Signal Number]: " << signal_num << std::endl;
-    //             return;
-    //         }
-    //         ioc.stop();
-    //     });
-    //     std::make_shared<Server>(ioc, 8001)->start();
-    //     ioc.run();
-    // }
-    // catch (const std::exception &e) {
-    //     std::cerr << "[Exception]: " << e.what() << std::endl;
-    //     return 1;
-    // }
+    while (1) {
+    }
     return 0;
 }
