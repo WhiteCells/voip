@@ -1,8 +1,6 @@
 #ifndef _COORDINATOR_H_
 #define _COORDINATOR_H_
 
-#include "singleton.hpp"
-// #include "caller.h"
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
@@ -12,10 +10,10 @@ namespace voip {
 class Caller;
 }
 
-class Coordinator : public Singleton<Coordinator>
+class Coordinator
 {
 public:
-    friend class Singleton<Coordinator>;
+    Coordinator() = default;
     ~Coordinator() = default;
 
     void notifyCallConfirmed(std::shared_ptr<voip::Caller> winner);

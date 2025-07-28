@@ -23,8 +23,6 @@ void voip::Caller::call(
     const int dialplan_id,
     std::shared_ptr<Coordinator> coordinator)
 {
-    // auto coordinator = Coordinator::getInstance();
-    // coordinator->reset_();
     m_coordinator = coordinator;
 
     m_dialplan_id = dialplan_id;
@@ -82,14 +80,12 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         }
         case PJSIP_INV_STATE_CONFIRMED: {
             LOG_INFO(">>> call: {}, phone: {} confirmed", ci.id, m_phone);
-            // auto coordinator = Coordinator::getInstance();
             // 当前线程如果已经接通了，通知其他线程挂断电话
             m_coordinator->notifyCallConfirmed(shared_from_this());
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
             LOG_INFO(">>> call: {}, phone: {} disconnected", ci.id, m_phone);
-            // auto coordinator = Coordinator::getInstance();
             m_coordinator->notifyCallDisconnected(shared_from_this());
             break;
         }
