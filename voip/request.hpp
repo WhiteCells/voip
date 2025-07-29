@@ -339,8 +339,7 @@ inline void pushDialStatus(
     const std::string &phone_num,
     const std::string state,
     const std::string &client_id,
-    const std::string &account_id
-)
+    const std::string &account_id)
 {
     const auto target_url = genUrl(URL_DIAL_STATUS, client_id);
 
@@ -437,6 +436,32 @@ inline void heartbeat()
         }
     });
 }
+
+/*
+    Signal Account Result
+*/
+
+struct AccResult
+{
+    std::string m_id;
+    std::string m_user;
+    std::string m_pass;
+    std::string m_nodeIp;
+    int m_code;
+    std::string m_msg;
+
+    Json::Value toJson() const
+    {
+        Json::Value obj;
+        obj["id"] = m_id;
+        obj["user"] = m_user;
+        obj["pass"] = m_pass;
+        obj["nodeIp"] = m_nodeIp;
+        obj["code"] = m_code;
+        obj["msg"] = m_msg;
+        return obj;
+    }
+};
 
 } // namespace voip
 

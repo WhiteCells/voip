@@ -6,6 +6,8 @@
 #include "io_context_pool.h"
 #include "coordinator.h"
 #include "thread_pool.h"
+#include "vaccount.h"
+#include "request.hpp"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <json/json.h>
@@ -18,8 +20,9 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 namespace websocket = beast::websocket;
 namespace net = boost::asio;
-namespace json = Json;
 using tcp = net::ip::tcp;
+
+std::vector<std::shared_ptr<voip::VAccount>> accounts;
 
 class VoipClient :
     public std::enable_shared_from_this<VoipClient>
@@ -47,11 +50,108 @@ public:
         m_thread_pool(4)
     {
         m_on_read_handler = [](const std::string &msg) {
+            // endpoint.libRegisterThread("Worker");
+            // static thread_local bool pj_thread_registered = false;
+            // if (!pj_thread_registered) {
+            //     endpoint.libRegisterThread("Worker");
+            //     pj_thread_registered = true;
+            // }
+
             // 程序启动后
             // 1. 接收账号信息
             // 2. 接收拨号信息，存放队列
-            LOG_INFO("recv: {}", msg);
-            // 使用 jsoncpp 对接收到的数据进行解析
+            LOG_INFO("recv1: {}", msg);
+            Json::CharReaderBuilder reader_builder;
+            Json::Value root;
+            std::string errs;
+            std::unique_ptr<Json::CharReader> reader(reader_builder.newCharReader());
+            bool success = reader->parse(msg.data(), msg.data() + msg.size(), &root, &errs);
+            if (!success) {
+                LOG_INFO("parse error");
+                return;
+            }
+            LOG_INFO("recv json format: {}", root.toStyledString());
+            const int request_type = root["request_type"].asInt();
+            // 经过 1 后才能 0
+            // 账号校验
+            if (request_type == 1) {
+                LOG_INFO("check accounts type");
+                // accounts
+                if (!root.isMember("accounts") || !root["accounts"].isArray()) {
+                    LOG_ERROR("::accounts");
+                    return;
+                }
+                // nodeIp
+                if (!root.isMember("nodeIp") || !root["nodeIp"].isString()) {
+                    LOG_ERROR("::nodeIp");
+                    return;
+                }
+                // request_type
+                if (!root.isMember("request_type") || !root["request_type"].isInt()) {
+                    LOG_ERROR("::request_type");
+                    return;
+                }
+
+                const Json::Value accounts_array = root["accounts"];
+                const std::string nodeIp = root["nodeIp"].asString();
+                // 账号检测回包
+                /*
+                    {
+                        "accounts_results": [
+                            {
+                                "id": "",
+                                "user": "",
+                                "pass": "",
+                                "nodeIp": "",
+                                "code": ,
+                                "msg": ""
+                            },
+                            {
+                                "id": "",
+                                "user": "",
+                                "pass": "",
+                                "nodeIp": "",
+                                "code": ,
+                                "msg": ""
+                            },
+                        ]
+                    }
+                */
+                std::vector<std::shared_ptr<voip::AccResult>> accounts_results;
+                for (const auto &item : accounts_array) {
+                    // acc_result
+                    auto acc_result = std::make_shared<voip::AccResult>();
+                    // id
+                    const std::string id = item["id"].asString();
+                    // user
+                    const std::string user = item["user"].asString();
+                    // pass
+                    const std::string pass = item["pass"].asString();
+                    auto acc = std::make_shared<voip::VAccount>(id, user, pass, nodeIp);
+                    acc->set_acc_result(acc_result);
+                    acc->create_();
+                    accounts_results.push_back(acc_result);
+                    accounts.push_back(acc);
+                }
+                Json::Value accounts_results_root;
+                accounts_results_root["accounts_results"] = Json::arrayValue;
+                for (const auto &res : accounts_results) {
+                    accounts_results_root["accounts_results"].append(res->toJson());
+                }
+                Json::StreamWriterBuilder writer_builder;
+                std::string json_str = Json::writeString(writer_builder, accounts_results_root);
+                LOG_INFO("json_str: {}", json_str);
+
+                // 集体通过 http request 推送账号校验状态
+                // 需要退出账号，因为账号在呼叫信息中也是有的，避免重复注册
+            }
+            // 呼叫信息
+            else if (request_type == 0) {
+                LOG_INFO("callinfo");
+            }
+            else {
+                LOG_ERROR("error request_type");
+            }
         };
     }
 
@@ -93,11 +193,6 @@ public:
     {
         // m_on_read_handler = on_read_handler;
         m_on_read_handler = [](const std::string &msg) {
-            // 程序启动后
-            // 1. 接收账号信息
-            // 2. 接收拨号信息，存放队列
-            LOG_INFO("recv: {}", msg);
-            json::Reader reader;
         };
     }
 
@@ -153,7 +248,7 @@ private:
         std::string msg = beast::buffers_to_string(m_buffer.data());
         m_buffer.consume(m_buffer.size());
 
-        LOG_INFO("recv: {}", msg);
+        // LOG_INFO("recv: {}", msg);
         if (m_on_read_handler) {
             m_on_read_handler(msg);
         }

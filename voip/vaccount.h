@@ -3,14 +3,17 @@
 
 #include <pjsua2.hpp>
 #include <string>
+#include <memory>
 
 namespace voip {
 
 class Caller;
 
+struct AccResult;
+
 /**
  * @brief SIP 用户对象
- * 
+ *
  */
 class VAccount : public pj::Account
 {
@@ -25,6 +28,10 @@ public:
 
     // 注册状态改变
     virtual void onRegState(pj::OnRegStateParam &prm) override;
+
+    void set_acc_result(std::shared_ptr<voip::AccResult> acc_results);
+
+    void create_();
 
     // 呼入
     // virtual void onIncomingCall(pj::OnIncomingCallParam &iprm) override;
@@ -41,6 +48,7 @@ private:
     std::string m_user;
     std::string m_pass;
     std::string m_host;
+    std::shared_ptr<voip::AccResult> m_acc_result;
 };
 
 } // namespace voip
