@@ -463,6 +463,11 @@ struct AccResult
     }
 };
 
+inline void pushAccountsRegState()
+{
+    
+}
+
 } // namespace voip
 
 #endif // _REQUEST_H_

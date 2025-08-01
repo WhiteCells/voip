@@ -27,6 +27,7 @@ voip::VAccount::VAccount(
 voip::VAccount::~VAccount()
 {
     LOG_INFO("~VAccount");
+    this->shutdown();
 }
 
 void voip::VAccount::onRegState(pj::OnRegStateParam &prm)
@@ -54,15 +55,6 @@ void voip::VAccount::set_acc_result(std::shared_ptr<voip::AccResult> acc_results
 
 void voip::VAccount::create_()
 {
-    static thread_local bool pj_thread_registered = false;
-    if (!pj_thread_registered) {
-        pj::Endpoint::instance().libRegisterThread("VAccount");
-        pj_thread_registered = true;
-    }
-    // if (this->isValid()) {
-    //     LOG_ERROR("is valid");
-    //     return;
-    // }
     try {
         this->create(m_acc_cfg);
         LOG_INFO("account::create");

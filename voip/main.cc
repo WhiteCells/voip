@@ -17,6 +17,8 @@ int main()
 
     auto client = std::make_shared<VoipClient>();
     client->start_ws_client();
+    // client->stop_ws_client();
+    // client->start_ws_client();
     client->start_call_client();
 
     return 0;

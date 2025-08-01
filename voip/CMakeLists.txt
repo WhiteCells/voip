@@ -16,6 +16,9 @@ set(SRC
     main.cc
 )
 
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+
 add_executable(${PROJECT_NAME} ${SRC})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -71,3 +74,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     opencore-amrwb
     bcg729
 )
+
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
