@@ -1,0 +1,16 @@
+{
+    "node": "192.168.10.51",
+    "accounts": [
+        {
+            "id": "1wr3-2s2d-r3r2-dff31",
+            "user": "1001",
+            "pass": "1001"
+        }
+    ],
+    "phones": [
+        "018803030202"
+    ],
+    "task_id": "e32rqe-2e2dds-1e23e-34r4f",
+    "call_type": 0,
+    "request_type": 1
+}

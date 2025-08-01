@@ -1,0 +1,16 @@
+{
+    "accounts": [
+        {
+            "id": "1wr3-2s2d-r3r2-dff31",
+            "user": "1005",
+            "pass": "1005"
+        },
+        {
+            "id": "1wr3-2s2d-r3r2-dff31",
+            "user": "1006",
+            "pass": "1006"
+        }
+    ],
+    "nodeIp": "192.168.10.51",
+    "request_type": 1
+}
