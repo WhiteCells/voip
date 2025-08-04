@@ -67,8 +67,10 @@ public:
             Json::CharReaderBuilder reader_builder;
             Json::Value root;
             std::string errs;
-            std::unique_ptr<Json::CharReader> reader(reader_builder.newCharReader());
-            bool success = reader->parse(msg.data(), msg.data() + msg.size(), &root, &errs);
+            std::istringstream iss(msg);
+            // std::unique_ptr<Json::CharReader> reader(reader_builder.newCharReader());
+            // bool success = reader->parse(msg.data(), msg.data() + msg.size(), &root, &errs);
+            bool success = Json::parseFromStream(reader_builder, iss, &root, &errs);
             if (!success) {
                 LOG_INFO("parse error");
                 return;
@@ -109,7 +111,7 @@ public:
                     // pass
                     const std::string pass = item["pass"].asString();
 
-                    // 
+                    //
                     auto acc = std::make_shared<AccountCheck>(id, user, pass, nodeIp);
                     AccountCheckManager::getInstance()->regAccount(acc);
                 }
@@ -157,9 +159,9 @@ public:
         m_ws = std::make_unique<websocket::stream<beast::tcp_stream>>(net::make_strand(ioc));
 
         m_resolver->async_resolve(m_host,
-                                 m_port,
-                                 beast::bind_front_handler(&VoipClient::on_resolver,
-                                                           shared_from_this()));
+                                  m_port,
+                                  beast::bind_front_handler(&VoipClient::on_resolver,
+                                                            shared_from_this()));
     }
 
     void stop_ws_client()
