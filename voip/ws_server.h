@@ -52,7 +52,7 @@ private:
         if (ec) {
             return;
         }
-        if (m_req.target() != "/ws") {
+        if (m_req.target() != "ws://127.0.0.1:8088/ws/client/1d6616dc-bcef-4927-80e9-72a186b22ee6") {
             return;
         }
         m_stream.async_accept(m_req,
@@ -85,16 +85,86 @@ private:
         }
 
         std::string msg = beast::buffers_to_string(m_buffer.data());
-        // on_read_ws_handler
 
-        // config
-        //  host
-        //  port
-        //  url
-        //  client_id
-        // command
-        //  hangup
-        endpoint.hangupAllCalls();
+        // 解析JSON消息
+        Json::Value root;
+        Json::CharReaderBuilder builder;
+        Json::CharReader* reader = builder.newCharReader();
+        std::string errors;
+
+        bool parsingSuccessful = reader->parse(msg.c_str(),
+                                               msg.c_str() + msg.size(),
+                                               &root,
+                                               &errors);
+        delete reader;
+
+        if (!parsingSuccessful) {
+            std::cerr << "Failed to parse JSON: " << errors << std::endl;
+            do_read(); // 继续读取下一个消息
+            return;
+        }
+
+        // 根据type字段处理不同类型的JSON消息
+        if (root.isMember("type")) {
+            std::string type = root["type"].asString();
+
+            if (type == "config") {
+                // 处理配置消息
+                handleConfigMessage(root);
+            }
+            else if (type == "command") {
+                // 处理命令消息
+                handleCommandMessage(root);
+            }
+        }
+
+        // 继续读取下一个消息
+        m_buffer.consume(bytes);
+        do_read();
+    }
+
+    void handleConfigMessage(const Json::Value& root)
+    {
+        // 提取配置信息并保存到GUIConfig结构体
+        if (root.isMember("host")) {
+            g_gui_cfg.gui_host = root["host"].asString();
+        }
+        if (root.isMember("port")) {
+            g_gui_cfg.gui_port = root["port"].asString();
+        }
+        if (root.isMember("client_id")) {
+            g_gui_cfg.gui_client_id = root["client_id"].asString();
+            client_id = root["client_id"].asString();
+            g_client_id = root["client_id"].asString();
+        }
+        if (root.isMember("route")) {
+            g_gui_cfg.gui_target = root["route"].asString();
+        }
+
+        std::cout << "GUI Config updated - Host: " << g_gui_cfg.gui_host
+                  << ", Port: " << g_gui_cfg.gui_port
+                  << ", Target: " << g_gui_cfg.gui_target
+                  << ", ClientID: " << g_gui_cfg.gui_client_id << std::endl;
+    }
+
+    void handleCommandMessage(const Json::Value& root)
+    {
+        if (root.isMember("action")) {
+            std::string action = root["action"].asString();
+
+            if (action == "hangup") {
+                // 尝试执行挂断所有呼叫操作
+                bool result = endpoint.hangupAllCalls();
+
+                Json::Value response;
+                response["close_status"] = result ? "success" : "failed";
+
+                Json::StreamWriterBuilder writerBuilder;
+                std::string responseStr = Json::writeString(writerBuilder, response);
+
+                send(responseStr);
+            }
+        }
     }
 
     void do_write()
