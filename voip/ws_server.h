@@ -87,20 +87,14 @@ private:
         std::string msg = beast::buffers_to_string(m_buffer.data());
 
         // 解析JSON消息
+        Json::CharReaderBuilder reader_builder;
         Json::Value root;
-        Json::CharReaderBuilder builder;
-        Json::CharReader* reader = builder.newCharReader();
-        std::string errors;
-
-        bool parsingSuccessful = reader->parse(msg.c_str(),
-                                               msg.c_str() + msg.size(),
-                                               &root,
-                                               &errors);
-        delete reader;
-
-        if (!parsingSuccessful) {
-            std::cerr << "Failed to parse JSON: " << errors << std::endl;
-            do_read(); // 继续读取下一个消息
+        std::string errs;
+        std::istringstream iss(msg);
+        bool success = Json::parseFromStream(reader_builder, iss, &root, &errs);
+        if (!success) {
+            LOG_ERROR("parse error");
+            do_read();
             return;
         }
 
@@ -141,10 +135,10 @@ private:
             g_gui_cfg.gui_target = root["route"].asString();
         }
 
-        std::cout << "GUI Config updated - Host: " << g_gui_cfg.gui_host
-                  << ", Port: " << g_gui_cfg.gui_port
-                  << ", Target: " << g_gui_cfg.gui_target
-                  << ", ClientID: " << g_gui_cfg.gui_client_id << std::endl;
+        // std::cout << "GUI Config updated - Host: " << g_gui_cfg.gui_host
+        //           << ", Port: " << g_gui_cfg.gui_port
+        //           << ", Target: " << g_gui_cfg.gui_target
+        //           << ", ClientID: " << g_gui_cfg.gui_client_id << std::endl;
     }
 
     void handleCommandMessage(const Json::Value& root)
@@ -165,7 +159,6 @@ private:
                 send(responseStr);
             }
         }
-        m_buffer.consume(m_buffer.size());
         // on_read_ws_handler
 
         // config
@@ -176,8 +169,7 @@ private:
         // command
         //  hangup
         // endpoint.hangupAllCalls();
-        LOG_INFO("on_read_ws: {}", msg);
-        do_read();
+        // LOG_INFO("on_read_ws: {}", msg);
     }
 
     void do_write()
