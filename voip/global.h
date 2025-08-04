@@ -68,4 +68,14 @@ enum REG_STATE {
 #define STATUS_ACCOUNT_REGISTERED   "registered"
 #define STATUS_ACCOUNT_UNREGISTERED "unregistered"
 
+struct GUIConfig
+{
+    std::string gui_host;
+    std::string gui_port;
+    std::string gui_target;
+    std::string gui_client_id;
+};
+
+extern GUIConfig g_gui_cfg;
+
 #endif // _GLOBAL_H_

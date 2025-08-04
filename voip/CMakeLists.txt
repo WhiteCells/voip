@@ -13,6 +13,8 @@ set(SRC
     thread_pool.cc
     logger.cc
     coordinator.cc
+    account_check.cc
+    account_check_manager.cc
     main.cc
 )
 

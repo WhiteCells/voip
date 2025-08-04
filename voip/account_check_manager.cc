@@ -39,9 +39,13 @@ void AccountCheckManager::clear()
 void AccountCheckManager::tryPushPushRegState()
 {
     if (m_pushed || m_acc_map.size() < m_cnt) {
-        return;
+        // todo
+        // return;
     }
     // push
-    // for ()
+    LOG_INFO("try push regstate");
+    for (const auto &[k, v] : m_acc_map) {
+        LOG_INFO("{}", k);
+    }
     m_pushed = true;
 }

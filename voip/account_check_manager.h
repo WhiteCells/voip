@@ -21,6 +21,10 @@ class AccountCheckManager :
         void setCode(int _code) { code = _code; }
         void setReason(std::string _reason) { reason = _reason; }
 
+        std::shared_ptr<AccountCheck> getAcc() { return acc; }
+        int getCode() { return code; }
+        std::string getReason() { return reason; }
+
     private:
         std::shared_ptr<AccountCheck> acc {nullptr};
         int code {200};
@@ -28,7 +32,7 @@ class AccountCheckManager :
     };
 
 public:
-    explicit AccountCheckManager(std::size_t cnt);
+    explicit AccountCheckManager(std::size_t cnt = 5);
     ~AccountCheckManager();
 
     void regAccount(const std::shared_ptr<AccountCheck> acc_check);

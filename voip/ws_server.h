@@ -3,6 +3,7 @@
 
 #include "logger.h"
 #include "io_context_pool.h"
+#include "global.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <json/json.h>
@@ -85,6 +86,15 @@ private:
 
         std::string msg = beast::buffers_to_string(m_buffer.data());
         // on_read_ws_handler
+
+        // config
+        //  host
+        //  port
+        //  url
+        //  client_id
+        // command
+        //  hangup
+        endpoint.hangupAllCalls();
     }
 
     void do_write()

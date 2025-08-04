@@ -24,7 +24,7 @@ namespace websocket = beast::websocket;
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 
-std::vector<std::shared_ptr<voip::VAccount>> accounts;
+// std::vector<std::shared_ptr<AccountCheck>> accounts;
 
 class VoipClient :
     public std::enable_shared_from_this<VoipClient>
@@ -85,8 +85,8 @@ public:
                     return;
                 }
                 // nodeIp
-                if (!root.isMember("nodeIp") || !root["nodeIp"].isString()) {
-                    LOG_ERROR("::nodeIp");
+                if (!root.isMember("node") || !root["node"].isString()) {
+                    LOG_ERROR("::node");
                     return;
                 }
                 // request_type
@@ -96,7 +96,7 @@ public:
                 }
 
                 const Json::Value accounts_array = root["accounts"];
-                const std::string nodeIp = root["nodeIp"].asString();
+                const std::string nodeIp = root["node"].asString();
                 // 账号检测回包
                 std::vector<std::shared_ptr<voip::AccResult>> accounts_results;
                 for (const auto &item : accounts_array) {
@@ -111,24 +111,8 @@ public:
 
                     // 
                     auto acc = std::make_shared<AccountCheck>(id, user, pass, nodeIp);
-
-                    // auto acc = std::make_shared<voip::VAccount>(id, user, pass, nodeIp);
-                    // acc->set_acc_result(acc_result);
-                    // acc->create_();
-                    // accounts_results.push_back(acc_result);
-                    // accounts.push_back(acc);
+                    AccountCheckManager::getInstance()->regAccount(acc);
                 }
-                Json::Value accounts_results_root;
-                accounts_results_root["accounts_results"] = Json::arrayValue;
-                for (const auto &res : accounts_results) {
-                    accounts_results_root["accounts_results"].append(res->toJson());
-                }
-                Json::StreamWriterBuilder writer_builder;
-                std::string json_str = Json::writeString(writer_builder, accounts_results_root);
-                LOG_INFO("json_str: {}", json_str);
-
-                // 集体通过 http request 推送账号校验状态（但是是异步）
-                // 需要退出账号，因为账号在呼叫信息中也是有的，避免重复注册
             }
             // 呼叫信息
             else if (request_type == 0) {

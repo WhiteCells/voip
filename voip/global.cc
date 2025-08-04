@@ -35,3 +35,5 @@ void startEndpointLib(unsigned port)
 
     endpoint.libStart();
 }
+
+GUIConfig g_gui_cfg;

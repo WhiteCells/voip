@@ -29,7 +29,11 @@ AccountCheck::~AccountCheck()
 
 void AccountCheck::onRegState(pj::OnRegStateParam &prm)
 {
-    AccountCheckManager::getInstance()->onAccountRegState(shared_from_this(), m_id, static_cast<int>(prm.code), prm.reason);
+    LOG_INFO("on reg state");
+    AccountCheckManager::getInstance()->onAccountRegState(shared_from_this(),
+                                                          m_id,
+                                                          static_cast<int>(prm.code),
+                                                          prm.reason);
 }
 
 std::string AccountCheck::getId() const
