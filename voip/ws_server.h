@@ -154,10 +154,10 @@ private:
 
             if (action == "hangup") {
                 // 尝试执行挂断所有呼叫操作
-                bool result = endpoint.hangupAllCalls();
+                endpoint.hangupAllCalls();
 
                 Json::Value response;
-                response["close_status"] = result ? "success" : "failed";
+                response["close_status"] = "success";
 
                 Json::StreamWriterBuilder writerBuilder;
                 std::string responseStr = Json::writeString(writerBuilder, response);
