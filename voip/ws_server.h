@@ -19,7 +19,7 @@ class WebSocketSession :
     public std::enable_shared_from_this<WebSocketSession>
 {
 public:
-    explicit WebSocketSession(tcp::socket &socket) :
+    explicit WebSocketSession(tcp::socket &&socket) :
         m_stream(std::move(socket))
     {
     }
@@ -27,7 +27,7 @@ public:
 
     void run()
     {
-        beast::get_lowest_layer(m_stream).expires_after(std::chrono::seconds(3));
+        beast::get_lowest_layer(m_stream).expires_never();
         http::async_read(m_stream.next_layer(),
                          m_buffer, m_req,
                          beast::bind_front_handler(&WebSocketSession::on_read_http,
@@ -165,6 +165,19 @@ private:
                 send(responseStr);
             }
         }
+        m_buffer.consume(m_buffer.size());
+        // on_read_ws_handler
+
+        // config
+        //  host
+        //  port
+        //  url
+        //  client_id
+        // command
+        //  hangup
+        // endpoint.hangupAllCalls();
+        LOG_INFO("on_read_ws: {}", msg);
+        do_read();
     }
 
     void do_write()
@@ -192,12 +205,44 @@ private:
 class WSServer
 {
 public:
-    WSServer(boost::asio::io_context &ioc, tcp::endpoint endpoint)
+    WSServer(boost::asio::io_context &ioc, std::string addr, unsigned int port) :
+        m_acceptor(ioc),
+        m_endpoint(asio::ip::make_address(addr), port)
     {
+        beast::error_code ec;
+        if (m_acceptor.open(m_endpoint.protocol(), ec)) {
+            LOG_ERROR("open: {}", ec.what());
+            return;
+        }
+        if (m_acceptor.set_option(net::socket_base::reuse_address(true), ec)) {
+            LOG_ERROR("set_option: {}", ec.what());
+            return;
+        }
+        if (m_acceptor.bind(m_endpoint, ec)) {
+            LOG_ERROR("bind: {}", ec.what());
+            return;
+        }
+        if (m_acceptor.listen(net::socket_base::max_listen_connections, ec)) {
+            LOG_ERROR("listen: {}", ec.what());
+            return;
+        }
+        do_accept();
     }
 
 private:
-    std::shared_ptr<WebSocketSession> m_seesion;
+    void do_accept()
+    {
+        m_acceptor.async_accept([this](beast::error_code ec, tcp::socket socket) {
+            if (ec) {
+                LOG_ERROR("async_accept: {}", ec.what());
+            }
+            std::make_shared<WebSocketSession>(std::move(socket))->run();
+            do_accept();
+        });
+    }
+
+    tcp::acceptor m_acceptor;
+    tcp::endpoint m_endpoint;
 };
 
 #endif // _WS_SERVER_H_
