@@ -21,7 +21,7 @@ voip::VAccount::VAccount(
     m_acc_cfg.sipConfig.authCreds.push_back(m_auth_cred_info);
     m_acc_cfg.callConfig.timerMinSESec = 90;
     m_acc_cfg.callConfig.timerSessExpiresSec = 1800;
-    // this->create(m_acc_cfg);
+    this->create(m_acc_cfg);
 }
 
 voip::VAccount::~VAccount()

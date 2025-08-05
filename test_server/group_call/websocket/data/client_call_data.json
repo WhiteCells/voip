@@ -3,14 +3,20 @@
     "accounts": [
         {
             "id": "1wr3-2s2d-r3r2-dff31",
-            "user": "1001",
-            "pass": "1001"
+            "user": "1005",
+            "pass": "1005"
+        },
+        {
+            "id": "1wr3-2s2d-r3r2-dff31",
+            "user": "1006",
+            "pass": "1006"
         }
     ],
     "phones": [
-        "018803030202"
+        "1002",
+        "1003"
     ],
     "task_id": "e32rqe-2e2dds-1e23e-34r4f",
     "call_type": 0,
-    "request_type": 1
+    "request_type": 0
 }

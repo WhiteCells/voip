@@ -133,11 +133,6 @@ private:
         if (root.isMember("route")) {
             g_gui_cfg.gui_target = root["route"].asString();
         }
-
-        // std::cout << "GUI Config updated - Host: " << g_gui_cfg.gui_host
-        //           << ", Port: " << g_gui_cfg.gui_port
-        //           << ", Target: " << g_gui_cfg.gui_target
-        //           << ", ClientID: " << g_gui_cfg.gui_client_id << std::endl;
     }
 
     void handleCommandMessage(const Json::Value& root)
@@ -158,17 +153,6 @@ private:
                 send(responseStr);
             }
         }
-        // on_read_ws_handler
-
-        // config
-        //  host
-        //  port
-        //  url
-        //  client_id
-        // command
-        //  hangup
-        // endpoint.hangupAllCalls();
-        // LOG_INFO("on_read_ws: {}", msg);
     }
 
     void do_write()

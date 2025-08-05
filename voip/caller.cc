@@ -31,7 +31,12 @@ void voip::Caller::call(
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
-    this->makeCall(dst_uri, prm);
+    try {
+        this->makeCall(dst_uri, prm);
+    }
+    catch (const pj::Error &err) {
+        LOG_ERROR("make call error: {} {}", err.reason, err.info());
+    }
 
     m_coordinator->waitForWinner();
 

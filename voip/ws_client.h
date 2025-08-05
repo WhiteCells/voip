@@ -26,8 +26,6 @@ namespace websocket = beast::websocket;
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 
-// std::vector<std::shared_ptr<AccountCheck>> accounts;
-
 class VoipClient :
     public std::enable_shared_from_this<VoipClient>
 {
@@ -44,7 +42,7 @@ private:
     std::mutex m_batch_mtx;
     std::condition_variable m_batch_cv;
     std::size_t m_batch_remain;
-    std::size_t m_worker_num;
+    std::size_t m_worker_num = 2;
     ThreadPool m_thread_pool;
 
     // std::atomic<bool> m_running;
@@ -59,9 +57,9 @@ public:
     VoipClient(net::io_context &ioc = IOContextPool::getInstance()->getIOContext()) :
         // m_resolver(net::make_strand(ioc)),
         // m_ws(net::make_strand(ioc)),
-        m_thread_pool(4),
-        m_caller_que(new CallerQueue),
-        m_dialplan_que(new DialPlanQueue)
+        m_thread_pool(2),
+        m_caller_que(std::make_shared<CallerQueue>()),
+        m_dialplan_que(std::make_shared<DialPlanQueue>())
     {
         m_on_read_handler = [this](const std::string &msg) {
             static thread_local bool pj_thread_registered = false;
@@ -71,6 +69,7 @@ public:
             }
             // accounts.clear();
             AccountCheckManager::getInstance()->clear();
+            m_acc_vec.clear();
 
             // 程序启动后
             // 1. 接收账号信息
@@ -80,8 +79,6 @@ public:
             Json::Value root;
             std::string errs;
             std::istringstream iss(msg);
-            // std::unique_ptr<Json::CharReader> reader(reader_builder.newCharReader());
-            // bool success = reader->parse(msg.data(), msg.data() + msg.size(), &root, &errs);
             bool success = Json::parseFromStream(reader_builder, iss, &root, &errs);
             if (!success) {
                 LOG_INFO("parse error");
@@ -229,20 +226,34 @@ public:
         start_call_client();
     }
 
+    // 项目逻辑存在问题，
+    // 我需要的是，一次打一批号码
+    // 一批打完，再打下一批
     void start_call_client()
     {
         while (m_running) {
-            std::unique_lock<std::mutex> lock(m_batch_mtx);
+            // if (m_caller_que->empty() || m_dialplan_que->empty()) {
+            //     LOG_WARN("队列为空，等待数据中...");
+            //     std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            //     continue;
+            // }
+            // std::unique_lock<std::mutex> lock(m_batch_mtx);
             m_batch_remain = m_worker_num;
             auto coordinator = std::make_shared<Coordinator>();
             for (std::size_t i = 0; i < m_worker_num; ++i) {
                 m_thread_pool.addTask([this, i, coordinator]() {
                     call_task(i, coordinator);
-                    if (--m_batch_remain == 0) {
+                    {
+                        std::unique_lock<std::mutex> lock(m_batch_mtx);
+                        --m_batch_remain;
+                    }
+
+                    if (m_batch_remain == 0) {
                         m_batch_cv.notify_one();
                     }
                 });
             }
+            std::unique_lock<std::mutex> lock(m_batch_mtx);
             m_batch_cv.wait(lock, [this]() {
                 return m_batch_remain == 0;
             });
@@ -252,7 +263,6 @@ public:
 
     void call_task(std::size_t i, std::shared_ptr<Coordinator> coordinator)
     {
-        // caller->call(dialplan, coordinator);
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
         caller->call(dialplan.second, g_client_id, dialplan.first, coordinator);
