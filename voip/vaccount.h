@@ -29,8 +29,6 @@ public:
     // 注册状态改变
     virtual void onRegState(pj::OnRegStateParam &prm) override;
 
-    void set_acc_result(std::shared_ptr<voip::AccResult> acc_results);
-
     void create_();
 
     // 呼入

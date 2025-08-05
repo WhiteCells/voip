@@ -38,19 +38,7 @@ void voip::VAccount::onRegState(pj::OnRegStateParam &prm)
         m_acc_result->m_code = prm.code;
         m_acc_result->m_msg = prm.reason;
         LOG_INFO("m_acc_result: {}, m_acc_result: {}", m_acc_result->m_code, m_acc_result->m_msg);
-        
     }
-    // voip::pushRegStatus(m_id, STATUS_ACCOUNT_REGISTERED, g_client_id);
-}
-
-void voip::VAccount::set_acc_result(std::shared_ptr<voip::AccResult> acc_results)
-{
-    m_acc_result = acc_results;
-    // m_acc_result
-    m_acc_result->m_id = m_id;
-    m_acc_result->m_user = m_user;
-    m_acc_result->m_pass = m_pass;
-    m_acc_result->m_nodeIp = m_host;
 }
 
 void voip::VAccount::create_()

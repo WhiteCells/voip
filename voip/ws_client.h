@@ -10,6 +10,8 @@
 #include "request.hpp"
 #include "account_check.h"
 #include "account_check_manager.h"
+#include "caller_queue.h"
+#include "dialplan_queue.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <json/json.h>
@@ -45,13 +47,23 @@ private:
     std::size_t m_worker_num;
     ThreadPool m_thread_pool;
 
+    // std::atomic<bool> m_running;
+    // ThreadPool m_thread_pool;
+    std::shared_ptr<CallerQueue> m_caller_que;
+    std::shared_ptr<DialPlanQueue> m_dialplan_que;
+    std::vector<std::shared_ptr<voip::VAccount>> m_acc_vec;
+
+    // std::atomic<int> m_batch_remain {0};
+
 public:
     VoipClient(net::io_context &ioc = IOContextPool::getInstance()->getIOContext()) :
         // m_resolver(net::make_strand(ioc)),
         // m_ws(net::make_strand(ioc)),
-        m_thread_pool(4)
+        m_thread_pool(4),
+        m_caller_que(new CallerQueue),
+        m_dialplan_que(new DialPlanQueue)
     {
-        m_on_read_handler = [](const std::string &msg) {
+        m_on_read_handler = [this](const std::string &msg) {
             static thread_local bool pj_thread_registered = false;
             if (!pj_thread_registered) {
                 endpoint.libRegisterThread("Worker");
@@ -99,11 +111,7 @@ public:
 
                 const Json::Value accounts_array = root["accounts"];
                 const std::string nodeIp = root["node"].asString();
-                // 账号检测回包
-                std::vector<std::shared_ptr<voip::AccResult>> accounts_results;
                 for (const auto &item : accounts_array) {
-                    // acc_result
-                    auto acc_result = std::make_shared<voip::AccResult>();
                     // id
                     const std::string id = item["id"].asString();
                     // user
@@ -111,12 +119,29 @@ public:
                     // pass
                     const std::string pass = item["pass"].asString();
 
-                    //
                     auto acc = std::make_shared<AccountCheck>(id, user, pass, nodeIp);
                     AccountCheckManager::getInstance()->regAccount(acc);
                 }
             }
             // 呼叫信息
+            /*
+                {
+                    "node": "192.168.10.51",                // fs 节点 IP
+                    "accounts": [
+                        {
+                            "id": "1wr3-2s2d-r3r2-dff31",   // 分机号 ID
+                            "user": "1001",                 // 分机号账号
+                            "pass": "1001"                  // 分机号密码
+                        }
+                    ],
+                    "phones": [
+                        "018803030202"                      // 线路 + 手机号
+                    ],
+                    "task_id": "e32rqe-2e2dds-1e23e-34r4f", // 任务 ID
+                    "call_type": 0,                          // 0 代表群呼；1 代表单呼
+                    "request_type":0                         // 0 代表拨打数据  1 代表分机号校验数据
+                }
+            */
             else if (request_type == 0) {
                 LOG_INFO("callinfo");
                 // node
@@ -144,7 +169,25 @@ public:
                     LOG_ERROR("::call_type");
                     return;
                 }
-                // 创建账号，然后
+                //
+                const Json::Value accounts_array = root["accounts"];
+                const std::string node = root["node"].asString();
+                const std::string task_id = root["task_id"].asString();
+
+                for (const auto &item : accounts_array) {
+                    const std::string id = item["id"].asString();
+                    const std::string user = item["user"].asString();
+                    const std::string pass = item["pass"].asString();
+                    auto acc = std::make_shared<voip::VAccount>(id, user, pass, node);
+                    m_acc_vec.push_back(acc);
+                    auto caller = std::make_shared<voip::Caller>(*acc);
+                    m_caller_que->addCaller(caller);
+                }
+
+                const Json::Value dialplans_array = root["phones"];
+                for (const auto &item : dialplans_array) {
+                    m_dialplan_que->addDialPlan(std::pair(1, item.asString()));
+                }
             }
             else {
                 LOG_ERROR("error request_type");
@@ -210,13 +253,16 @@ public:
     void call_task(std::size_t i, std::shared_ptr<Coordinator> coordinator)
     {
         // caller->call(dialplan, coordinator);
+        auto caller = m_caller_que->getCaller();
+        auto dialplan = m_dialplan_que->getDialPlan();
+        caller->call(dialplan.second, g_client_id, dialplan.first, coordinator);
     }
 
     void set_on_read_handler(std::function<void(const std::string &)> on_read_handler)
     {
         // m_on_read_handler = on_read_handler;
-        m_on_read_handler = [](const std::string &msg) {
-        };
+        // m_on_read_handler = [](const std::string &msg) {
+        // };
     }
 
 private:

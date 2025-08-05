@@ -52,7 +52,7 @@ private:
         if (ec) {
             return;
         }
-        if (m_req.target() != "ws://127.0.0.1:8088/ws/client/1d6616dc-bcef-4927-80e9-72a186b22ee6") {
+        if (m_req.target() != "/ws") {
             return;
         }
         m_stream.async_accept(m_req,
@@ -85,6 +85,7 @@ private:
         }
 
         std::string msg = beast::buffers_to_string(m_buffer.data());
+        m_buffer.consume(bytes);
 
         // 解析JSON消息
         Json::CharReaderBuilder reader_builder;
@@ -112,8 +113,6 @@ private:
             }
         }
 
-        // 继续读取下一个消息
-        m_buffer.consume(bytes);
         do_read();
     }
 
