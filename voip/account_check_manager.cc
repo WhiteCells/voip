@@ -2,13 +2,17 @@
 #include "account_check.h"
 #include "request.hpp"
 
-AccountCheckManager::AccountCheckManager(std::size_t cnt) :
-    m_cnt(cnt)
+AccountCheckManager::AccountCheckManager()
 {
 }
 
 AccountCheckManager::~AccountCheckManager()
 {
+}
+
+void AccountCheckManager::setRequestRegCnt(std::size_t cnt)
+{
+    m_request_reg_cnt = cnt;
 }
 
 void AccountCheckManager::regAccount(const std::shared_ptr<AccountCheck> acc_check)
@@ -38,9 +42,10 @@ void AccountCheckManager::clear()
 
 void AccountCheckManager::tryPushPushRegState()
 {
-    if (m_pushed || m_acc_map.size() < m_cnt) {
+    if (m_pushed || m_acc_map.size() < m_request_reg_cnt) {
         // todo
-        // return;
+        LOG_INFO("reg less");
+        return;
     }
     // push
     LOG_INFO("try push regstate");

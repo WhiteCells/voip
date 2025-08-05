@@ -108,6 +108,7 @@ public:
 
                 const Json::Value accounts_array = root["accounts"];
                 const std::string nodeIp = root["node"].asString();
+                AccountCheckManager::getInstance()->setRequestRegCnt(m_worker_num);
                 for (const auto &item : accounts_array) {
                     // id
                     const std::string id = item["id"].asString();
@@ -120,25 +121,6 @@ public:
                     AccountCheckManager::getInstance()->regAccount(acc);
                 }
             }
-            // 呼叫信息
-            /*
-                {
-                    "node": "192.168.10.51",                // fs 节点 IP
-                    "accounts": [
-                        {
-                            "id": "1wr3-2s2d-r3r2-dff31",   // 分机号 ID
-                            "user": "1001",                 // 分机号账号
-                            "pass": "1001"                  // 分机号密码
-                        }
-                    ],
-                    "phones": [
-                        "018803030202"                      // 线路 + 手机号
-                    ],
-                    "task_id": "e32rqe-2e2dds-1e23e-34r4f", // 任务 ID
-                    "call_type": 0,                          // 0 代表群呼；1 代表单呼
-                    "request_type":0                         // 0 代表拨打数据  1 代表分机号校验数据
-                }
-            */
             else if (request_type == 0) {
                 LOG_INFO("callinfo");
                 // node
@@ -226,18 +208,9 @@ public:
         start_call_client();
     }
 
-    // 项目逻辑存在问题，
-    // 我需要的是，一次打一批号码
-    // 一批打完，再打下一批
     void start_call_client()
     {
         while (m_running) {
-            // if (m_caller_que->empty() || m_dialplan_que->empty()) {
-            //     LOG_WARN("队列为空，等待数据中...");
-            //     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            //     continue;
-            // }
-            // std::unique_lock<std::mutex> lock(m_batch_mtx);
             m_batch_remain = m_worker_num;
             auto coordinator = std::make_shared<Coordinator>();
             for (std::size_t i = 0; i < m_worker_num; ++i) {

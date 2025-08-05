@@ -32,9 +32,10 @@ class AccountCheckManager :
     };
 
 public:
-    explicit AccountCheckManager(std::size_t cnt = 5);
+    explicit AccountCheckManager();
     ~AccountCheckManager();
 
+    void setRequestRegCnt(std::size_t cnt = 5);
     void regAccount(const std::shared_ptr<AccountCheck> acc_check);
     void onAccountRegState(std::shared_ptr<AccountCheck> acc_check, const std::string &id, int code, std::string reason);
     void clear();
@@ -43,7 +44,7 @@ private:
     void tryPushPushRegState();
 
 private:
-    std::size_t m_cnt;
+    std::size_t m_request_reg_cnt;
     std::mutex m_mtx;
     std::unordered_map<std::string, std::shared_ptr<AccountRegInfo>> m_acc_map;
     std::vector<std::shared_ptr<AccountCheck>> m_acc_vec;
