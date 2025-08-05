@@ -37,6 +37,8 @@ extern cfg_map cfg;
 #define URL_DIALPLANS   "dialplan"        // 拉取呼叫计划
 #define URL_DIAL_WAV    "dial_wav"        // 推送音频
 #define URL_DIAL_STATUS "dialplan/status" // 呼叫状态
+#define URL_ACCOUNTS_REGSTATE "voip/account/status" //推送分级检验号
+#define URL_CALL_STATE "voip/call/status" // 推送通话状态
 
 /**
  * @brief 构建请求路径
@@ -76,6 +78,13 @@ struct GUIConfig
     std::string gui_client_id;
 };
 
+struct AccountsRegState {
+    std::string account_id;
+    int status;
+};
+
+
 extern GUIConfig g_gui_cfg;
+
 
 #endif // _GLOBAL_H_
