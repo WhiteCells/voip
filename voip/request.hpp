@@ -473,8 +473,9 @@ inline void pushAccountsRegState(const std::vector<AccountsRegState> & accounts_
             json::Value body_json;
             body_json["account_id"] = account.account_id;
             body_json["status"] = account.status;
-            accounts_array.append(account);
+            accounts_array.append(body_json);
         }
+        Json::Value body_json;
         body_json["accounts"] = accounts_array;
         json::StreamWriterBuilder writer;
         writer["indentation"] = "";
