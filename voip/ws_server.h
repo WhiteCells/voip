@@ -122,22 +122,33 @@ private:
 
     void handleConfigMessage(const Json::Value &root)
     {
-        // 修改
-        // 提取配置信息并保存到GUIConfig结构体
-        if (root.isMember("host")) {
-            g_gui_cfg.gui_host = root["host"].asString();
+        if (!root.isMember("host") || !root["host"].isString()) {
+            LOG_ERROR("::host");
+            return;
         }
-        if (root.isMember("port")) {
-            g_gui_cfg.gui_port = root["port"].asString();
+
+        if (!root.isMember("port") || !root["port"].isString()) {
+            LOG_ERROR("::port");
+            return;
         }
-        if (root.isMember("client_id")) {
-            g_gui_cfg.gui_client_id = root["client_id"].asString();
-            client_id = root["client_id"].asString();
-            g_client_id = root["client_id"].asString();
+
+        if (!root.isMember("client_id") || !root["client_id"].isString()) {
+            LOG_ERROR("::client_id");
+            return;
         }
-        if (root.isMember("route")) {
-            g_gui_cfg.gui_target = root["route"].asString();
+
+        if (!root.isMember("route") || !root["route"].isString()) {
+            LOG_ERROR("::route");
+            return;
         }
+
+        g_gui_cfg.gui_host = root["host"].asString();
+        g_gui_cfg.gui_port = root["port"].asString();
+        g_gui_cfg.gui_client_id = root["client_id"].asString();
+        client_id = root["client_id"].asString();
+        g_client_id = root["client_id"].asString();
+        g_gui_cfg.gui_target = root["route"].asString();
+
         m_voip_client->restart_ws_client();
     }
 
