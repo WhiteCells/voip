@@ -174,14 +174,20 @@ public:
         };
     }
 
+    void restart_ws_client()
+    {
+        stop_ws_client();
+        start_ws_client();
+    }
+
     void start_ws_client()
     {
         auto &ioc = IOContextPool::getInstance()->getIOContext();
         m_resolver = std::make_unique<tcp::resolver>(net::make_strand(ioc));
         m_ws = std::make_unique<websocket::stream<beast::tcp_stream>>(net::make_strand(ioc));
 
-        m_resolver->async_resolve(m_host,
-                                  m_port,
+        m_resolver->async_resolve(g_gui_cfg.gui_host,
+                                  g_gui_cfg.gui_port,
                                   beast::bind_front_handler(&VoipClient::on_resolver,
                                                             shared_from_this()));
     }
@@ -202,10 +208,10 @@ public:
         m_resolver->cancel();
     }
 
-    void restart_ws_client()
+    void restart_call_client()
     {
-        stop_ws_client();
-        start_call_client();
+        // stop_ws_client();
+        // start_call_client();
     }
 
     void start_call_client()
@@ -269,9 +275,9 @@ private:
         m_ws->set_option(websocket::stream_base::decorator([](websocket::request_type &req) {
             req.set(http::field::user_agent, "<ws>");
         }));
-        m_host += ":" + std::to_string(endpoint.port());
-        m_ws->async_handshake(m_host,
-                              m_target,
+        g_gui_cfg.gui_host += ":" + std::to_string(endpoint.port());
+        m_ws->async_handshake(g_gui_cfg.gui_host,
+                              g_gui_cfg.gui_target,
                               beast::bind_front_handler(&VoipClient::on_handshake,
                                                         shared_from_this()));
     }

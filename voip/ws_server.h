@@ -4,6 +4,7 @@
 #include "logger.h"
 #include "io_context_pool.h"
 #include "global.h"
+#include "ws_client.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <json/json.h>
@@ -18,9 +19,12 @@ using tcp = net::ip::tcp;
 class WebSocketSession :
     public std::enable_shared_from_this<WebSocketSession>
 {
+    std::shared_ptr<VoipClient> m_voip_client;
+
 public:
-    explicit WebSocketSession(tcp::socket &&socket) :
-        m_stream(std::move(socket))
+    explicit WebSocketSession(tcp::socket &&socket, std::shared_ptr<VoipClient> client) :
+        m_stream(std::move(socket)),
+        m_client(client)
     {
     }
     ~WebSocketSession() = default;
@@ -116,7 +120,7 @@ private:
         do_read();
     }
 
-    void handleConfigMessage(const Json::Value& root)
+    void handleConfigMessage(const Json::Value &root)
     {
         // 提取配置信息并保存到GUIConfig结构体
         if (root.isMember("host")) {
@@ -133,9 +137,10 @@ private:
         if (root.isMember("route")) {
             g_gui_cfg.gui_target = root["route"].asString();
         }
+        m_voip_client->restart_ws_client();
     }
 
-    void handleCommandMessage(const Json::Value& root)
+    void handleCommandMessage(const Json::Value &root)
     {
         if (root.isMember("action")) {
             std::string action = root["action"].asString();
@@ -175,14 +180,16 @@ private:
     beast::flat_buffer m_buffer;
     http::request<http::string_body> m_req;
     std::queue<std::string> m_write_que;
+    std::shared_ptr<VoipClient> m_client;
 };
 
 class WSServer
 {
 public:
-    WSServer(boost::asio::io_context &ioc, std::string addr, unsigned int port) :
-        m_acceptor(ioc),
-        m_endpoint(asio::ip::make_address(addr), port)
+    WSServer(std::string addr, unsigned int port, std::shared_ptr<VoipClient> client) :
+        m_acceptor(IOContextPool::getInstance()->getIOContext()),
+        m_endpoint(asio::ip::make_address(addr), port),
+        m_client(client)
     {
         beast::error_code ec;
         if (m_acceptor.open(m_endpoint.protocol(), ec)) {
@@ -218,6 +225,7 @@ private:
 
     tcp::acceptor m_acceptor;
     tcp::endpoint m_endpoint;
+    std::shared_ptr<VoipClient> m_client;
 };
 
 #endif // _WS_SERVER_H_
