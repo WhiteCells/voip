@@ -1,7 +1,7 @@
 #include "vaccount.h"
 #include "caller.h"
+#include "logger.h"
 #include "request.hpp"
-#include "global.h"
 
 voip::VAccount::VAccount(
     const std::string &id,

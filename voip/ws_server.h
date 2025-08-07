@@ -10,7 +10,7 @@
 #include <boost/asio.hpp>
 #include <json/json.h>
 #include <queue>
-#include <set>
+#include <unordered_set>
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -109,10 +109,13 @@ private:
 
             if (type == "config") {
                 // 处理配置消息
+                LOG_INFO("config");
+                LOG_INFO("{}", root.toStyledString());
                 handleConfigMessage(root);
             }
             else if (type == "command") {
                 // 处理命令消息
+                LOG_INFO("command");
                 handleCommandMessage(root);
             }
         }
@@ -152,10 +155,11 @@ private:
 
     void handleCommandMessage(const Json::Value &root)
     {
+        endpoint.libRegisterThread("Worker");
         if (root.isMember("action")) {
             std::string action = root["action"].asString();
 
-            if (action == "hangup") {
+            if (action == "hangup" || action == "close") {
                 // 尝试执行挂断所有呼叫操作
                 endpoint.hangupAllCalls();
 
@@ -251,7 +255,7 @@ private:
     tcp::acceptor m_acceptor;
     tcp::endpoint m_endpoint;
     std::shared_ptr<VoipClient> m_client;
-    std::set<std::shared_ptr<WebSocketSession>> m_sessions;
+    std::unordered_set<std::shared_ptr<WebSocketSession>> m_sessions;
     std::mutex m_sessions_mtx;
 };
 

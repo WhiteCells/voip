@@ -7,7 +7,6 @@
 #include "coordinator.h"
 #include "thread_pool.h"
 #include "vaccount.h"
-#include "request.hpp"
 #include "account_check.h"
 #include "account_check_manager.h"
 #include "caller_queue.h"
@@ -56,7 +55,7 @@ private:
     // std::atomic<int> m_batch_remain {0};
 
 public:
-    VoipClient(net::io_context &ioc = IOContextPool::getInstance()->getIOContext()) :
+    VoipClient() :
         // m_resolver(net::make_strand(ioc)),
         // m_ws(net::make_strand(ioc)),
         m_thread_pool(2),
@@ -244,6 +243,7 @@ public:
 
     void call_task(std::size_t i, std::shared_ptr<Coordinator> coordinator)
     {
+        LOG_INFO("call task {}", i);
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
         caller->call(dialplan.second, g_client_id, dialplan.first, coordinator);
@@ -251,9 +251,7 @@ public:
 
     void set_on_read_handler(std::function<void(const std::string &)> on_read_handler)
     {
-        // m_on_read_handler = on_read_handler;
-        // m_on_read_handler = [](const std::string &msg) {
-        // };
+        m_on_read_handler = on_read_handler;
     }
 
 private:
@@ -277,9 +275,10 @@ private:
         m_ws->set_option(websocket::stream_base::decorator([](websocket::request_type &req) {
             req.set(http::field::user_agent, "<ws>");
         }));
-        g_gui_cfg.gui_host += ":" + std::to_string(endpoint.port());
-        m_ws->async_handshake(g_gui_cfg.gui_host,
-                              g_gui_cfg.gui_target,
+        auto host = g_gui_cfg.gui_host + ":" + std::to_string(endpoint.port());
+        auto target = g_gui_cfg.gui_target + "/" + g_gui_cfg.gui_client_id;
+        m_ws->async_handshake(host,
+                              target,
                               beast::bind_front_handler(&VoipClient::on_handshake,
                                                         shared_from_this()));
     }
