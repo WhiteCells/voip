@@ -12,6 +12,7 @@
 #include "account_check_manager.h"
 #include "caller_queue.h"
 #include "dialplan_queue.h"
+#include "ws_interface.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <json/json.h>
@@ -50,6 +51,7 @@ private:
     std::shared_ptr<CallerQueue> m_caller_que;
     std::shared_ptr<DialPlanQueue> m_dialplan_que;
     std::vector<std::shared_ptr<voip::VAccount>> m_acc_vec;
+    std::shared_ptr<IWSSender> m_server_sender;
 
     // std::atomic<int> m_batch_remain {0};
 
@@ -98,11 +100,6 @@ public:
                 // nodeIp
                 if (!root.isMember("node") || !root["node"].isString()) {
                     LOG_ERROR("::node");
-                    return;
-                }
-                // request_type
-                if (!root.isMember("request_type") || !root["request_type"].isInt()) {
-                    LOG_ERROR("::request_type");
                     return;
                 }
 
@@ -172,6 +169,11 @@ public:
                 LOG_ERROR("error request_type");
             }
         };
+    }
+
+    void set_server_sender(std::shared_ptr<IWSSender> sender)
+    {
+        m_server_sender = sender;
     }
 
     void restart_ws_client()

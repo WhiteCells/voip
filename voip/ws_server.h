@@ -5,10 +5,12 @@
 #include "io_context_pool.h"
 #include "global.h"
 #include "ws_client.h"
+#include "ws_interface.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <json/json.h>
 #include <queue>
+#include <set>
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -19,8 +21,6 @@ using tcp = net::ip::tcp;
 class WebSocketSession :
     public std::enable_shared_from_this<WebSocketSession>
 {
-    std::shared_ptr<VoipClient> m_voip_client;
-
 public:
     explicit WebSocketSession(tcp::socket &&socket, std::shared_ptr<VoipClient> client) :
         m_stream(std::move(socket)),
@@ -38,7 +38,7 @@ public:
                                                    shared_from_this()));
     }
 
-    void send(std::string message)
+    void send(const std::string &message)
     {
         boost::asio::post(m_stream.get_executor(),
                           [self = shared_from_this(), msg = std::move(message)]() {
@@ -147,7 +147,7 @@ private:
         g_gui_cfg.gui_client_id = root["client_id"].asString();
         g_gui_cfg.gui_target = root["route"].asString();
 
-        m_voip_client->restart_ws_client();
+        m_client->restart_ws_client();
     }
 
     void handleCommandMessage(const Json::Value &root)
@@ -193,7 +193,8 @@ private:
     std::shared_ptr<VoipClient> m_client;
 };
 
-class WSServer
+class WSServer :
+    public IWSSender
 {
 public:
     WSServer(std::string addr, unsigned int port, std::shared_ptr<VoipClient> client) :
@@ -221,6 +222,15 @@ public:
         do_accept();
     }
 
+    // ws server 发送
+    virtual void send(const std::string &msg) override
+    {
+        std::unique_lock<std::mutex> lock(m_sessions_mtx);
+        for (const auto &session : m_sessions) {
+            session->send(msg);
+        }
+    }
+
 private:
     void do_accept()
     {
@@ -228,7 +238,12 @@ private:
             if (ec) {
                 LOG_ERROR("async_accept: {}", ec.what());
             }
-            std::make_shared<WebSocketSession>(std::move(socket), m_client)->run();
+            auto session = std::make_shared<WebSocketSession>(std::move(socket), m_client);
+            {
+                std::unique_lock<std::mutex> lock(m_sessions_mtx);
+                m_sessions.insert(session);
+            }
+            session->run();
             do_accept();
         });
     }
@@ -236,6 +251,8 @@ private:
     tcp::acceptor m_acceptor;
     tcp::endpoint m_endpoint;
     std::shared_ptr<VoipClient> m_client;
+    std::set<std::shared_ptr<WebSocketSession>> m_sessions;
+    std::mutex m_sessions_mtx;
 };
 
 #endif // _WS_SERVER_H_
