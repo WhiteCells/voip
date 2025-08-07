@@ -145,8 +145,6 @@ private:
         g_gui_cfg.gui_host = root["host"].asString();
         g_gui_cfg.gui_port = root["port"].asString();
         g_gui_cfg.gui_client_id = root["client_id"].asString();
-        client_id = root["client_id"].asString();
-        g_client_id = root["client_id"].asString();
         g_gui_cfg.gui_target = root["route"].asString();
 
         m_voip_client->restart_ws_client();
