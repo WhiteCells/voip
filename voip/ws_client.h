@@ -246,7 +246,7 @@ public:
         LOG_INFO("call task {}", i);
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->call(dialplan.second, g_client_id, dialplan.first, coordinator);
+        caller->call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender);
     }
 
     void set_on_read_handler(std::function<void(const std::string &)> on_read_handler)

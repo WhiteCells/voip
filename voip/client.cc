@@ -51,10 +51,10 @@ void Client::callBatch()
     }
 }
 
-void Client::callTask(std::size_t i, std::shared_ptr<Coordinator> coordinator)
-{
-    std::cout << i << std::endl;
-    auto caller = m_caller_que->getCaller();
-    auto dialplan = m_dialplan_que.getDialPlan();
-    caller->call(dialplan.second, g_client_id, dialplan.first, coordinator);
-}
+// void Client::callTask(std::size_t i, std::shared_ptr<Coordinator> coordinator)
+// {
+//     std::cout << i << std::endl;
+//     auto caller = m_caller_que->getCaller();
+//     auto dialplan = m_dialplan_que.getDialPlan();
+//     caller->call(dialplan.second, g_client_id, dialplan.first, coordinator);
+// }

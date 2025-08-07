@@ -6,6 +6,7 @@
 #include "request.hpp"
 #include "global.h"
 #include "coordinator.h"
+#include "ws_interface.h"
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
@@ -21,9 +22,11 @@ void voip::Caller::call(
     const std::string &phone,
     const std::string &client_id,
     const int dialplan_id,
-    std::shared_ptr<Coordinator> coordinator)
+    std::shared_ptr<Coordinator> coordinator,
+    std::shared_ptr<IWSSender> sender)
 {
     m_coordinator = coordinator;
+    m_sender = sender;
 
     m_dialplan_id = dialplan_id;
     m_phone = phone;
@@ -73,10 +76,15 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     switch (ci.state) {
         case PJSIP_INV_STATE_CONNECTING: {
             LOG_INFO(">>> call: {}, phone: {} connecting", ci.id, m_phone);
+            this->acc_.getId();
+            this->acc_.getHost();
+            this->acc_.getUser();
+            // m_sender->send();
             break;
         }
         case PJSIP_INV_STATE_NULL: {
             LOG_INFO(">>> call: {}, phone: {} null", ci.id, m_phone);
+            // 
             break;
         }
         case PJSIP_INV_STATE_CALLING: {

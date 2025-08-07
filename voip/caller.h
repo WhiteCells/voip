@@ -9,6 +9,8 @@
 
 class CallerQueue;
 
+class IWSSender;
+
 namespace voip {
 
 class VAccount;
@@ -50,7 +52,8 @@ public:
     void call(const std::string &phone,
               const std::string &client_id,
               const int dialplan_id,
-              std::shared_ptr<Coordinator> coordinator);
+              std::shared_ptr<Coordinator> coordinator,
+              std::shared_ptr<IWSSender> sender);
 
     void hangup_();
 
@@ -63,6 +66,7 @@ private:
     std::string m_phone;
     std::string m_client_id;
     std::shared_ptr<Coordinator> m_coordinator;
+    std::shared_ptr<IWSSender> m_sender;
 };
 
 } // namespace voip

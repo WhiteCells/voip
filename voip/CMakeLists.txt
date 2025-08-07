@@ -5,7 +5,7 @@ set(SRC
     caller_queue.cc
     caller.cc
     vaccount.cc
-    client.cc
+    # client.cc
     request.hpp
     io_context_pool.cc
     ini.cc
@@ -17,8 +17,6 @@ set(SRC
     account_check_manager.cc
     main.cc
 )
-
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g")
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
