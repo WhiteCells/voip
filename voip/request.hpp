@@ -466,7 +466,7 @@ struct AccResult
 inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_reg_state)
 {
     // g_client_id 错误
-    const auto target_url = genUrl(URL_ACCOUNTS_REGSTATE, g_client_id);
+    const auto target_url = genUrl(URL_ACCOUNTS_REGSTATE, g_gui_cfg.gui_client_id);
 
     try {
         Json::Value accounts_array(Json::arrayValue);
@@ -476,11 +476,11 @@ inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_r
             body_json["status"] = account.status;
             accounts_array.append(body_json);
         }
-        Json::Value body_json;
-        body_json["accounts"] = accounts_array;
+        Json::Value root;
+        root["accounts"] = accounts_array;
         json::StreamWriterBuilder writer;
         writer["indentation"] = "";
-        std::string body = json::writeString(writer, body_json);
+        std::string body = json::writeString(writer, root);
         auto resp = httpRequest(
             backend_host, backend_port, target_url,
             http::verb::post, {}, body);
@@ -498,7 +498,7 @@ inline void pushCallState(
     const std::string &hangup_direction)
 {
     // g_client_id 错误
-    const auto target_url = genUrl(URL_CALL_STATE, g_client_id);
+    const auto target_url = genUrl(URL_CALL_STATE, g_gui_cfg.gui_client_id);
     try {
         json::Value body_json;
         body_json["task_id"] = task_id;
