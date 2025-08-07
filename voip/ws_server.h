@@ -122,6 +122,7 @@ private:
 
     void handleConfigMessage(const Json::Value &root)
     {
+        // 修改
         // 提取配置信息并保存到GUIConfig结构体
         if (root.isMember("host")) {
             g_gui_cfg.gui_host = root["host"].asString();
@@ -218,7 +219,7 @@ private:
             if (ec) {
                 LOG_ERROR("async_accept: {}", ec.what());
             }
-            std::make_shared<WebSocketSession>(std::move(socket))->run();
+            std::make_shared<WebSocketSession>(std::move(socket), m_client)->run();
             do_accept();
         });
     }

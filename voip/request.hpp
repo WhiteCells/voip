@@ -463,13 +463,14 @@ struct AccResult
     }
 };
 
-inline void pushAccountsRegState(const std::vector<AccountsRegState> & accounts_reg_state)
+inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_reg_state)
 {
+    // g_client_id 错误
     const auto target_url = genUrl(URL_ACCOUNTS_REGSTATE, g_client_id);
 
     try {
         Json::Value accounts_array(Json::arrayValue);
-        for(const auto &account : accounts_reg_state){
+        for (const auto &account : accounts_reg_state) {
             json::Value body_json;
             body_json["account_id"] = account.account_id;
             body_json["status"] = account.status;
@@ -481,8 +482,8 @@ inline void pushAccountsRegState(const std::vector<AccountsRegState> & accounts_
         writer["indentation"] = "";
         std::string body = json::writeString(writer, body_json);
         auto resp = httpRequest(
-                backend_host, backend_port, target_url,
-                http::verb::post, {}, body);
+            backend_host, backend_port, target_url,
+            http::verb::post, {}, body);
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
@@ -490,13 +491,13 @@ inline void pushAccountsRegState(const std::vector<AccountsRegState> & accounts_
 }
 
 inline void pushCallState(
-        const std::string &task_id,
-        const std::string &phone,
-        const int status,
-        const int call_type,
-        const std::string &hangup_direction
-        )
+    const std::string &task_id,
+    const std::string &phone,
+    const int status,
+    const int call_type,
+    const std::string &hangup_direction)
 {
+    // g_client_id 错误
     const auto target_url = genUrl(URL_CALL_STATE, g_client_id);
     try {
         json::Value body_json;
@@ -510,8 +511,8 @@ inline void pushCallState(
         writer["indentation"] = "";
         std::string body = json::writeString(writer, body_json);
         auto resp = httpRequest(
-                backend_host, backend_port, target_url,
-                http::verb::post, {}, body);
+            backend_host, backend_port, target_url,
+            http::verb::post, {}, body);
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
