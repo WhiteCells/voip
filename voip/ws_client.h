@@ -120,48 +120,61 @@ public:
             else if (request_type == 0) {
                 LOG_INFO("callinfo");
                 // node
-                if (!root.isMember("node") || root.isString()) {
+                if (!root.isMember("node") || !root["node"].isString()) {
                     LOG_ERROR("::node");
                     return;
                 }
                 // accounts
-                if (!root.isMember("accounts") || root.isArray()) {
+                if (!root.isMember("accounts") || !root["accounts"].isArray()) {
                     LOG_ERROR("::accounts");
                     return;
                 }
                 // phones
-                if (!root.isMember("phones") || root.isArray()) {
+                if (!root.isMember("phones") || !root["phones"].isArray()) {
                     LOG_ERROR("::phones");
                     return;
                 }
                 // task_id
-                if (!root.isMember("task_id") || root.isString()) {
+                if (!root.isMember("task_id") || !root["task_id"].isString()) {
                     LOG_ERROR("::task_id");
                     return;
                 }
                 // call_type
-                if (!root.isMember("call_type") || root.isInt()) {
+                if (!root.isMember("call_type") || !root["call_type"].isInt()) {
                     LOG_ERROR("::call_type");
                     return;
                 }
-                //
                 const Json::Value accounts_array = root["accounts"];
                 const std::string node = root["node"].asString();
                 const std::string task_id = root["task_id"].asString();
-
-                for (const auto &item : accounts_array) {
-                    const std::string id = item["id"].asString();
-                    const std::string user = item["user"].asString();
-                    const std::string pass = item["pass"].asString();
+                const Json::Value dialplans_array = root["phones"];
+                int call_type = root["call_type"].asInt();
+                // 单呼
+                if (call_type == 1) {
+                    const std::string id = accounts_array[0]["id"].asString();
+                    const std::string user = accounts_array[0]["user"].asString();
+                    const std::string pass = accounts_array[0]["pass"].asString();
+                    const std::string dialplan = dialplans_array[0].asString();
                     auto acc = std::make_shared<voip::VAccount>(id, user, pass, node);
                     m_acc_vec.push_back(acc);
                     auto caller = std::make_shared<voip::Caller>(*acc);
-                    m_caller_que->addCaller(caller);
+                    auto coordinator = std::make_shared<Coordinator>();
+                    caller->single_call(dialplan, "", 1, coordinator, m_server_sender);
                 }
+                else {
+                    for (const auto &item : accounts_array) {
+                        const std::string id = item["id"].asString();
+                        const std::string user = item["user"].asString();
+                        const std::string pass = item["pass"].asString();
+                        auto acc = std::make_shared<voip::VAccount>(id, user, pass, node);
+                        m_acc_vec.push_back(acc);
+                        auto caller = std::make_shared<voip::Caller>(*acc);
+                        m_caller_que->addCaller(caller);
+                    }
 
-                const Json::Value dialplans_array = root["phones"];
-                for (const auto &item : dialplans_array) {
-                    m_dialplan_que->addDialPlan(std::pair(1, item.asString()));
+                    for (const auto &item : dialplans_array) {
+                        m_dialplan_que->addDialPlan(std::pair(1, item.asString()));
+                    }
                 }
             }
             else {
@@ -220,6 +233,7 @@ public:
         while (m_running) {
             m_batch_remain = m_worker_num;
             auto coordinator = std::make_shared<Coordinator>();
+            coordinator->reset_();
             for (std::size_t i = 0; i < m_worker_num; ++i) {
                 m_thread_pool.addTask([this, i, coordinator]() {
                     call_task(i, coordinator);

@@ -55,6 +55,12 @@ public:
               std::shared_ptr<Coordinator> coordinator,
               std::shared_ptr<IWSSender> sender);
 
+    void single_call(const std::string &phone,
+                     const std::string &client_id,
+                     const int dialplan_id,
+                     std::shared_ptr<Coordinator> coordinator,
+                     std::shared_ptr<IWSSender> sender);
+
     void hangup_();
 
 private:
@@ -67,6 +73,7 @@ private:
     std::string m_client_id;
     std::shared_ptr<Coordinator> m_coordinator;
     std::shared_ptr<IWSSender> m_sender;
+    int call_type;
 };
 
 } // namespace voip

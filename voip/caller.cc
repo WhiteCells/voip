@@ -41,13 +41,42 @@ void voip::Caller::call(
         LOG_ERROR("make call error: {} {}", err.reason, err.info());
     }
 
-    m_coordinator->waitForWinner();
-
-    if (m_coordinator->shouldAbort(shared_from_this())) {
-        LOG_WARN("should abort");
+    // m_coordinator->waitForWinner();
+    if (!m_coordinator->waitForWinner(std::chrono::seconds(10))) {
+        LOG_WARN("call {} wait winner time out", m_phone);
         hangup_();
+        return;
     }
 
+    if (m_coordinator->shouldAbort(shared_from_this())) {
+        LOG_WARN("call {} should abort", m_phone);
+        hangup_();
+        return;
+    }
+
+    m_coordinator->waitForCallFinished();
+}
+
+void voip::Caller::single_call(const std::string &phone,
+                               const std::string &client_id,
+                               const int dialplan_id,
+                               std::shared_ptr<Coordinator> coordinator,
+                               std::shared_ptr<IWSSender> sender)
+{
+    m_coordinator = coordinator;
+    m_sender = sender;
+    m_dialplan_id = dialplan_id;
+    m_phone = phone;
+    m_client_id = client_id;
+    const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
+    LOG_INFO("dst_uri: {}", dst_uri);
+    const pj::CallOpParam prm {true};
+    try {
+        this->makeCall(dst_uri, prm);
+    }
+    catch (const pj::Error &err) {
+        LOG_ERROR("make call error: {} {}", err.reason, err.info());
+    }
     m_coordinator->waitForCallFinished();
 }
 
@@ -84,7 +113,6 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         }
         case PJSIP_INV_STATE_NULL: {
             LOG_INFO(">>> call: {}, phone: {} null", ci.id, m_phone);
-            // 
             break;
         }
         case PJSIP_INV_STATE_CALLING: {
@@ -99,6 +127,10 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
             LOG_INFO(">>> call: {}, phone: {} disconnected", ci.id, m_phone);
+            // if (!m_coordinator->isWinner(shared_from_this())) {
+            //     LOG_WARN(">>> call: {}, phone: {} DISCONNECTED without CONFIRMED, doing fallback confirm", ci.id, m_phone);
+            //     m_coordinator->notifyCallConfirmed(shared_from_this()); // 补偿触发
+            // }
             m_coordinator->notifyCallDisconnected(shared_from_this());
             break;
         }

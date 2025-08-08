@@ -24,13 +24,26 @@ void Coordinator::notifyCallDisconnected(std::shared_ptr<voip::Caller> winner)
     }
 }
 
-void Coordinator::waitForWinner()
+bool Coordinator::waitForWinner()
 {
     std::unique_lock<std::mutex> lock(m_mtx);
     m_confirmed_cv.wait(lock, [&]() {
         LOG_WARN("recv confirmed notify to check confirmed");
         return m_confirmed.load();
     });
+}
+
+bool Coordinator::waitForWinner(std::chrono::seconds timeout)
+{
+    std::unique_lock<std::mutex> lock(m_mtx);
+    bool ok = m_confirmed_cv.wait_for(lock, timeout, [&]() {
+        LOG_WARN("recv confirmed notify to check confirmed");
+        return m_confirmed.load();
+    });
+    if (!ok) {
+        LOG_WARN("wait for winner time out");
+    }
+    return ok;
 }
 
 void Coordinator::waitForCallFinished()

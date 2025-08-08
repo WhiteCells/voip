@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <thread>
+#include <chrono>
 
 namespace voip {
 class Caller;
@@ -19,7 +20,8 @@ public:
     void notifyCallConfirmed(std::shared_ptr<voip::Caller> winner);
     void notifyCallDisconnected(std::shared_ptr<voip::Caller> winner);
 
-    void waitForWinner();
+    bool waitForWinner();
+    bool waitForWinner(std::chrono::seconds timeout);
     void waitForCallFinished();
 
     bool isWinner(std::shared_ptr<voip::Caller> winner) const;
