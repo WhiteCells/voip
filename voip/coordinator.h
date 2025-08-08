@@ -20,7 +20,7 @@ public:
     void notifyCallConfirmed(std::shared_ptr<voip::Caller> winner);
     void notifyCallDisconnected(std::shared_ptr<voip::Caller> winner);
 
-    bool waitForWinner();
+    void waitForWinner();
     bool waitForWinner(std::chrono::seconds timeout);
     void waitForCallFinished();
 

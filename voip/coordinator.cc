@@ -24,7 +24,7 @@ void Coordinator::notifyCallDisconnected(std::shared_ptr<voip::Caller> winner)
     }
 }
 
-bool Coordinator::waitForWinner()
+void Coordinator::waitForWinner()
 {
     std::unique_lock<std::mutex> lock(m_mtx);
     m_confirmed_cv.wait(lock, [&]() {

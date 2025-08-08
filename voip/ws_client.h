@@ -45,20 +45,16 @@ private:
     std::size_t m_worker_num = 2;
     ThreadPool m_thread_pool;
 
-    // std::atomic<bool> m_running;
-    // ThreadPool m_thread_pool;
     std::shared_ptr<CallerQueue> m_caller_que;
     std::shared_ptr<DialPlanQueue> m_dialplan_que;
     std::vector<std::shared_ptr<voip::VAccount>> m_acc_vec;
     std::shared_ptr<IWSSender> m_server_sender;
 
-    // std::atomic<int> m_batch_remain {0};
-
 public:
     VoipClient() :
         // m_resolver(net::make_strand(ioc)),
         // m_ws(net::make_strand(ioc)),
-        m_thread_pool(2),
+        m_thread_pool(10),
         m_caller_que(std::make_shared<CallerQueue>()),
         m_dialplan_que(std::make_shared<DialPlanQueue>())
     {
@@ -68,9 +64,8 @@ public:
                 endpoint.libRegisterThread("Worker");
                 pj_thread_registered = true;
             }
-            // accounts.clear();
             AccountCheckManager::getInstance()->clear();
-            m_acc_vec.clear();
+            // m_acc_vec.clear();
 
             // 程序启动后
             // 1. 接收账号信息
@@ -148,6 +143,7 @@ public:
                 const std::string node = root["node"].asString();
                 const std::string task_id = root["task_id"].asString();
                 const Json::Value dialplans_array = root["phones"];
+                m_worker_num = dialplans_array.size();
                 int call_type = root["call_type"].asInt();
                 // 单呼
                 if (call_type == 1) {
@@ -158,8 +154,10 @@ public:
                     auto acc = std::make_shared<voip::VAccount>(id, user, pass, node);
                     m_acc_vec.push_back(acc);
                     auto caller = std::make_shared<voip::Caller>(*acc);
-                    auto coordinator = std::make_shared<Coordinator>();
-                    caller->single_call(dialplan, "", 1, coordinator, m_server_sender);
+                    m_caller_que->addCaller(caller);
+                    m_dialplan_que->addDialPlan({1, dialplan});
+                    // auto coordinator = std::make_shared<Coordinator>();
+                    // caller->single_call(dialplan, "", 1, coordinator, m_server_sender);
                 }
                 else {
                     for (const auto &item : accounts_array) {
@@ -231,12 +229,19 @@ public:
     void start_call_client()
     {
         while (m_running) {
+            m_worker_num = m_dialplan_que->size();
             m_batch_remain = m_worker_num;
+            if (m_batch_remain == 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                // LOG_INFO("que size 0");
+                continue;
+            }
             auto coordinator = std::make_shared<Coordinator>();
             coordinator->reset_();
-            for (std::size_t i = 0; i < m_worker_num; ++i) {
-                m_thread_pool.addTask([this, i, coordinator]() {
-                    call_task(i, coordinator);
+            if (m_worker_num == 1) {
+                LOG_INFO("start_call_client single call");
+                m_thread_pool.addTask([this, coordinator]() {
+                    single_task(coordinator);
                     {
                         std::unique_lock<std::mutex> lock(m_batch_mtx);
                         --m_batch_remain;
@@ -246,13 +251,41 @@ public:
                         m_batch_cv.notify_one();
                     }
                 });
+                std::unique_lock<std::mutex> lock(m_batch_mtx);
+                m_batch_cv.wait(lock, [this]() {
+                    return m_batch_remain == 0;
+                });
+                LOG_INFO("single finish, start next");
             }
-            std::unique_lock<std::mutex> lock(m_batch_mtx);
-            m_batch_cv.wait(lock, [this]() {
-                return m_batch_remain == 0;
-            });
-            LOG_INFO("batch finish, start next");
+            else {
+                LOG_INFO("start_call_client group call");
+                for (std::size_t i = 0; i < m_worker_num; ++i) {
+                    m_thread_pool.addTask([this, i, coordinator]() {
+                        call_task(i, coordinator);
+                        {
+                            std::unique_lock<std::mutex> lock(m_batch_mtx);
+                            --m_batch_remain;
+                        }
+
+                        if (m_batch_remain == 0) {
+                            m_batch_cv.notify_one();
+                        }
+                    });
+                }
+                std::unique_lock<std::mutex> lock(m_batch_mtx);
+                m_batch_cv.wait(lock, [this]() {
+                    return m_batch_remain == 0;
+                });
+                LOG_INFO("batch finish, start next");
+            }
         }
+    }
+
+    void single_task(std::shared_ptr<Coordinator> coordinator)
+    {
+        auto caller = m_caller_que->getCaller();
+        auto dialplan = m_dialplan_que->getDialPlan();
+        caller->call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender);
     }
 
     void call_task(std::size_t i, std::shared_ptr<Coordinator> coordinator)

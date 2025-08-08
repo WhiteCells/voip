@@ -34,25 +34,38 @@ void voip::Caller::call(
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
+    // try {
+    //     this->makeCall(dst_uri, prm);
+    // }
+    // catch (const pj::Error &err) {
+    //     LOG_ERROR("make call error: {} {}", err.reason, err.info());
+    // }
+
     try {
         this->makeCall(dst_uri, prm);
     }
     catch (const pj::Error &err) {
-        LOG_ERROR("make call error: {} {}", err.reason, err.info());
+        LOG_ERROR("pj::Error: {} {}", err.reason, err.info());
+    }
+    catch (const std::exception &ex) {
+        LOG_ERROR("std::exception: {}", ex.what());
+    }
+    catch (...) {
+        LOG_ERROR("Unknown exception caught!");
     }
 
-    // m_coordinator->waitForWinner();
-    if (!m_coordinator->waitForWinner(std::chrono::seconds(10))) {
+    m_coordinator->waitForWinner();
+    if (!m_coordinator->waitForWinner(std::chrono::seconds(10)) || m_coordinator->shouldAbort(shared_from_this())) {
         LOG_WARN("call {} wait winner time out", m_phone);
         hangup_();
         return;
     }
 
-    if (m_coordinator->shouldAbort(shared_from_this())) {
-        LOG_WARN("call {} should abort", m_phone);
-        hangup_();
-        return;
-    }
+    // if () {
+    //     LOG_WARN("call {} should abort", m_phone);
+    //     hangup_();
+    //     return;
+    // }
 
     m_coordinator->waitForCallFinished();
 }
@@ -83,7 +96,8 @@ void voip::Caller::single_call(const std::string &phone,
 void voip::Caller::hangup_()
 {
     pj::CallOpParam prm;
-    this->hangup(prm);
+    prm.statusCode = PJSIP_SC_OK;
+    // this->hangup(prm);
 }
 
 void voip::Caller::onCallTsxState(pj::OnCallTsxStateParam &prm)
