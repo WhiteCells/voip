@@ -146,6 +146,22 @@ public:
                 m_worker_num = dialplans_array.size();
                 int call_type = root["call_type"].asInt();
                 // 单呼
+
+                if (m_server_sender) {
+                    Json::Value account_info;
+                    account_info["type"] = "account_info";
+                    account_info["task_id"] = task_id;
+                    account_info["call_type"] = call_type;
+                    account_info["accounts"] = accounts_array;
+                    account_info["phones"] = dialplans_array;
+
+                    Json::StreamWriterBuilder builder;
+                    builder["indentation"] = "";
+                    std::string message = Json::writeString(builder, account_info);
+                    m_server_sender->send(message);
+                    LOG_INFO("Sent account info to WebSocket: {}", message);
+                }
+
                 if (call_type == 1) {
                     const std::string id = accounts_array[0]["id"].asString();
                     const std::string user = accounts_array[0]["user"].asString();

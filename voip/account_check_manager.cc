@@ -1,6 +1,8 @@
+#include <vector>
 #include "account_check_manager.h"
 #include "account_check.h"
 #include "request.hpp"
+#include "global.h"
 
 AccountCheckManager::AccountCheckManager()
 {
@@ -47,10 +49,16 @@ void AccountCheckManager::tryPushPushRegState()
         LOG_INFO("reg less");
         return;
     }
+    std::vector<AccountsRegState> accounts_reg_state;
     // push
     LOG_INFO("try push regstate");
     for (const auto &[k, v] : m_acc_map) {
+        AccountsRegState state;
+        state.account_id = k;
+        state.status = (v->getCode() == 200) ? SUCCESSED : FAILED;
+        accounts_reg_state.push_back(state);
         LOG_INFO("{}", k);
     }
+    voip::pushAccountsRegState(accounts_reg_state);
     m_pushed = true;
 }

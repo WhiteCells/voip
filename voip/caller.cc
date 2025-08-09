@@ -97,7 +97,7 @@ void voip::Caller::hangup_()
 {
     pj::CallOpParam prm;
     prm.statusCode = PJSIP_SC_OK;
-    // this->hangup(prm);
+    this->hangup(prm);
 }
 
 void voip::Caller::onCallTsxState(pj::OnCallTsxStateParam &prm)
@@ -123,6 +123,27 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             this->acc_.getHost();
             this->acc_.getUser();
             // m_sender->send();
+
+            if (m_sender) {
+                json::Value status_msg;
+                status_msg["id"] = acc_.getUser();
+                status_msg["phone"] = m_phone;
+                status_msg["status"] = "CONNECTING";
+
+                Json::StreamWriterBuilder builder;
+                builder["indentation"] = "";
+                std::string msg = json::writeString(builder, status_msg);
+                m_sender->send(msg);
+            }
+
+            voip::pushCallState(
+                    std::to_string(m_dialplan_id),  // task_id
+                    m_phone,                        // phone
+                    DURING,                         // status (通话中)
+                    0,                              // call_type
+                    "unknown"                       // hangup_direction
+            );
+
             break;
         }
         case PJSIP_INV_STATE_NULL: {
@@ -137,6 +158,26 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             LOG_INFO(">>> call: {}, phone: {} confirmed", ci.id, m_phone);
             // 当前线程如果已经接通了，通知其他线程挂断电话
             m_coordinator->notifyCallConfirmed(shared_from_this());
+
+            if (m_sender) {
+                json::Value status_msg;
+                status_msg["id"] = acc_.getUser();
+                status_msg["phone"] = m_phone;
+                status_msg["status"] = "CONFIRMED";
+
+                Json::StreamWriterBuilder builder;
+                builder["indentation"] = "";
+                std::string msg = json::writeString(builder, status_msg);
+                m_sender->send(msg);
+            }
+
+            voip::pushCallState(
+                    std::to_string(m_dialplan_id),  // task_id
+                    m_phone,                        // phone
+                    CONFIRMED,                      // status (已确认)
+                    0,                              // call_type
+                    "unknown"                       // hangup_direction
+            );
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
@@ -146,6 +187,26 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             //     m_coordinator->notifyCallConfirmed(shared_from_this()); // 补偿触发
             // }
             m_coordinator->notifyCallDisconnected(shared_from_this());
+                        if (m_sender) {
+                json::Value status_msg;
+                status_msg["id"] = acc_.getUser();
+                status_msg["phone"] = m_phone;
+                status_msg["status"] = "DISCONNECTED";
+
+                Json::StreamWriterBuilder builder;
+                builder["indentation"] = "";
+                std::string msg = json::writeString(builder, status_msg);
+                m_sender->send(msg);
+            }
+
+            voip::pushCallState(
+                    std::to_string(m_dialplan_id),  // task_id
+                    m_phone,                        // phone
+                    DISCON,                         // status (断开连接)
+                    0,                              // call_type
+                    "unknown"                       // hangup_direction
+            );
+
             break;
         }
         default:
