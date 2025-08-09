@@ -55,16 +55,26 @@ void Coordinator::waitForCallFinished()
     });
 }
 
-bool Coordinator::waitForCallFinished(std::chrono::seconds timeout)
+bool Coordinator::waitForSingleCallConfirmed(std::chrono::seconds timeout)
 {
-    // std::unique_lock<std::mutex> lock(m_mtx);
-    // bool ok = m_confirmed_cv.wait_for(lock, timeout, [&]() {
-    //     LOG_WARN("wait for notify");
-    //     return m_
-    // });
-    // if (!ok) {
-    //     LOG_WARN("");
-    // }
+    std::unique_lock<std::mutex> lock(m_mtx);
+    bool ok = m_confirmed_cv.wait_for(lock, timeout, [&]() {
+        LOG_WARN("wait for single call confirmed");
+        return m_confirmed.load();
+    });
+    if (!ok) {
+        LOG_WARN("wait for single confirmed timeout");
+    }
+    return ok;
+}
+
+bool Coordinator::waitForSingleCallFinished()
+{
+    std::unique_lock<std::mutex> lock(m_mtx);
+    m_confirmed_cv.wait(lock, [&]() {
+        LOG_WARN("wait for notify");
+        return m_finished.load();
+    });
 }
 
 bool Coordinator::isWinner(std::shared_ptr<voip::Caller> winner) const
@@ -75,7 +85,7 @@ bool Coordinator::isWinner(std::shared_ptr<voip::Caller> winner) const
 
 bool Coordinator::shouldAbort(std::shared_ptr<voip::Caller> winner) const
 {
-    bool res = m_confirmed || !isWinner(winner);
+    bool res = m_confirmed && !isWinner(winner);
     LOG_WARN("should Abort: {}", res);
     return res;
 }

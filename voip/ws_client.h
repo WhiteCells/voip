@@ -299,7 +299,7 @@ public:
     {
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender);
+        caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender);
     }
 
     void call_task(std::size_t i, std::shared_ptr<Coordinator> coordinator)

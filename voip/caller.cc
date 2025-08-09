@@ -79,7 +79,8 @@ void voip::Caller::single_call(const std::string &phone,
     catch (const pj::Error &err) {
         LOG_ERROR("make call error: {} {}", err.reason, err.info());
     }
-    m_coordinator->waitForCallFinished();
+    m_coordinator->waitForSingleCallConfirmed(std::chrono::seconds(10));    
+    m_coordinator->waitForSingleCallFinished();
 }
 
 void voip::Caller::hangup_()

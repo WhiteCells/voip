@@ -23,7 +23,9 @@ public:
     void waitForWinner();
     bool waitForWinner(std::chrono::seconds timeout);
     void waitForCallFinished();
-    bool waitForCallFinished(std::chrono::seconds timeout);
+
+    bool waitForSingleCallConfirmed(std::chrono::seconds timeout);
+    bool waitForSingleCallFinished();
 
     bool isWinner(std::shared_ptr<voip::Caller> winner) const;
     bool shouldAbort(std::shared_ptr<voip::Caller> winner) const;
