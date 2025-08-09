@@ -65,7 +65,7 @@ public:
                 pj_thread_registered = true;
             }
             AccountCheckManager::getInstance()->clear();
-            // m_acc_vec.clear();
+            m_acc_vec.clear();
 
             // 程序启动后
             // 1. 接收账号信息
@@ -145,7 +145,6 @@ public:
                 const Json::Value dialplans_array = root["phones"];
                 m_worker_num = dialplans_array.size();
                 int call_type = root["call_type"].asInt();
-                // 单呼
 
                 if (m_server_sender) {
                     Json::Value account_info;
@@ -172,8 +171,6 @@ public:
                     auto caller = std::make_shared<voip::Caller>(*acc);
                     m_caller_que->addCaller(caller);
                     m_dialplan_que->addDialPlan({1, dialplan});
-                    // auto coordinator = std::make_shared<Coordinator>();
-                    // caller->single_call(dialplan, "", 1, coordinator, m_server_sender);
                 }
                 else {
                     for (const auto &item : accounts_array) {
