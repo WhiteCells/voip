@@ -246,6 +246,7 @@ public:
     {
         while (m_running) {
             m_worker_num = m_dialplan_que->size();
+            // LOG_INFO("m_worker_num {}", m_worker_num);
             m_batch_remain = m_worker_num;
             if (m_batch_remain == 0) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));

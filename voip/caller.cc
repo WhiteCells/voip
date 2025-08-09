@@ -54,7 +54,7 @@ void voip::Caller::call(
         LOG_ERROR("Unknown exception caught!");
     }
 
-    m_coordinator->waitForWinner();
+    // m_coordinator->waitForWinner();
     if (!m_coordinator->waitForWinner(std::chrono::seconds(10)) || m_coordinator->shouldAbort(shared_from_this())) {
         LOG_WARN("call {} wait winner time out", m_phone);
         hangup_();
