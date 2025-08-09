@@ -10,13 +10,25 @@
             "id": "1wr3-2s2d-r3r2-dff31",
             "user": "2002",
             "pass": "2002"
+        },
+        {
+            "id": "1wr3-2s2d-r3r2-dff31",
+            "user": "2003",
+            "pass": "2003"
+        },
+        {
+            "id": "1wr3-2s2d-r3r2-dff31",
+            "user": "1001",
+            "pass": "1001"
         }
     ],
     "phones": [
         "1003",
-        "1002"
+        "1002",
+        "1007",
+        "1000"
     ],
     "task_id": "e32rqe-2e2dds-1e23e-34r4f",
-    "call_type": 0,
+    "call_type": 1,
     "request_type": 0
 }
