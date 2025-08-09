@@ -68,10 +68,10 @@ bool Coordinator::waitForSingleCallConfirmed(std::chrono::seconds timeout)
     return ok;
 }
 
-bool Coordinator::waitForSingleCallFinished()
+void Coordinator::waitForSingleCallFinished()
 {
     std::unique_lock<std::mutex> lock(m_mtx);
-    m_confirmed_cv.wait(lock, [&]() {
+    m_disconnected_cv.wait(lock, [&]() {
         LOG_WARN("wait for notify");
         return m_finished.load();
     });
@@ -79,7 +79,6 @@ bool Coordinator::waitForSingleCallFinished()
 
 bool Coordinator::isWinner(std::shared_ptr<voip::Caller> winner) const
 {
-    // return getThreadId() == m_winner_tid;
     return m_winner_caller == winner;
 }
 
@@ -100,6 +99,5 @@ void Coordinator::reset_()
     std::unique_lock<std::mutex> lock(m_mtx);
     m_confirmed = false;
     m_finished = false;
-    // m_winner_tid = getThreadId();
     m_winner_caller.reset();
 }
