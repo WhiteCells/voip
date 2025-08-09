@@ -29,6 +29,8 @@ extern std::string client_id;
 
 extern cfg_map cfg;
 
+extern std::string local_hangup;
+
 // url
 #define URL_NOTIFY      "notify"          // 客户端通知
 #define URL_HEARTBEAT   "heartbeat"       // 客户端心跳

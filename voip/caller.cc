@@ -197,12 +197,13 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         case PJSIP_INV_STATE_DISCONNECTED: {
             LOG_INFO(">>> call: {}, phone: {} disconnected", ci.id, m_phone);
 
-            if (ci.role == PJSIP_ROLE_UAC) {
+            if (local_hangup== "1") {
                 // 主叫方挂断
                 LOG_INFO("{}: PJSIP_ROLE_UAC", m_phone);
                 hangup_direction = "1";
+                local_hangup = "0";
             }
-            else if (ci.role == PJSIP_ROLE_UAS) {
+            else if (local_hangup== "0") {
                 // 被叫方挂断
                 LOG_INFO("{}: PJSIP_ROLE_UAC", m_phone);
                 hangup_direction = "0";

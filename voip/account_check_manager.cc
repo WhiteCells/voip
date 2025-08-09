@@ -60,5 +60,5 @@ void AccountCheckManager::tryPushPushRegState()
         LOG_INFO("{}", k);
     }
     voip::pushAccountsRegState(accounts_reg_state);
-    m_pushed = true;
+    m_pushed = false;
 }

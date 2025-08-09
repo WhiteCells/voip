@@ -15,6 +15,8 @@ std::string client_id;
 
 cfg_map cfg;
 
+std::string local_hangup = "0";
+
 void startEndpointLib(unsigned port)
 {
     endpoint.libCreate();
