@@ -74,6 +74,7 @@ private:
     std::shared_ptr<Coordinator> m_coordinator;
     std::shared_ptr<IWSSender> m_sender;
     int call_type;
+    std::string hangup_direction;
 };
 
 } // namespace voip

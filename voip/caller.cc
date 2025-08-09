@@ -199,10 +199,13 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             if (ci.role == PJSIP_ROLE_UAC) {
                 // 主叫方挂断
                 LOG_INFO("{}: PJSIP_ROLE_UAC", m_phone);
+                hangup_direction = "1";
+
             }
             else if (ci.role == PJSIP_ROLE_UAS) {
                 // 被叫方挂断
                 LOG_INFO("{}: PJSIP_ROLE_UAC", m_phone);
+                hangup_direction = "0";
             }
 
             m_coordinator->notifyCallDisconnected(shared_from_this());
@@ -235,7 +238,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                     m_phone,                        // phone
                     status_code,                         // status (断开连接)
                     call_type,                              // call_type
-                    "hangup_direction"                      // hangup_direction
+                    hangup_direction                      // hangup_direction
             );
             break;
         }
