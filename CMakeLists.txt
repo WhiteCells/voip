@@ -36,7 +36,25 @@ if(WIN32)
     set(PJNATH_LIBRARY_DIR "${PJPROJECT_DIR}/pjnath/lib")
     set(THIRD_PARTY_LIB_DIR "${PJPROJECT_DIR}/third_party/lib")
 
-    file(GLOB VOIP_SRC ${PROJECT_SOURCE_DIR}/voip/*.cc)
+    set(VOIP_SRC
+            voip/global.cc
+            voip/async_timer.cc
+            voip/dialplan_queue.cc
+            voip/caller_queue.cc
+            voip/caller.cc
+            voip/vaccount.cc
+            #voip/client.cc
+            voip/request.hpp
+            voip/io_context_pool.cc
+            voip/ini.cc
+            voip/singleton.hpp
+            voip/thread_pool.cc
+            voip/logger.cc
+            voip/coordinator.cc
+            voip/account_check.cc
+            voip/account_check_manager.cc
+            voip/main.cc
+    )
 
     set(SRC ${VOIP_SRC})
 
