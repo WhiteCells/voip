@@ -104,9 +104,9 @@ public:
                     // id
                     const std::string id = item["id"].asString();
                     // user
-                    const std::string user = item["user"].asString();
+                    const std::string user = item["extUser"].asString();
                     // pass
-                    const std::string pass = item["pass"].asString();
+                    const std::string pass = item["extPsd"].asString();
 
                     auto acc = std::make_shared<AccountCheck>(id, user, pass, nodeIp);
                     AccountCheckManager::getInstance()->regAccount(acc);
@@ -163,8 +163,8 @@ public:
 
                 if (call_type == 1) {
                     const std::string id = accounts_array[0]["id"].asString();
-                    const std::string user = accounts_array[0]["user"].asString();
-                    const std::string pass = accounts_array[0]["pass"].asString();
+                    const std::string user = accounts_array[0]["extUser"].asString();
+                    const std::string pass = accounts_array[0]["extPsd"].asString();
                     const std::string dialplan = dialplans_array[0].asString();
                     auto acc = std::make_shared<voip::VAccount>(id, user, pass, node);
                     m_acc_vec.push_back(acc);
@@ -175,8 +175,8 @@ public:
                 else {
                     for (const auto &item : accounts_array) {
                         const std::string id = item["id"].asString();
-                        const std::string user = item["user"].asString();
-                        const std::string pass = item["pass"].asString();
+                        const std::string user = item["extUser"].asString();
+                        const std::string pass = item["extPsd"].asString();
                         auto acc = std::make_shared<voip::VAccount>(id, user, pass, node);
                         m_acc_vec.push_back(acc);
                         auto caller = std::make_shared<voip::Caller>(*acc);

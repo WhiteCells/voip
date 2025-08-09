@@ -3,18 +3,18 @@
     "accounts": [
         {
             "id": "1wr3-2s2d-r3r2-dff31",
-            "user": "2001",
-            "pass": "2001"
+            "extUser": "2001",
+            "extPsd": "2001"
         },
         {
             "id": "1wr3-2s2d-r3r2-dff31",
-            "user": "2002",
-            "pass": "2002"
+            "extUser": "2002",
+            "extPsd": "2002"
         },
         {
             "id": "1wr3-2s2d-r3r2-dff31",
-            "user": "2003",
-            "pass": "2003"
+            "extUser": "2003",
+            "extPsd": "2003"
         }
     ],
     "phones": [
@@ -23,6 +23,6 @@
         "1000"
     ],
     "task_id": "e32rqe-2e2dds-1e23e-34r4f",
-    "call_type": 0,
+    "call_type": 1,
     "request_type": 0
 }
