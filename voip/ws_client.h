@@ -54,7 +54,7 @@ public:
     VoipClient() :
         // m_resolver(net::make_strand(ioc)),
         // m_ws(net::make_strand(ioc)),
-        m_thread_pool(10),
+        m_thread_pool(5),
         m_caller_que(std::make_shared<CallerQueue>()),
         m_dialplan_que(std::make_shared<DialPlanQueue>())
     {
@@ -142,6 +142,7 @@ public:
                 const Json::Value accounts_array = root["accounts"];
                 const std::string node = root["node"].asString();
                 const std::string task_id = root["task_id"].asString();
+                g_task_id = root["task_id"].asString();
                 const Json::Value dialplans_array = root["phones"];
                 m_worker_num = dialplans_array.size();
                 int call_type = root["call_type"].asInt();
@@ -233,12 +234,6 @@ public:
         m_resolver->cancel();
     }
 
-    void restart_call_client()
-    {
-        // stop_ws_client();
-        // start_call_client();
-    }
-
     void start_call_client()
     {
         while (m_running) {
@@ -279,19 +274,23 @@ public:
                         {
                             std::unique_lock<std::mutex> lock(m_batch_mtx);
                             --m_batch_remain;
-                        }
-
-                        if (m_batch_remain == 0) {
-                            m_batch_cv.notify_one();
+                            LOG_INFO("update remain: {}", m_batch_remain);
+                            if (m_batch_remain == 0) {
+                                m_batch_cv.notify_one();
+                            }
                         }
                     });
                 }
                 std::unique_lock<std::mutex> lock(m_batch_mtx);
                 m_batch_cv.wait(lock, [this]() {
+                    LOG_INFO("remain: {}", m_batch_remain);
                     return m_batch_remain == 0;
                 });
                 LOG_INFO("batch finish, start next");
             }
+            AccountCheckManager::getInstance()->clear();
+            m_acc_vec.clear();
+            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         }
     }
 

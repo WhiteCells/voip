@@ -27,7 +27,7 @@ voip::VAccount::VAccount(
 voip::VAccount::~VAccount()
 {
     LOG_INFO("~VAccount");
-    this->shutdown();
+    pj::Account::shutdown();   
 }
 
 void voip::VAccount::onRegState(pj::OnRegStateParam &prm)

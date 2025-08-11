@@ -20,9 +20,9 @@
     "phones": [
         "1002",
         "1003",
-        "1000"
+        "1004"
     ],
     "task_id": "e32rqe-2e2dds-1e23e-34r4f",
-    "call_type": 1,
+    "call_type": 0,
     "request_type": 0
 }

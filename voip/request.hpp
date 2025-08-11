@@ -501,7 +501,7 @@ inline void pushCallState(
     const auto target_url = genUrl(URL_CALL_STATE, g_gui_cfg.gui_client_id);
     try {
         json::Value body_json;
-        body_json["task_id"] = task_id;
+        body_json["task_id"] = g_task_id;
         body_json["phone"] = phone;
         body_json["status"] = status;
         body_json["call_type"] = call_type;

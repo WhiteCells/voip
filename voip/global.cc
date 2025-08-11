@@ -40,3 +40,5 @@ void startEndpointLib(unsigned port)
 }
 
 GUIConfig g_gui_cfg;
+
+std::string g_task_id;

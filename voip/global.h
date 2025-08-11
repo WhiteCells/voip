@@ -88,5 +88,6 @@ struct AccountsRegState {
 
 extern GUIConfig g_gui_cfg;
 
+extern std::string g_task_id;
 
 #endif // _GLOBAL_H_
