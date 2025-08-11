@@ -64,8 +64,8 @@ public:
                 endpoint.libRegisterThread("Worker");
                 pj_thread_registered = true;
             }
-            AccountCheckManager::getInstance()->clear();
-            m_acc_vec.clear();
+            // AccountCheckManager::getInstance()->clear();
+            // m_acc_vec.clear();
 
             // 程序启动后
             // 1. 接收账号信息
@@ -290,7 +290,6 @@ public:
             }
             AccountCheckManager::getInstance()->clear();
             m_acc_vec.clear();
-            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         }
     }
 
@@ -307,6 +306,7 @@ public:
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
         caller->call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender);
+        LOG_INFO("call {} over", dialplan.second);
     }
 
     void set_on_read_handler(std::function<void(const std::string &)> on_read_handler)

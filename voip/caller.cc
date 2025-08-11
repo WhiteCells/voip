@@ -50,7 +50,11 @@ void voip::Caller::call(
         LOG_ERROR("Unknown exception caught!");
     }
 
-    if (!m_coordinator->waitForWinner(std::chrono::seconds(10)) || m_coordinator->shouldAbort(shared_from_this())) {
+    // 超时之前等待 winner
+    // 是 winner 在 waitForCallFinished 阻塞，直到通话结束
+    // 非 winner 或者超时走挂断逻辑
+    if (!m_coordinator->waitForWinner(std::chrono::seconds(10)) ||
+        m_coordinator->shouldAbort(shared_from_this())) {
         LOG_WARN("call {} wait winner time out", m_phone);
         hangup_();
         return;
@@ -92,7 +96,6 @@ void voip::Caller::hangup_()
 {
     pj::CallOpParam prm;
     prm.statusCode = PJSIP_SC_OK;
-    this->hangup(prm);
 }
 
 void voip::Caller::onCallTsxState(pj::OnCallTsxStateParam &prm)

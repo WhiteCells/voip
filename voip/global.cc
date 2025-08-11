@@ -26,8 +26,8 @@ void startEndpointLib(unsigned port)
     ep_cfg.medConfig.channelCount = 1;
     ep_cfg.medConfig.clockRate = 48000;
     ep_cfg.medConfig.sndAutoCloseTime = -1;
-    // ep_cfg.uaConfig.maxCalls = 16;
-    // ep_cfg.uaConfig.threadCnt = 16;
+    ep_cfg.uaConfig.maxCalls = 1600;
+    ep_cfg.uaConfig.threadCnt = 5;
     // ep_cfg.logConfig.level = 5;
 
     endpoint.libInit(ep_cfg);

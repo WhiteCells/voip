@@ -5,9 +5,9 @@
 void Coordinator::notifyCallConfirmed(std::shared_ptr<voip::Caller> winner)
 {
     std::unique_lock<std::mutex> lock(m_mtx);
+    // 确保唯一 winner
     if (!m_confirmed) {
         m_confirmed = true;
-        // m_winner_tid = getThreadId();
         m_winner_caller = winner;
         m_confirmed_cv.notify_all();
         LOG_WARN("one call confirmed");
@@ -16,8 +16,17 @@ void Coordinator::notifyCallConfirmed(std::shared_ptr<voip::Caller> winner)
 
 void Coordinator::notifyCallDisconnected(std::shared_ptr<voip::Caller> winner)
 {
+    // std::unique_lock<std::mutex> lock(m_mtx);
+    // // 只有 winner 才可以通知通话结束
+    // if (winner.get() == m_winner_caller.get()) {
+    //     m_finished = true;
+    //     m_disconnected_cv.notify_all();
+    //     LOG_WARN("one call disconnected");
+    // }
     std::unique_lock<std::mutex> lock(m_mtx);
-    if (winner == m_winner_caller) {
+    auto cur = m_winner_caller.lock();
+    // 如果有 winner（weak -> shared 成功），或者直接比较裸指针
+    if (cur && winner.get() == cur.get()) {
         m_finished = true;
         m_disconnected_cv.notify_all();
         LOG_WARN("one call disconnected");
@@ -79,7 +88,8 @@ void Coordinator::waitForSingleCallFinished()
 
 bool Coordinator::isWinner(std::shared_ptr<voip::Caller> winner) const
 {
-    return m_winner_caller == winner;
+    auto cur = m_winner_caller.lock();
+    return cur && cur.get() == winner.get();
 }
 
 bool Coordinator::shouldAbort(std::shared_ptr<voip::Caller> winner) const

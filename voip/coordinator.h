@@ -39,8 +39,7 @@ private:
     std::condition_variable m_disconnected_cv;
     std::atomic<bool> m_confirmed = false;
     std::atomic<bool> m_finished = false;
-    // std::thread::id m_winner_tid;
-    std::shared_ptr<voip::Caller> m_winner_caller;
+    std::weak_ptr<voip::Caller> m_winner_caller;
 };
 
 #endif // _COORDINATOR_H_
