@@ -48,7 +48,6 @@ private:
     std::mutex m_mtx;
     std::unordered_map<std::string, std::shared_ptr<AccountRegInfo>> m_acc_map;
     std::vector<std::shared_ptr<AccountCheck>> m_acc_vec;
-    bool m_pushed = false;
 };
 
 #endif // _ACCOUNT_CHECK_MANAGER_H_
