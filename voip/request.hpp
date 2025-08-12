@@ -481,6 +481,7 @@ inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_r
         json::StreamWriterBuilder writer;
         writer["indentation"] = "";
         std::string body = json::writeString(writer, root);
+        LOG_INFO("push call state body: {}", body);
         auto resp = httpRequest(
             backend_host, backend_port, target_url,
             http::verb::post, {}, body);
@@ -510,6 +511,7 @@ inline void pushCallState(
         json::StreamWriterBuilder writer;
         writer["indentation"] = "";
         std::string body = json::writeString(writer, body_json);
+        LOG_INFO("push call state body: {}", body);
         auto resp = httpRequest(
             backend_host, backend_port, target_url,
             http::verb::post, {}, body);
