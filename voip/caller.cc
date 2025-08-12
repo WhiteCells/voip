@@ -56,6 +56,7 @@ void voip::Caller::call(
     if (!m_coordinator->waitForWinner(std::chrono::seconds(10)) ||
         m_coordinator->shouldAbort(shared_from_this())) {
         LOG_WARN("call {} wait winner time out", m_phone);
+        m_call_status = 2;
         hangup_();
         return;
     }
@@ -128,13 +129,13 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 std::string msg = json::writeString(builder, status_msg);
                 m_sender->send(msg);
             }
-            voip::pushCallState(
-                std::to_string(m_dialplan_id), // task_id
-                m_phone,                       // phone
-                0,                             // status (通话中)
-                call_type,                     // call_type
-                ""                             // hangup_direction
-            );
+            // voip::pushCallState(
+            //     std::to_string(m_dialplan_id), // task_id
+            //     m_phone,                       // phone
+            //     0,                             // status (通话中)
+            //     call_type,                     // call_type
+            //     ""                             // hangup_direction
+            // );
             break;
         }
         case PJSIP_INV_STATE_NULL: {
@@ -165,13 +166,13 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 std::string msg = json::writeString(builder, status_msg);
                 m_sender->send(msg);
             }
-            voip::pushCallState(
-                std::to_string(m_dialplan_id), // task_id
-                m_phone,                       // phone
-                0,                             // status (通话中)
-                call_type,                     // call_type
-                ""                             // hangup_direction
-            );
+            // voip::pushCallState(
+            //     std::to_string(m_dialplan_id), // task_id
+            //     m_phone,                       // phone
+            //     0,                             // status (通话中)
+            //     call_type,                     // call_type
+            //     ""                             // hangup_direction
+            // );
             break;
         }
         case PJSIP_INV_STATE_CONFIRMED: {
@@ -225,24 +226,15 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 std::string msg = json::writeString(builder, status_msg);
                 m_sender->send(msg);
             }
-            int status_code = 1; // 默认为挂断
 
-            // 根据 lastStatusCode 判断具体的断开原因
-            if (ci.lastStatusCode == PJSIP_SC_REQUEST_TIMEOUT ||
-                ci.lastStatusCode == PJSIP_SC_TEMPORARILY_UNAVAILABLE ||
-                ci.lastStatusCode == PJSIP_SC_NOT_FOUND) {
-                // 可能是无人接听的情况
-                status_code = 2; // 无人接听
-            }
-            else if (ci.lastStatusCode == PJSIP_SC_OK || ci.lastStatusCode == PJSIP_SC_BUSY_HERE) {
-                // 正常挂断或忙线
-                status_code = 1; // 挂断
+            if (m_call_status != 2) {
+                m_call_status = 1;
             }
 
             voip::pushCallState(
                 std::to_string(m_dialplan_id), // task_id
                 m_phone,                       // phone
-                status_code,                   // status (断开连接)
+                m_call_status,                 // status (断开连接)
                 call_type,                     // call_type
                 hangup_direction               // hangup_direction
             );

@@ -73,6 +73,7 @@ private:
     std::string m_client_id;
     std::shared_ptr<Coordinator> m_coordinator;
     std::shared_ptr<IWSSender> m_sender;
+    int m_call_status = 0;
     int call_type;
     std::string hangup_direction;
 };
