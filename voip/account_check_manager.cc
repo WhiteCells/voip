@@ -42,7 +42,7 @@ void AccountCheckManager::clear()
     m_acc_map.clear();
 }
 
-void AccountCheckManager::tryPushPushRegState()
+void AccountCheckManager::tryPushRegState()
 {
     std::unique_lock<std::mutex> lock;
     if (!m_pushed || m_acc_map.size() < m_request_reg_cnt) {

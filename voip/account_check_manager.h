@@ -41,7 +41,7 @@ public:
     void clear();
 
 private:
-    void tryPushPushRegState();
+    void tryPushRegState();
 
 private:
     std::size_t m_request_reg_cnt;
