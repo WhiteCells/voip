@@ -32,7 +32,7 @@ void AccountCheckManager::onAccountRegState(std::shared_ptr<AccountCheck> acc_ch
     info->setCode(code);
     info->setReason(reason);
     m_acc_map[id] = info;
-    tryPushPushRegState();
+    tryPushRegState();
 }
 
 void AccountCheckManager::clear()
