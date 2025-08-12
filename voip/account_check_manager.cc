@@ -44,7 +44,8 @@ void AccountCheckManager::clear()
 
 void AccountCheckManager::tryPushPushRegState()
 {
-    if (m_pushed || m_acc_map.size() < m_request_reg_cnt) {
+    std::unique_lock<std::mutex> lock;
+    if (!m_pushed || m_acc_map.size() < m_request_reg_cnt) {
         // todo
         LOG_INFO("reg less");
         return;
@@ -60,5 +61,5 @@ void AccountCheckManager::tryPushPushRegState()
         LOG_INFO("{}", k);
     }
     voip::pushAccountsRegState(accounts_reg_state);
-    m_pushed = false;
+    m_pushed = true;
 }
