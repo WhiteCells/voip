@@ -4,7 +4,8 @@
 #include "request.hpp"
 #include "global.h"
 
-AccountCheckManager::AccountCheckManager()
+AccountCheckManager::AccountCheckManager() :
+    m_pushed(false)
 {
 }
 
@@ -32,6 +33,7 @@ void AccountCheckManager::onAccountRegState(std::shared_ptr<AccountCheck> acc_ch
     info->setCode(code);
     info->setReason(reason);
     m_acc_map[id] = info;
+    LOG_INFO("m_acc_map size: {}", m_acc_map.size());
     tryPushRegState();
 }
 
@@ -44,6 +46,9 @@ void AccountCheckManager::clear()
 
 void AccountCheckManager::tryPushRegState()
 {
+    if (m_pushed) {
+        return;
+    }
     if (m_acc_map.size() < m_request_reg_cnt) {
         LOG_INFO("reg less");
         return;
@@ -59,4 +64,5 @@ void AccountCheckManager::tryPushRegState()
         LOG_INFO("{}", k);
     }
     voip::pushAccountsRegState(accounts_reg_state);
+    m_pushed.store(true);
 }

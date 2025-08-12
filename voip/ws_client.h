@@ -99,7 +99,7 @@ public:
 
                 const Json::Value accounts_array = root["accounts"];
                 const std::string nodeIp = root["node"].asString();
-                AccountCheckManager::getInstance()->setRequestRegCnt(m_worker_num);
+                AccountCheckManager::getInstance()->setRequestRegCnt(accounts_array.size());
                 for (const auto &item : accounts_array) {
                     // id
                     const std::string id = item["id"].asString();

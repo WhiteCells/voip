@@ -7,6 +7,7 @@
 #include <string>
 #include <mutex>
 #include <vector>
+#include <atomic>
 
 class AccountCheck;
 
@@ -48,6 +49,7 @@ private:
     std::mutex m_mtx;
     std::unordered_map<std::string, std::shared_ptr<AccountRegInfo>> m_acc_map;
     std::vector<std::shared_ptr<AccountCheck>> m_acc_vec;
+    std::atomic<bool> m_pushed;
 };
 
 #endif // _ACCOUNT_CHECK_MANAGER_H_

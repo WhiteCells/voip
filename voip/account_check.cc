@@ -24,6 +24,7 @@ AccountCheck::AccountCheck(const std::string &id,
 
 AccountCheck::~AccountCheck()
 {
+    LOG_INFO("~AccountCheck");
     this->shutdown();
 }
 
