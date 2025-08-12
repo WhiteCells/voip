@@ -318,6 +318,12 @@ private:
     void on_resolver(beast::error_code ec, tcp::resolver::results_type results)
     {
         if (ec) {
+            Json::Value response;
+            response["backend_status"] = "error";
+
+            Json::StreamWriterBuilder writerBuilder;
+            std::string responseStr = Json::writeString(writerBuilder, response);
+            m_server_sender->send(responseStr);
             return;
         }
         beast::get_lowest_layer(*m_ws)
@@ -329,6 +335,12 @@ private:
     void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type endpoint)
     {
         if (ec) {
+            Json::Value response;
+            response["backend_status"] = "error";
+
+            Json::StreamWriterBuilder writerBuilder;
+            std::string responseStr = Json::writeString(writerBuilder, response);
+            m_server_sender->send(responseStr);
             return;
         }
         beast::get_lowest_layer(*m_ws).expires_never();
@@ -346,8 +358,18 @@ private:
     void on_handshake(beast::error_code ec)
     {
         if (ec) {
+            Json::Value response;
+            response["backend_status"] = "error";
+            Json::StreamWriterBuilder writerBuilder;
+            std::string responseStr = Json::writeString(writerBuilder, response);
+            m_server_sender->send(responseStr);
             return;
         }
+        Json::Value response;
+        response["backend_status"] = "connected";
+        Json::StreamWriterBuilder writerBuilder;
+        std::string responseStr = Json::writeString(writerBuilder, response);
+        m_server_sender->send(responseStr);
         do_read();
     }
 
@@ -362,6 +384,11 @@ private:
     {
         boost::ignore_unused(len);
         if (ec) {
+            Json::Value response;
+            response["backend_status"] = "disconnected";
+            Json::StreamWriterBuilder writerBuilder;
+            std::string responseStr = Json::writeString(writerBuilder, response);
+            m_server_sender->send(responseStr);
             return;
         }
         std::string msg = beast::buffers_to_string(m_buffer.data());
