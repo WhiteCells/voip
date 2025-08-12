@@ -58,6 +58,13 @@ void voip::Caller::call(
         LOG_WARN("call {} wait winner time out", m_phone);
         m_call_status = 2;
         hangup_();
+        voip::pushCallState(
+            std::to_string(m_dialplan_id), // task_id
+            m_phone,                       // phone
+            m_call_status,                 // status (断开连接)
+            call_type,                     // call_type
+            "1"                            // hangup_direction
+        );
         return;
     }
 
