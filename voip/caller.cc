@@ -58,6 +58,7 @@ void voip::Caller::call(
         LOG_WARN("call {} wait winner time out", m_phone);
         m_call_status = 2;
         hangup_();
+        LOG_INFO("Caller::call phone {} call_status {} call_type {}", m_phone, m_call_status, call_type);
         voip::pushCallState(
             std::to_string(m_dialplan_id), // task_id
             m_phone,                       // phone
@@ -94,7 +95,15 @@ void voip::Caller::single_call(const std::string &phone,
     }
     if (!m_coordinator->waitForSingleCallConfirmed(std::chrono::seconds(10))) {
         LOG_WARN("call {} wait winner time out", m_phone);
+        m_call_status = 2;
         hangup_();
+        voip::pushCallState(
+                std::to_string(m_dialplan_id), // task_id
+                m_phone,                       // phone
+                m_call_status,                 // status (断开连接)
+                call_type,                     // call_type
+                "1"                            // hangup_direction
+        );
         return;
     }
     m_coordinator->waitForSingleCallFinished();
@@ -104,6 +113,7 @@ void voip::Caller::hangup_()
 {
     pj::CallOpParam prm;
     prm.statusCode = PJSIP_SC_OK;
+//    pj::Call::hangup(prm);
 }
 
 void voip::Caller::onCallTsxState(pj::OnCallTsxStateParam &prm)
@@ -118,6 +128,10 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     pj::CallInfo ci = getInfo();
     LOG_INFO("call id: {} phone: {} state: {} code:{}",
              ci.id, m_phone, ci.stateText, (int)ci.lastStatusCode);
+    if (ci.lastStatusCode == 404) {
+        LOG_INFO("call last status code: {}", (int)ci.lastStatusCode);
+        return;
+    }
     if (!ci.lastReason.empty()) {
         LOG_INFO("call reason: {}", ci.lastReason);
     }
@@ -197,6 +211,9 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 std::string msg = json::writeString(builder, status_msg);
                 m_sender->send(msg);
             }
+
+            LOG_INFO(">>> pushCallState PJSIP_INV_STATE_CONFIRMED call: {}, phone: {}, call_type: {}",std::to_string(m_dialplan_id), m_phone, call_type);
+
             voip::pushCallState(
                 std::to_string(m_dialplan_id), // task_id
                 m_phone,                       // phone
@@ -208,24 +225,27 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
             LOG_INFO(">>> call: {}, phone: {} disconnected", ci.id, m_phone);
+            m_coordinator->notifyCallDisconnected(shared_from_this());
 
             if (local_hangup == "1") {
                 // 主叫方挂断
-                LOG_INFO("{}: PJSIP_ROLE_UAC", m_phone);
+                LOG_INFO("{}: 主叫方挂断", m_phone);
                 hangup_direction = "1";
                 local_hangup = "0";
             }
             else if (local_hangup == "0") {
                 // 被叫方挂断
-                LOG_INFO("{}: PJSIP_ROLE_UAC", m_phone);
+                LOG_INFO("{}: 被叫方挂断", m_phone);
                 hangup_direction = "0";
             }
+            LOG_INFO(">>>phone {},hangup_direction {}", m_phone, hangup_direction);
 
-            m_coordinator->notifyCallDisconnected(shared_from_this());
+            std::string tmp_phone1 = m_phone;
+
             if (m_sender) {
                 json::Value status_msg;
                 status_msg["id"] = acc_.getUser();
-                status_msg["phone"] = m_phone;
+                status_msg["phone"] = tmp_phone1;
                 status_msg["status"] = "DISCONNECTED";
 
                 Json::StreamWriterBuilder builder;
@@ -238,12 +258,17 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 m_call_status = 1;
             }
 
+            LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}",std::to_string(m_dialplan_id), m_phone, m_call_status, call_type, hangup_direction);
+
+            std::string tmp_phone = tmp_phone1;
+            std::string tmp_hangup_direction = "0";
+
             voip::pushCallState(
                 std::to_string(m_dialplan_id), // task_id
-                m_phone,                       // phone
+                tmp_phone,                       // phone
                 m_call_status,                 // status (断开连接)
                 call_type,                     // call_type
-                hangup_direction               // hangup_direction
+                tmp_hangup_direction               // hangup_direction
             );
             break;
         }
