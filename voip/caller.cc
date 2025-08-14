@@ -141,7 +141,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             LOG_INFO(">>> call: {}, phone: {} connecting", ci.id, m_phone);
             if (m_sender) {
                 json::Value status_msg;
-                status_msg["id"] = acc_.getUser();
+                status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "CONNECTING";
 
@@ -163,7 +163,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             LOG_INFO(">>> call: {}, phone: {} null", ci.id, m_phone);
             if (m_sender) {
                 json::Value status_msg;
-                status_msg["id"] = acc_.getUser();
+                status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "NULL";
 
@@ -178,7 +178,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             LOG_INFO(">>> call: {}, phone: {} calling", ci.id, m_phone);
             if (m_sender) {
                 json::Value status_msg;
-                status_msg["id"] = acc_.getUser();
+                status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "CALLING";
 
@@ -202,7 +202,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             m_coordinator->notifyCallConfirmed(shared_from_this());
             if (m_sender) {
                 json::Value status_msg;
-                status_msg["id"] = acc_.getUser();
+                status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "CONFIRMED";
 
@@ -244,7 +244,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 
             if (m_sender) {
                 json::Value status_msg;
-                status_msg["id"] = acc_.getUser();
+                status_msg["id"] = g_task_id;
                 status_msg["phone"] = tmp_phone1;
                 status_msg["status"] = "DISCONNECTED";
 
