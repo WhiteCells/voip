@@ -261,7 +261,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}",std::to_string(m_dialplan_id), m_phone, m_call_status, call_type, hangup_direction);
 
             std::string tmp_phone = tmp_phone1;
-            std::string tmp_hangup_direction = "0";
+            std::string tmp_hangup_direction = hangup_direction;
 
             voip::pushCallState(
                 std::to_string(m_dialplan_id), // task_id
