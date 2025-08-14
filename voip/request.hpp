@@ -171,7 +171,8 @@ inline json::Value httpSSLRequest(const std::string &host,
     }
 
     // close
-    beast::error_code ec = stream.shutdown(ec);
+    beast::error_code ec;
+    stream.shutdown(ec);
     if (ec == asio::error::eof) {
         ec.assign(0, ec.category()); // 忽略 EOF
     }
