@@ -6,7 +6,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(WIN32)
-    add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+    if (MSVC)
+
+        add_compile_options(/bigobj)
+        add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+    endif()
 
     set(BOOST_ROOT           "D:/third_party_libs/boost")
     set(BOOST_LIBRARYDIR     "${BOOST_ROOT}/stage/lib")
@@ -63,7 +67,6 @@ if(WIN32)
     endif()
 
     find_package(Boost REQUIRED COMPONENTS system filesystem)
-
     add_executable(${PROJECT_NAME} ${SRC})
 
     target_include_directories(${PROJECT_NAME} PRIVATE
@@ -135,6 +138,10 @@ if(WIN32)
 
         # System
         ws2_32.lib
+
+        # openssl
+        D:/vcpkg/packages/openssl_x64-windows/lib/libcrypto.lib
+        D:/vcpkg/packages/openssl_x64-windows/lib/libssl.lib
 
     )
 else()
