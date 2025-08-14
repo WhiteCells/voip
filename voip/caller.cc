@@ -241,6 +241,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             LOG_INFO(">>>phone {},hangup_direction {}", m_phone, hangup_direction);
 
             std::string tmp_phone1 = m_phone;
+            std::string hangup_direction1 = hangup_direction;
 
             if (m_sender) {
                 json::Value status_msg;
@@ -261,7 +262,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}",std::to_string(m_dialplan_id), m_phone, m_call_status, call_type, hangup_direction);
 
             std::string tmp_phone = tmp_phone1;
-            std::string tmp_hangup_direction = hangup_direction;
+            std::string tmp_hangup_direction = hangup_direction1;
 
             voip::pushCallState(
                 std::to_string(m_dialplan_id), // task_id
