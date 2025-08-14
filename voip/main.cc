@@ -23,7 +23,5 @@ int main()
     client->start_ws_client();
     client->start_call_client();
 
-    // while (1) {
-    // }
     return 0;
 }

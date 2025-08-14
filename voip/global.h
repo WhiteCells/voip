@@ -27,6 +27,8 @@ extern std::string backend_port;
 
 extern std::string client_id;
 
+extern std::string verify_file;
+
 extern cfg_map cfg;
 
 extern std::string local_hangup;

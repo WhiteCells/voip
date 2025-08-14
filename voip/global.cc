@@ -13,6 +13,8 @@ std::string backend_port;
 
 std::string client_id;
 
+std::string verify_file;
+
 cfg_map cfg;
 
 std::string local_hangup = "0";

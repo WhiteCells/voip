@@ -8,6 +8,7 @@ import os
 import threading
 import logging
 from flask import Flask, request, jsonify
+import ssl
 
 # ---------------- 日志配置 ----------------
 os.makedirs("./logs", exist_ok=True)
@@ -34,9 +35,7 @@ app = Flask(__name__)
 # WebSocket 配置
 HOST = "127.0.0.1"
 PORT = 8088
-
-# 匹配路径 /ws/client/{client_id}
-path_pattern = re.compile(r"^/ws/client/(?P<client_id>[a-f0-9\-]+)$")
+path_pattern = re.compile(r"^/eSip/ws/page/client/(?P<client_id>[a-f0-9\-]+)$")
 connected_clients = {}
 
 json_file_paths = {
@@ -213,7 +212,15 @@ def run_flask():
 async def run_websocket():
     logger.info(f"WebSocket服务启动: ws://{HOST}:{PORT}/ws/client/{{client_id}}")
     logger.info(f"有效的client_id: {server_client_id}")
-    server = await websockets.serve(handler, HOST, PORT)
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain(certfile="./cert.pem", keyfile="./key.pem")
+
+    server = await websockets.serve(
+        handler,
+        HOST,
+        PORT,
+        ssl=ssl_context  # 关键参数
+    )
     await server.wait_closed()
 
 

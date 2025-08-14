@@ -13,7 +13,9 @@
 #include "dialplan_queue.h"
 #include "ws_interface.h"
 #include <boost/beast.hpp>
+#include <boost/beast/ssl.hpp>
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include <json/json.h>
 #include <functional>
 #include <memory>
@@ -24,6 +26,7 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 namespace websocket = beast::websocket;
 namespace net = boost::asio;
+namespace ssl = boost::asio::ssl;
 using tcp = net::ip::tcp;
 
 class VoipClient :
@@ -31,18 +34,18 @@ class VoipClient :
 {
 private:
     std::unique_ptr<tcp::resolver> m_resolver;
-    std::unique_ptr<websocket::stream<beast::tcp_stream>> m_ws;
+    std::unique_ptr<websocket::stream<beast::ssl_stream<beast::tcp_stream>>> m_ws;
     beast::flat_buffer m_buffer;
     std::string m_host = backend_host;
     std::string m_port = backend_port;
     std::string m_client_id = client_id;
-    std::string m_target = "/ws/client/" + m_client_id;
+    std::string m_target;
     std::function<void(const std::string &)> m_on_read_handler;
     std::atomic<bool> m_running {true};
     std::mutex m_batch_mtx;
     std::condition_variable m_batch_cv;
     std::size_t m_batch_remain;
-    std::size_t m_worker_num = 2;
+    std::size_t m_worker_num;
     ThreadPool m_thread_pool;
 
     std::shared_ptr<CallerQueue> m_caller_que;
@@ -210,7 +213,10 @@ public:
     {
         auto &ioc = IOContextPool::getInstance()->getIOContext();
         m_resolver = std::make_unique<tcp::resolver>(net::make_strand(ioc));
-        m_ws = std::make_unique<websocket::stream<beast::tcp_stream>>(net::make_strand(ioc));
+        ssl::context ssl_ctx(ssl::context::tls_client);
+        ssl_ctx.set_verify_mode(ssl::verify_peer);
+        ssl_ctx.load_verify_file(verify_file);
+        m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(net::make_strand(ioc), ssl_ctx);
 
         m_resolver->async_resolve(g_gui_cfg.gui_host,
                                   g_gui_cfg.gui_port,
@@ -347,21 +353,39 @@ private:
         m_ws->set_option(websocket::stream_base::decorator([](websocket::request_type &req) {
             req.set(http::field::user_agent, "<ws>");
         }));
-        auto host = g_gui_cfg.gui_host + ":" + std::to_string(endpoint.port());
-        auto target = g_gui_cfg.gui_target + "/" + g_gui_cfg.gui_client_id;
-        m_ws->async_handshake(host,
-                              target,
-                              beast::bind_front_handler(&VoipClient::on_handshake,
-                                                        shared_from_this()));
+        m_host = g_gui_cfg.gui_host + ":" + std::to_string(endpoint.port());
+        m_target = g_gui_cfg.gui_target + "/" + g_gui_cfg.gui_client_id;
+        m_ws->next_layer().async_handshake(ssl::stream_base::client,
+                                           beast::bind_front_handler(&VoipClient::on_tls_handshake,
+                                                                     shared_from_this()));
     }
 
-    void on_handshake(beast::error_code ec)
+    void on_tls_handshake(beast::error_code ec)
     {
         if (ec) {
             Json::Value response;
             response["backend_status"] = "error";
             Json::StreamWriterBuilder writerBuilder;
             std::string responseStr = Json::writeString(writerBuilder, response);
+            m_server_sender->send(responseStr);
+            return;
+        }
+        m_ws->set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));
+        m_ws->set_option(websocket::stream_base::decorator([](websocket::request_type &req) {
+            req.set(http::field::user_agent, "voip-client");
+        }));
+        m_ws->async_handshake(m_host, m_target,
+                              beast::bind_front_handler(&VoipClient::on_ws_handshake,
+                                                        shared_from_this()));
+    }
+
+    void on_ws_handshake(beast::error_code ec)
+    {
+        if (ec) {
+            Json::Value ec_response;
+            ec_response["backend_status"] = "error";
+            Json::StreamWriterBuilder writerBuilder;
+            std::string responseStr = Json::writeString(writerBuilder, ec_response);
             m_server_sender->send(responseStr);
             return;
         }
