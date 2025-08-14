@@ -7,7 +7,9 @@
 #include "global.h"
 
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/beast/ssl.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -23,6 +25,7 @@ namespace voip {
 namespace asio = boost::asio;
 namespace beast = boost::beast;
 namespace http = beast::http;
+namespace ssl = asio::ssl;
 namespace json = Json;
 using tcp = asio::ip::tcp;
 
@@ -92,6 +95,86 @@ inline json::Value httpRequest(
     // Close `stream`
     beast::error_code ec;
     ec = stream.socket().shutdown(tcp::socket::shutdown_both, ec);
+    if (ec && ec != beast::errc::not_connected) {
+        throw beast::system_error {ec};
+    }
+
+    return resp;
+}
+
+inline json::Value httpSSLRequest(const std::string &host,
+                                  const std::string &port,
+                                  const std::string &target,
+                                  http::verb method,
+                                  const std::map<std::string, std::string> &params = {},
+                                  const std::string &body = "")
+{
+    auto &ioc = IOContextPool::getInstance()->getIOContext();
+
+    // ssl
+    ssl::context ctx(ssl::context::sslv23_client);
+    ctx.set_verify_mode(ssl::verify_peer); // 启用证书验证
+    ctx.load_verify_file(verify_file);     // CA
+
+    // resolve
+    tcp::resolver resolver(ioc);
+    auto const results = resolver.resolve(host, port);
+
+    // ssl stream
+    beast::ssl_stream<beast::tcp_stream> stream(ioc, ctx);
+
+    // SNI
+    if (!SSL_set_tlsext_host_name(stream.native_handle(), host.c_str())) {
+        beast::error_code ec {static_cast<int>(::ERR_get_error()), asio::error::get_ssl_category()};
+        throw beast::system_error {ec};
+    }
+
+    // tcp connect
+    beast::get_lowest_layer(stream).connect(results);
+
+    // tls handshake
+    stream.handshake(ssl::stream_base::client);
+
+    // query
+    std::string query_string;
+    for (const auto &[key, value] : params) {
+        query_string += (query_string.empty() ? "?" : "&") + key + "=" + value;
+    }
+    std::string full_target = target + query_string;
+
+    // request
+    http::request<http::string_body> req {method, full_target, 11};
+    req.set(http::field::host, host);
+    req.set(http::field::user_agent, "voip");
+
+    if (!body.empty() && (method == http::verb::post || method == http::verb::put)) {
+        req.body() = body;
+        req.set(http::field::content_type, "application/json");
+        req.content_length(body.size());
+    }
+
+    // write
+    http::write(stream, req);
+
+    // read
+    beast::flat_buffer buffer;
+    http::response<http::string_body> res;
+    http::read(stream, buffer, res);
+
+    // parse json
+    Json::Value resp;
+    std::string errs;
+    std::istringstream iss(res.body());
+    Json::CharReaderBuilder reader;
+    if (!Json::parseFromStream(reader, iss, &resp, &errs)) {
+        return Json::Value {};
+    }
+
+    // close
+    beast::error_code ec = stream.shutdown(ec);
+    if (ec == asio::error::eof) {
+        ec.assign(0, ec.category()); // 忽略 EOF
+    }
     if (ec && ec != beast::errc::not_connected) {
         throw beast::system_error {ec};
     }
@@ -482,7 +565,7 @@ inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_r
         writer["indentation"] = "";
         std::string body = json::writeString(writer, root);
         LOG_INFO("push call state body: {}", body);
-        auto resp = httpRequest(
+        auto resp = httpSSLRequest(
             backend_host, backend_port, target_url,
             http::verb::post, {}, body);
     }
@@ -512,7 +595,7 @@ inline void pushCallState(
         writer["indentation"] = "";
         std::string body = json::writeString(writer, body_json);
         LOG_INFO("push call state body: {}", body);
-        auto resp = httpRequest(
+        auto resp = httpSSLRequest(
             backend_host, backend_port, target_url,
             http::verb::post, {}, body);
     }

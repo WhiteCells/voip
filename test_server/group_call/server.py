@@ -206,14 +206,17 @@ def receive_account_status(client_id):
 
 
 def run_flask():
-    app.run(host="0.0.0.0", port=9999, debug=False, use_reloader=False)
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain(certfile="./server.crt", keyfile="./server.key")
+
+    app.run(host="0.0.0.0", port=9999, debug=False, use_reloader=False, ssl_context=ssl_context)
 
 
 async def run_websocket():
     logger.info(f"WebSocket服务启动: ws://{HOST}:{PORT}/ws/client/{{client_id}}")
     logger.info(f"有效的client_id: {server_client_id}")
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_context.load_cert_chain(certfile="./cert.pem", keyfile="./key.pem")
+    ssl_context.load_cert_chain(certfile="./server.crt", keyfile="./server.key")
 
     server = await websockets.serve(
         handler,
