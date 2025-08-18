@@ -55,6 +55,19 @@ void voip::Caller::call(
     // 非 winner 或者超时走挂断逻辑
     if (!m_coordinator->waitForWinner(std::chrono::seconds(10)) ||
         m_coordinator->shouldAbort(shared_from_this())) {
+
+        if (m_sender) {
+            json::Value status_msg;
+            status_msg["id"] = g_task_id;
+            status_msg["phone"] = m_phone;
+            status_msg["status"] = "DISCONNECTED";
+
+            Json::StreamWriterBuilder builder;
+            builder["indentation"] = "";
+            std::string msg = json::writeString(builder, status_msg);
+            m_sender->send(msg);
+        }
+
         LOG_WARN("call {} wait winner time out", m_phone);
         m_call_status = 2;
         hangup_();
@@ -94,6 +107,19 @@ void voip::Caller::single_call(const std::string &phone,
         LOG_ERROR("make call error: {} {}", err.reason, err.info());
     }
     if (!m_coordinator->waitForSingleCallConfirmed(std::chrono::seconds(10))) {
+
+        if (m_sender) {
+            json::Value status_msg;
+            status_msg["id"] = g_task_id;
+            status_msg["phone"] = m_phone;
+            status_msg["status"] = "DISCONNECTED";
+
+            Json::StreamWriterBuilder builder;
+            builder["indentation"] = "";
+            std::string msg = json::writeString(builder, status_msg);
+            m_sender->send(msg);
+        }
+
         LOG_WARN("call {} wait winner time out", m_phone);
         m_call_status = 2;
         hangup_();
