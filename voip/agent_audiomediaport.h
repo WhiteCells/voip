@@ -1,11 +1,11 @@
 #ifndef _AGENT_AUDIOMEDIAPORT_H_
 #define _AGENT_AUDIOMEDIAPORT_H_
 
-#include <jrtplib3/rtpsession.h>
-#include <jrtplib3/rtppacket.h>
-#include <jrtplib3/rtpipv4address.h>
-#include <jrtplib3/rtpsessionparams.h>
-#include <jrtplib3/rtpudpv4transmitter.h>
+#include <rtpsession.h>
+#include <rtppacket.h>
+#include <rtpipv4address.h>
+#include <rtpsessionparams.h>
+#include <rtpudpv4transmitter.h>
 #include <pjsua2.hpp>
 #include <thread>
 #include <vector>

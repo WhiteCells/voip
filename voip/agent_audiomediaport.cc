@@ -99,7 +99,7 @@ void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     std::lock_guard<std::mutex> lock(m_buffer_mtx);
     if (!m_rtp_recv_buffer.empty()) {
         std::vector<uint8_t> &pkt = m_rtp_recv_buffer.front();
-        size_t copy_size = std::min(pkt.size(), frame.buf.size());
+        size_t copy_size = (std::min)(pkt.size(), frame.buf.size());
         memcpy(frame.buf.data(), pkt.data(), copy_size);
         m_rtp_recv_buffer.pop_front();
     }
