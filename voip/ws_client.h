@@ -52,6 +52,7 @@ private:
     std::shared_ptr<DialPlanQueue> m_dialplan_que;
     std::vector<std::shared_ptr<voip::VAccount>> m_acc_vec;
     std::shared_ptr<IWSSender> m_server_sender;
+    int m_recv_call_type;
 
 public:
     VoipClient() :
@@ -149,6 +150,7 @@ public:
                 const Json::Value dialplans_array = root["phones"];
                 m_worker_num = dialplans_array.size();
                 int call_type = root["call_type"].asInt();
+                m_recv_call_type = call_type;
 
                 if (m_server_sender) {
                     Json::Value account_info;
@@ -176,7 +178,7 @@ public:
                     m_caller_que->addCaller(caller);
                     m_dialplan_que->addDialPlan({1, dialplan});
                 }
-                else {
+                else if (call_type == 0) {
                     for (const auto &item : accounts_array) {
                         const std::string id = item["id"].asString();
                         const std::string user = item["extUser"].asString();
@@ -190,6 +192,9 @@ public:
                     for (const auto &item : dialplans_array) {
                         m_dialplan_que->addDialPlan(std::pair(1, item.asString()));
                     }
+                }
+                else {
+                    LOG_ERROR("error call_type");
                 }
             }
             else {
@@ -245,7 +250,7 @@ public:
         while (m_running) {
             m_worker_num = m_dialplan_que->size();
             // LOG_INFO("m_worker_num {}", m_worker_num);
-            m_batch_remain = m_worker_num;
+            m_batch_remain = m_dialplan_que->size();
             if (m_batch_remain == 0) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 // LOG_INFO("que size 0");
@@ -253,7 +258,7 @@ public:
             }
             auto coordinator = std::make_shared<Coordinator>();
             coordinator->reset_();
-            if (m_worker_num == 1) {
+            if (m_recv_call_type == 1) {
                 LOG_INFO("start_call_client single call");
                 m_thread_pool.addTask([this, coordinator]() {
                     single_task(coordinator);
@@ -272,7 +277,7 @@ public:
                 });
                 LOG_INFO("single finish, start next");
             }
-            else {
+            else if (m_recv_call_type == 0) {
                 LOG_INFO("start_call_client group call");
                 for (std::size_t i = 0; i < m_worker_num; ++i) {
                     m_thread_pool.addTask([this, i, coordinator]() {
@@ -293,6 +298,9 @@ public:
                     return m_batch_remain == 0;
                 });
                 LOG_INFO("batch finish, start next");
+            }
+            else {
+                LOG_INFO("error m_recv_call_type");
             }
             AccountCheckManager::getInstance()->clear();
             m_acc_vec.clear();
