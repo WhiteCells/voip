@@ -179,7 +179,8 @@ public:
                     m_dialplan_que->addDialPlan({1, dialplan});
                 }
                 else if (call_type == 0) {
-                    for (const auto &item : accounts_array) {
+                    for (Json::ArrayIndex i = 0; i < dialplans_array.size(); ++i) {
+                        const Json::Value &item = accounts_array[i];
                         const std::string id = item["id"].asString();
                         const std::string user = item["extUser"].asString();
                         const std::string pass = item["extPsd"].asString();
