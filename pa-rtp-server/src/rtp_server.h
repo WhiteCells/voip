@@ -2,10 +2,10 @@
 #define _RTP_SERVER_H_
 
 #include "audio_queue.h"
-#include <jrtplib3/rtpsession.h>
-#include <jrtplib3/rtpsessionparams.h>
-#include <jrtplib3/rtpudpv4transmitter.h>
-#include <jrtplib3/rtppacket.h>
+#include <rtpsession.h>
+#include <rtpsessionparams.h>
+#include <rtpudpv4transmitter.h>
+#include <rtppacket.h>
 #include <string>
 #include <cstdint>
 #include <cstring>
