@@ -397,19 +397,11 @@ inline void pullDialplan(std::vector<std::pair<int, std::string>> &plans /* & */
         // resp::data::dialplans
         const json::Value &dialplans = data["dialplans"];
         for (const auto &dialplan : dialplans) {
-            if (!dialplan.isMember("phone") || !dialplan.isMember("id")) {
-                LOG_ERROR("resp::data::dialplans::phone");
+            if (!dialplan.isString()) {
+                LOG_ERROR("resp::data::dialplans");
                 continue;
             }
-            int id = dialplan["id"].asInt();
-            std::string phone = dialplan["phone"].asString();
-            // if (!dialplan.isString()) {
-            //     LOG_ERROR("resp::data::dialplans format");
-            //     continue;
-            // }
-            // std::string phone_num = dialplan.asString();
-            std::pair p = std::make_pair(id, phone);
-            plans.push_back(p);
+            plans.push_back({1, dialplan.asString()});
         }
     }
     catch (const std::exception &e) {
