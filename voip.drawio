@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram name="第 1 页" id="ZMrWnEAIrxg-kR3QxBBU">
-        <mxGraphModel dx="1283" dy="453" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="2064" dy="792" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -22,22 +22,11 @@
                 <mxCell id="Q8_Y8ewAYR4fWxllRBA8-2" value="RTP Server" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="-280" y="240" width="80" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="Q8_Y8ewAYR4fWxllRBA8-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="Q8_Y8ewAYR4fWxllRBA8-4" target="Q8_Y8ewAYR4fWxllRBA8-1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="280" y="170"/>
-                            <mxPoint x="-40" y="170"/>
-                        </Array>
-                    </mxGeometry>
-                </mxCell>
                 <mxCell id="Q8_Y8ewAYR4fWxllRBA8-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" parent="1" source="Q8_Y8ewAYR4fWxllRBA8-4" target="Q8_Y8ewAYR4fWxllRBA8-1" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="Q8_Y8ewAYR4fWxllRBA8-4" value="手机 client" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="240" y="240" width="80" height="40" as="geometry"/>
-                </mxCell>
-                <mxCell id="Q8_Y8ewAYR4fWxllRBA8-7" value="呼叫" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
-                    <mxGeometry x="95" y="138" width="50" height="30" as="geometry"/>
                 </mxCell>
                 <mxCell id="Q8_Y8ewAYR4fWxllRBA8-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" parent="1" source="Q8_Y8ewAYR4fWxllRBA8-8" target="Q8_Y8ewAYR4fWxllRBA8-2" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
@@ -74,8 +63,8 @@
                 </mxCell>
                 <mxCell id="Q8_Y8ewAYR4fWxllRBA8-25" value="" style="endArrow=classic;html=1;rounded=0;" parent="1" edge="1">
                     <mxGeometry width="50" height="50" relative="1" as="geometry">
-                        <mxPoint x="280" y="340" as="sourcePoint"/>
-                        <mxPoint x="-40" y="340" as="targetPoint"/>
+                        <mxPoint x="-40" y="340" as="sourcePoint"/>
+                        <mxPoint x="280" y="340" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="Q8_Y8ewAYR4fWxllRBA8-26" value="呼叫" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
@@ -173,6 +162,27 @@
                 </mxCell>
                 <mxCell id="Q8_Y8ewAYR4fWxllRBA8-54" value="推送麦克风音频数据" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="55" y="848" width="130" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="-40" y="562" as="sourcePoint"/>
+                        <mxPoint x="-240" y="562" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="5" value="推送音频帧" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="-185" y="530" width="80" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="voip" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="-80" y="190" width="80" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="-242.5" y="862" as="sourcePoint"/>
+                        <mxPoint x="-40" y="862" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="8" value="推送麦克风音频" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="-205" y="830" width="110" height="30" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
