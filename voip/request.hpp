@@ -605,6 +605,26 @@ inline void pushCallState(
     }
 }
 
+inline void pushGroupCallFinished(bool is_push)
+{
+    const auto target_url = genUrl(URL_GROUP_CALL_STATE, g_gui_cfg.gui_client_id);
+    try {
+        json::Value body_json;
+        body_json["is_push"] = is_push;
+
+        json::StreamWriterBuilder writer;
+        writer["indentation"] = "";
+        std::string body = json::writeString(writer, body_json);
+        LOG_INFO("push group call finished body: {}", body);
+        auto resp = httpSSLRequest(
+            backend_host, backend_port, target_url,
+            http::verb::post, {}, body);
+    }
+    catch (const std::exception &e) {
+        LOG_WARN("Exception: {}", e.what());
+    }
+}
+
 } // namespace voip
 
 #endif // _REQUEST_H_

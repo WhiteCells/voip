@@ -12,6 +12,7 @@
 #include "caller_queue.h"
 #include "dialplan_queue.h"
 #include "ws_interface.h"
+#include "request.hpp"
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/asio.hpp>
@@ -305,6 +306,7 @@ public:
             }
             AccountCheckManager::getInstance()->clear();
             m_acc_vec.clear();
+            voip::pushGroupCallFinished(true);
         }
     }
 

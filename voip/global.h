@@ -34,15 +34,16 @@ extern cfg_map cfg;
 extern std::string local_hangup;
 
 // url
-#define URL_NOTIFY      "notify"          // 客户端通知
-#define URL_HEARTBEAT   "heartbeat"       // 客户端心跳
-#define URL_ACCOUNTS    "account"         // 拉取账号
-#define URL_REG_STATUS  "account/status"  // 注册状态
-#define URL_DIALPLANS   "dialplan"        // 拉取呼叫计划
-#define URL_DIAL_WAV    "dial_wav"        // 推送音频
-#define URL_DIAL_STATUS "dialplan/status" // 呼叫状态
-#define URL_ACCOUNTS_REGSTATE "receive/extStatus" //推送分级检验号
-#define URL_CALL_STATE "receive/status" // 推送通话状态
+#define URL_NOTIFY            "notify"            // 客户端通知
+#define URL_HEARTBEAT         "heartbeat"         // 客户端心跳
+#define URL_ACCOUNTS          "account"           // 拉取账号
+#define URL_REG_STATUS        "account/status"    // 注册状态
+#define URL_DIALPLANS         "dialplan"          // 拉取呼叫计划
+#define URL_DIAL_WAV          "dial_wav"          // 推送音频
+#define URL_DIAL_STATUS       "dialplan/status"   // 呼叫状态
+#define URL_ACCOUNTS_REGSTATE "receive/extStatus" // 推送分级检验号
+#define URL_CALL_STATE        "receive/status"    // 推送通话状态
+#define URL_GROUP_CALL_STATE  "receive/groupCall" // 推送群呼状态完成
 
 /**
  * @brief 构建请求路径
@@ -82,11 +83,11 @@ struct GUIConfig
     std::string gui_client_id;
 };
 
-struct AccountsRegState {
+struct AccountsRegState
+{
     std::string account_id;
     int status;
 };
-
 
 extern GUIConfig g_gui_cfg;
 
