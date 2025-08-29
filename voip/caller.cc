@@ -48,7 +48,7 @@ void voip::Caller::call(
 
     if (coordinator->shouldAbort(shared_from_this())) {
         LOG_WARN("should abort");
-        hangup_();
+        // hangup_();
     }
 
     coordinator->waitForCallFinished();
@@ -57,7 +57,7 @@ void voip::Caller::call(
 void voip::Caller::hangup_()
 {
     pj::CallOpParam prm;
-    this->hangup(prm);
+    // this->hangup(prm);
 }
 
 void voip::Caller::onCallTsxState(pj::OnCallTsxStateParam &prm)
