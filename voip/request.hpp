@@ -616,9 +616,11 @@ inline void pushGroupCallFinished(bool is_push)
         writer["indentation"] = "";
         std::string body = json::writeString(writer, body_json);
         LOG_INFO("push group call finished body: {}", body);
+        std::map<std::string, std::string> params;
+        params["is_push"] = true;
         auto resp = httpSSLRequest(
             backend_host, backend_port, target_url,
-            http::verb::post, {}, body);
+            http::verb::post, params);
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
