@@ -2,6 +2,7 @@
 #define _VACCOUNT_H_
 
 #include <pjsua2.hpp>
+#include <json/json.h>
 #include <string>
 #include <memory>
 
@@ -9,7 +10,28 @@ namespace voip {
 
 class Caller;
 
-struct AccResult;
+// Singal Account Result
+struct AccResult
+{
+    std::string m_id;
+    std::string m_user;
+    std::string m_pass;
+    std::string m_node_ip;
+    int m_code;
+    std::string m_msg;
+
+    Json::Value toJson() const
+    {
+        Json::Value obj;
+        obj["id"] = m_id;
+        obj["user"] = m_user;
+        obj["pass"] = m_pass;
+        obj["nodeIp"] = m_node_ip;
+        obj["code"] = m_code;
+        obj["msg"] = m_msg;
+        return obj;
+    }
+};
 
 /**
  * @brief SIP 用户对象
@@ -18,11 +40,10 @@ struct AccResult;
 class VAccount : public pj::Account
 {
 public:
-    VAccount(
-        const std::string &id,
-        const std::string &user,
-        const std::string &pass,
-        const std::string &host);
+    VAccount(const std::string &id,
+             const std::string &user,
+             const std::string &pass,
+             const std::string &host);
 
     ~VAccount();
 

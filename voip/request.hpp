@@ -5,7 +5,6 @@
 #include "async_timer.h"
 #include "logger.h"
 #include "global.h"
-
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/beast/http.hpp>
@@ -40,13 +39,12 @@ using tcp = asio::ip::tcp;
  * @param body 可选请求体内容
  * @return json::Value 响应数据回包
  */
-inline json::Value httpRequest(
-    const std::string &host,
-    const std::string &port,
-    const std::string &target,
-    http::verb method,
-    const std::map<std::string, std::string> &params = {},
-    const std::string &body = "")
+inline json::Value httpRequest(const std::string &host,
+                               const std::string &port,
+                               const std::string &target,
+                               http::verb method,
+                               const std::map<std::string, std::string> &params = {},
+                               const std::string &body = "")
 {
     auto &ioc = IOContextPool::getInstance()->getIOContext();
     tcp::resolver resolver(ioc);
@@ -172,7 +170,11 @@ inline json::Value httpSSLRequest(const std::string &host,
 
     // close
     beast::error_code ec;
+#ifdef BOOST_ASIO_NO_DEPRECATED
     stream.shutdown(ec);
+#else
+    ec = stream.shutdown(ec);
+#endif
     if (ec == asio::error::eof) {
         ec.assign(0, ec.category()); // 忽略 EOF
     }
@@ -196,10 +198,8 @@ inline void notify()
             LOG_INFO("open g_client_id file failed");
             return;
         }
-        else {
-            std::getline(in, g_client_id);
-            in.close();
-        }
+        std::getline(in, g_client_id);
+        in.close();
     }
     else {
         boost::uuids::random_generator gen;
@@ -521,37 +521,9 @@ inline void heartbeat()
     });
 }
 
-/*
-    Signal Account Result
-*/
-
-struct AccResult
-{
-    std::string m_id;
-    std::string m_user;
-    std::string m_pass;
-    std::string m_nodeIp;
-    int m_code;
-    std::string m_msg;
-
-    Json::Value toJson() const
-    {
-        Json::Value obj;
-        obj["id"] = m_id;
-        obj["user"] = m_user;
-        obj["pass"] = m_pass;
-        obj["nodeIp"] = m_nodeIp;
-        obj["code"] = m_code;
-        obj["msg"] = m_msg;
-        return obj;
-    }
-};
-
 inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_reg_state)
 {
-    // g_client_id 错误
     const auto target_url = genUrl(URL_ACCOUNTS_REGSTATE, g_gui_cfg.gui_client_id);
-
     try {
         Json::Value accounts_array(Json::arrayValue);
         for (const auto &account : accounts_reg_state) {
@@ -566,23 +538,19 @@ inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_r
         writer["indentation"] = "";
         std::string body = json::writeString(writer, root);
         LOG_INFO("push call state body: {}", body);
-        auto resp = httpSSLRequest(
-            backend_host, backend_port, target_url,
-            http::verb::post, {}, body);
+        auto resp = httpSSLRequest(backend_host, backend_port, target_url,
+                                   http::verb::post, {}, body);
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
     }
 }
 
-inline void pushCallState(
-    const std::string &task_id,
-    const std::string &phone,
-    const int status,
-    const int call_type,
-    const std::string &hangup_direction)
+inline void pushCallState(const std::string &phone,
+                          const int status,
+                          const int call_type,
+                          const std::string &hangup_direction)
 {
-    // g_client_id 错误
     const auto target_url = genUrl(URL_CALL_STATE, g_gui_cfg.gui_client_id);
     try {
         json::Value body_json;
@@ -596,9 +564,8 @@ inline void pushCallState(
         writer["indentation"] = "";
         std::string body = json::writeString(writer, body_json);
         LOG_INFO("push call state body: {}", body);
-        auto resp = httpSSLRequest(
-            backend_host, backend_port, target_url,
-            http::verb::post, {}, body);
+        auto resp = httpSSLRequest(backend_host, backend_port, target_url,
+                                   http::verb::post, {}, body);
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
@@ -618,9 +585,8 @@ inline void pushGroupCallFinished(bool is_push)
         LOG_INFO("push group call finished body: {}", body);
         std::map<std::string, std::string> params;
         params["is_push"] = true;
-        auto resp = httpSSLRequest(
-            backend_host, backend_port, target_url,
-            http::verb::post, params);
+        auto resp = httpSSLRequest(backend_host, backend_port, target_url,
+                                   http::verb::post, params);
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());

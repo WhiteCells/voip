@@ -6,8 +6,8 @@
 class IWSSender
 {
 public:
-    virtual void send(const std::string &msg) = 0;
     virtual ~IWSSender() = default;
+    virtual void send(const std::string &msg) = 0;
 };
 
 #endif // _WS_INTERFACE_H_

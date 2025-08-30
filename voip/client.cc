@@ -1,7 +1,6 @@
 #include "client.h"
 #include "request.hpp"
 #include "thread_pool.h"
-#include "global.h"
 #include "logger.h"
 #include "coordinator.h"
 #include <boost/beast.hpp>

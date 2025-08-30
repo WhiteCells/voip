@@ -1,7 +1,6 @@
 #include "vaccount.h"
 #include "caller.h"
 #include "logger.h"
-#include "request.hpp"
 
 voip::VAccount::VAccount(
     const std::string &id,
@@ -27,7 +26,7 @@ voip::VAccount::VAccount(
 voip::VAccount::~VAccount()
 {
     LOG_INFO("~VAccount");
-    pj::Account::shutdown();   
+    pj::Account::shutdown();
 }
 
 void voip::VAccount::onRegState(pj::OnRegStateParam &prm)

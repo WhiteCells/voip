@@ -1,8 +1,8 @@
-#include <vector>
 #include "account_check_manager.h"
 #include "account_check.h"
 #include "request.hpp"
 #include "global.h"
+#include <vector>
 
 AccountCheckManager::AccountCheckManager() :
     m_pushed(false)

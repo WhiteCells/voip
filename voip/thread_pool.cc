@@ -1,6 +1,5 @@
 #include "thread_pool.h"
 #include "global.h"
-
 #include <iostream>
 #include <pjsua2.hpp>
 
