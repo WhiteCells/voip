@@ -173,7 +173,7 @@ inline json::Value httpSSLRequest(const std::string &host,
 #ifdef BOOST_ASIO_NO_DEPRECATED
     stream.shutdown(ec);
 #else
-    ec = stream.shutdown(ec);
+    stream.shutdown();
 #endif
     if (ec == asio::error::eof) {
         ec.assign(0, ec.category()); // 忽略 EOF
@@ -576,17 +576,11 @@ inline void pushGroupCallFinished(bool is_push)
 {
     const auto target_url = genUrl(URL_GROUP_CALL_STATE, g_gui_cfg.gui_client_id);
     try {
-        json::Value body_json;
-        body_json["is_push"] = is_push;
-
-        json::StreamWriterBuilder writer;
-        writer["indentation"] = "";
-        std::string body = json::writeString(writer, body_json);
-        LOG_INFO("push group call finished body: {}", body);
         std::map<std::string, std::string> params;
-        params["is_push"] = true;
+        params["is_push"] = is_push ? "true" : "false";
         auto resp = httpSSLRequest(backend_host, backend_port, target_url,
                                    http::verb::post, params);
+        LOG_INFO("push group call finished");
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
