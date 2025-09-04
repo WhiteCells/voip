@@ -306,6 +306,7 @@ public:
             }
             AccountCheckManager::getInstance()->clear();
             m_acc_vec.clear();
+            std::this_thread::sleep_for(std::chrono::seconds(2));
             voip::pushGroupCallFinished(true);
         }
     }
