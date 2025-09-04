@@ -1,0 +1,9 @@
+[submodule "server/3rd/libhv"]
+	path = server/3rd/libhv
+	url = git@github.com:ithewei/libhv.git
+[submodule "server/3rd/spdlog"]
+	path = server/3rd/spdlog
+	url = git@github.com:gabime/spdlog.git
+[submodule "client/3rd/spdlog"]
+	path = client/3rd/spdlog
+	url = git@github.com:gabime/spdlog.git
