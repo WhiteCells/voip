@@ -8,8 +8,8 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     fmt.type = PJMEDIA_TYPE_AUDIO; //
     fmt.id = PJMEDIA_FORMAT_ULAW;  //
     // fmt.id = PJMEDIA_FORMAT_PCM; //
-    fmt.clockRate = 8000;        //
-    fmt.channelCount = 1;        //
+    fmt.clockRate = 16000; //
+    fmt.channelCount = 1;  //
     // fmt.bitsPerSample = 8; //
     fmt.bitsPerSample = 16;    //
     fmt.frameTimeUsec = 20000; //
@@ -22,7 +22,7 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     // RTP 会话初始化
     using namespace jrtplib;
     RTPSessionParams sessparams;
-    sessparams.SetOwnTimestampUnit(1.0 / 8000.0);
+    sessparams.SetOwnTimestampUnit(1.0 / 16000.0);
     sessparams.SetAcceptOwnPackets(true);
 
     RTPUDPv4TransmissionParams transparams;
@@ -81,14 +81,13 @@ AgentAudioMediaPort::~AgentAudioMediaPort()
     const char *reason = "session closed";
     size_t reason_len = strlen(reason);
     m_session.BYEDestroy(jrtplib::RTPTime(1.0), reason, reason_len);
-    // m_session.Destroy();
 }
 
 // 向客户推送音频
 // 接收 rtp server 的音频数据
 void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
-    const int sampleRate = 8000;
+    const int sampleRate = 16000;
     const int channels = 1;
     const int duration_ms = 20;
     const int samplesPerFrame = sampleRate * duration_ms / 1000;
@@ -106,55 +105,6 @@ void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     else {
         memset(frame.buf.data(), 0, frame.size);
     }
-    // ///////////// 测试模拟音频 //////////// //
-    // static double phase = 0.0;
-    // static int frameCount = 0;
-
-    // const int sampleRate = 8000;
-    // const int channels = 1;
-    // const int duration_ms = 20;
-    // const int samplesPerFrame = sampleRate * duration_ms / 1000;
-
-    // frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
-    // frame.size = samplesPerFrame;
-    // frame.buf.resize(frame.size);
-
-    // const int framesPerCycle = 30;
-    // int cyclePos = frameCount % framesPerCycle;
-
-    // double freq = 0.0;
-    // if (cyclePos < 10) {
-    //     freq = 300.0;
-    // }
-    // else if (cyclePos < 20) {
-    //     freq = 500.0;
-    // }
-    // else {
-    //     freq = 0.0; // 静音段
-    // }
-    // for (int i = 0; i < samplesPerFrame; ++i) {
-    //     int16_t pcm_sample = 0;
-
-    //     if (freq > 0.0) {
-    //         pcm_sample = static_cast<int16_t>(std::sin(phase) * 6000); // 振幅
-    //         phase += 2.0 * M_PI * freq / sampleRate;
-    //         if (phase > 2.0 * M_PI) {
-    //             phase -= 2.0 * M_PI;
-    //         }
-    //     }
-    //     frame.buf[i] = pjmedia_linear2ulaw(pcm_sample);
-    // }
-    // static std::ofstream pcm_out(
-    //     "input.pcm",
-    //     std::ios::binary | std::ios::out | std::ios::trunc);
-    // if (!pcm_out.is_open()) {
-    //     LOG_ERROR("Failed to open input_ulaw.pcm");
-    //     return;
-    // }
-    // pcm_out.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
-
-    // ++frameCount;
-    // LOG_INFO("frame {} with freq {}", frameCount, freq);
 }
 
 // 接收客户音频

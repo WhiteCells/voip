@@ -136,11 +136,6 @@ if(WIN32)
 
     )
 else()
-    configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/voip/.env COPYONLY)
-
-    add_subdirectory(third_party/spdlog)
-    add_subdirectory(third_party/jsoncpp)
-    add_subdirectory(voip)
-
+    add_subdirectory(src)
 endif ()
 

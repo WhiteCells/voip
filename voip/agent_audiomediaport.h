@@ -50,6 +50,7 @@ public:
     virtual void onFrameReceived(pj::MediaFrame &frame) override;
 
 private:
+    static std::mutex m_remote_port_ready;
     jrtplib::RTPSession m_session;
     std::thread m_rtp_recv_thread;
     std::atomic<bool> m_running;

@@ -65,3 +65,21 @@ pjsua2 client    rtp server
   required  <---  生成模拟音频帧推送，或者通过 portaudio 获取麦克风音频，然后推送
   received  --->  接收音频帧，并通过 portaudio 进行播放
 ```
+
+### RTP Format
+
+```
+Codec: PCM16 (Linear PCM)
+
+Payload Type: 96 (动态)
+
+采样率: 8000 Hz
+
+声道数: 1 (mono)
+
+位深: 16 bit
+
+比特率: 128 kbps
+
+帧长: 20 ms (160 samples per frame)
+```
