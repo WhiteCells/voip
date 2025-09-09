@@ -77,15 +77,15 @@ int main(int argc, char *argv[])
 {
     signal(SIGINT, signal_handler);
 
-    AudioDev dev(8000, 160, 1, paInt16);
+    AudioDev dev(16000, 320, 1, paInt16);
     dev.openStream(outputCallback, inputCallback);
     dev.startStream();
 
     RtpServer server(output_que, input_que, "127.0.0.1",
                      8002,
                      8000,
-                     1.0 / 8000.0,
-                     160);
+                     1.0 / 16000.0,
+                     320);
 
     std::thread t([&]() {
         server.poll(running);

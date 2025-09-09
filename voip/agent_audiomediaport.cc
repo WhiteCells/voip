@@ -8,8 +8,8 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     fmt.type = PJMEDIA_TYPE_AUDIO; //
     fmt.id = PJMEDIA_FORMAT_ULAW;  //
     // fmt.id = PJMEDIA_FORMAT_PCM; //
-    fmt.clockRate = 16000; //
-    fmt.channelCount = 1;  //
+    fmt.clockRate = 16000;       //
+    fmt.channelCount = 1;        //
     // fmt.bitsPerSample = 8; //
     fmt.bitsPerSample = 16;    //
     fmt.frameTimeUsec = 20000; //
@@ -37,7 +37,7 @@ AgentAudioMediaPort::AgentAudioMediaPort()
 
     m_session.SetDefaultPayloadType(96);
     m_session.SetDefaultMark(false);
-    m_session.SetDefaultTimestampIncrement(160);
+    m_session.SetDefaultTimestampIncrement(320);
 
     uint32_t ip = inet_addr("127.0.0.1");
     ip = ntohl(ip);
