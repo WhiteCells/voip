@@ -75,6 +75,10 @@ static int outputCallback(const void *, void *outputBuffer,
 
 int main(int argc, char *argv[])
 {
+#ifdef RTP_SOCKETTYPE_WINSOCK
+    WSADATA dat;
+    WSAStartup(MAKEWORD(2,2),&dat);
+#endif
     signal(SIGINT, signal_handler);
 
     AudioDev dev(16000, 320, 1, paInt16);
