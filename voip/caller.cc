@@ -18,6 +18,9 @@ voip::Caller::Caller(voip::VAccount &acc, int call_id) :
 
 voip::Caller::~Caller()
 {
+    LOG_INFO(">>> {}", __func__);
+    m_aud_media_port.reset();
+    LOG_INFO("<<< {}", __func__);
 }
 
 void voip::Caller::call(
@@ -128,8 +131,10 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             //
             // m_aud_media_player->startTransmit(*aud_med);
             //
-            m_aud_media_port->startTransmit(*aud_med);
+            // m_aud_media_port->startTransmit(*aud_med);
             aud_med->startTransmit(*m_aud_media_port);
+            cap_dev_med.startTransmit(*aud_med);
+            aud_med->startTransmit(play_dev_med);
             // m_aud_media_port->startTransmit(*aud_media_recorder_);
             //
             // cap_dev_med.startTransmit(*m_aud_media_port);

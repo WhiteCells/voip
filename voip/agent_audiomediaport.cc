@@ -4,6 +4,7 @@
 
 AgentAudioMediaPort::AgentAudioMediaPort()
 {
+    LOG_INFO(">>> construct {}", __func__);
     pj::MediaFormatAudio fmt;      //
     fmt.type = PJMEDIA_TYPE_AUDIO; //
     // fmt.id = PJMEDIA_FORMAT_ULAW;  //
@@ -70,10 +71,12 @@ AgentAudioMediaPort::AgentAudioMediaPort()
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     });
+    LOG_INFO("<<< construct {}", __func__);
 }
 
 AgentAudioMediaPort::~AgentAudioMediaPort()
 {
+    LOG_INFO(">>> {}", __func__);
     m_running = false;
     if (m_rtp_recv_thread.joinable()) {
         m_rtp_recv_thread.join();
@@ -81,6 +84,7 @@ AgentAudioMediaPort::~AgentAudioMediaPort()
     const char *reason = "session closed";
     size_t reason_len = strlen(reason);
     m_session.BYEDestroy(jrtplib::RTPTime(1.0), reason, reason_len);
+    LOG_INFO("<<< {}", __func__);
 }
 
 // 向客户推送音频
