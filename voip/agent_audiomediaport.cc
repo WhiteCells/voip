@@ -6,8 +6,8 @@ AgentAudioMediaPort::AgentAudioMediaPort()
 {
     pj::MediaFormatAudio fmt;      //
     fmt.type = PJMEDIA_TYPE_AUDIO; //
-    fmt.id = PJMEDIA_FORMAT_ULAW;  //
-    // fmt.id = PJMEDIA_FORMAT_PCM; //
+    // fmt.id = PJMEDIA_FORMAT_ULAW;  //
+    fmt.id = PJMEDIA_FORMAT_PCM; //
     fmt.clockRate = 16000;       //
     fmt.channelCount = 1;        //
     // fmt.bitsPerSample = 8; //
@@ -15,8 +15,8 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     fmt.frameTimeUsec = 20000; //
     // fmt.avgBps = 64000;        //
     // fmt.maxBps = 64000;        //
-    fmt.avgBps = 128000; //
-    fmt.maxBps = 128000; //
+    fmt.avgBps = 256000; //
+    fmt.maxBps = 256000; //
     this->createPort("port", fmt);
 
     // RTP 会话初始化
