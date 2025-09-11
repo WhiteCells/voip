@@ -10,7 +10,8 @@
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
-    acc_(acc)
+    acc_(acc),
+    m_aud_media_port(std::make_shared<AgentAudioMediaPort>())
 {
 }
 
@@ -72,12 +73,10 @@ void voip::Caller::call(
         m_call_status = 2;
         hangup_();
         LOG_INFO("Caller::call phone {} call_status {} call_type {}", m_phone, m_call_status, call_type);
-        voip::pushCallState(
-            m_phone,       // phone
-            m_call_status, // status (断开连接)
-            call_type,     // call_type
-            "1"            // hangup_direction
-        );
+        voip::pushCallState(m_phone,
+                            m_call_status,
+                            call_type,
+                            "1");
         return;
     }
 
@@ -298,6 +297,7 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             LOG_INFO("used media index: {}", i);
             aud_med = (pj::AudioMedia *)getMedia(i);
 
+            aud_med->startTransmit(*m_aud_media_port);
             cap_dev_med.startTransmit(*aud_med);
             aud_med->startTransmit(play_dev_med);
         }
