@@ -210,13 +210,13 @@ public:
         m_server_sender = sender;
     }
 
-    void restart_ws_client()
+    void restart()
     {
-        stop_ws_client();
-        start_ws_client();
+        stop();
+        start();
     }
 
-    void start_ws_client()
+    void start()
     {
         auto &ioc = IOContextPool::getInstance()->getIOContext();
         m_resolver = std::make_unique<tcp::resolver>(net::make_strand(ioc));
@@ -231,7 +231,7 @@ public:
                                                             shared_from_this()));
     }
 
-    void stop_ws_client()
+    void stop()
     {
         if (m_ws->is_open()) {
             beast::error_code ec;

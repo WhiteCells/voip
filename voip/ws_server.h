@@ -150,7 +150,7 @@ private:
         g_gui_cfg.gui_client_id = root["client_id"].asString();
         g_gui_cfg.gui_target = root["route"].asString();
 
-        m_client->restart_ws_client();
+        m_client->restart();
     }
 
     void handleCommandMessage(const Json::Value &root)

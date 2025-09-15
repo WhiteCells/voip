@@ -18,15 +18,15 @@ int main()
     // endpoint
     startEndpointLib(5060);
 
-    auto voip_client = std::make_shared<WebWsClient>();
+    auto web_ws_client = std::make_shared<WebWsClient>();
     auto agent_ws_client = std::make_shared<AgentWsClient>();
-    auto server = std::make_shared<WSServer>("0.0.0.0", 8001, voip_client);
+    auto server = std::make_shared<WSServer>("0.0.0.0", 8001, web_ws_client);
 
     agent_ws_client->start();
-    voip_client->set_server_sender(server);
-    voip_client->start_ws_client();
-    auto bridget = std::make_shared<Bridge>(agent_ws_client, voip_client);
-    voip_client->start_call_client();
+    web_ws_client->set_server_sender(server);
+    web_ws_client->start();
+    auto bridget = std::make_shared<Bridge>(agent_ws_client, web_ws_client);
+    web_ws_client->start_call_client();
 
     return 0;
 }
