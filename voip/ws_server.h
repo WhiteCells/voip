@@ -4,7 +4,7 @@
 #include "logger.h"
 #include "io_context_pool.h"
 #include "global.h"
-#include "ws_client.h"
+#include "web_ws_client.h"
 #include "ws_interface.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
@@ -22,7 +22,7 @@ class WebSocketSession :
     public std::enable_shared_from_this<WebSocketSession>
 {
 public:
-    explicit WebSocketSession(tcp::socket &&socket, std::shared_ptr<VoipClient> client) :
+    explicit WebSocketSession(tcp::socket &&socket, std::shared_ptr<WebWsClient> client) :
         m_stream(std::move(socket)),
         m_client(client)
     {
@@ -195,14 +195,14 @@ private:
     beast::flat_buffer m_buffer;
     http::request<http::string_body> m_req;
     std::queue<std::string> m_write_que;
-    std::shared_ptr<VoipClient> m_client;
+    std::shared_ptr<WebWsClient> m_client;
 };
 
 class WSServer :
     public IWSSender
 {
 public:
-    WSServer(std::string addr, unsigned int port, std::shared_ptr<VoipClient> client) :
+    WSServer(std::string addr, unsigned int port, std::shared_ptr<WebWsClient> client) :
         m_acceptor(IOContextPool::getInstance()->getIOContext()),
         m_endpoint(asio::ip::make_address(addr), port),
         m_client(client)
@@ -255,7 +255,7 @@ private:
 
     tcp::acceptor m_acceptor;
     tcp::endpoint m_endpoint;
-    std::shared_ptr<VoipClient> m_client;
+    std::shared_ptr<WebWsClient> m_client;
     std::unordered_set<std::shared_ptr<WebSocketSession>> m_sessions;
     std::mutex m_sessions_mtx;
 };

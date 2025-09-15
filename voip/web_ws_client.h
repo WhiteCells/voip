@@ -30,8 +30,8 @@ namespace net = boost::asio;
 namespace ssl = boost::asio::ssl;
 using tcp = net::ip::tcp;
 
-class VoipClient :
-    public std::enable_shared_from_this<VoipClient>
+class WebWsClient :
+    public std::enable_shared_from_this<WebWsClient>
 {
 private:
     std::unique_ptr<tcp::resolver> m_resolver;
@@ -56,7 +56,7 @@ private:
     int m_recv_call_type;
 
 public:
-    VoipClient() :
+    WebWsClient() :
         // m_resolver(net::make_strand(ioc)),
         // m_ws(net::make_strand(ioc)),
         m_thread_pool(5),
@@ -227,7 +227,7 @@ public:
 
         m_resolver->async_resolve(g_gui_cfg.gui_host,
                                   g_gui_cfg.gui_port,
-                                  beast::bind_front_handler(&VoipClient::on_resolver,
+                                  beast::bind_front_handler(&WebWsClient::on_resolver,
                                                             shared_from_this()));
     }
 
@@ -346,7 +346,7 @@ private:
         }
         beast::get_lowest_layer(*m_ws)
             .async_connect(results,
-                           beast::bind_front_handler(&VoipClient::on_connect,
+                           beast::bind_front_handler(&WebWsClient::on_connect,
                                                      shared_from_this()));
     }
 
@@ -368,7 +368,7 @@ private:
         m_host = g_gui_cfg.gui_host + ":" + std::to_string(endpoint.port());
         m_target = g_gui_cfg.gui_target + "/" + g_gui_cfg.gui_client_id;
         m_ws->next_layer().async_handshake(ssl::stream_base::client,
-                                           beast::bind_front_handler(&VoipClient::on_tls_handshake,
+                                           beast::bind_front_handler(&WebWsClient::on_tls_handshake,
                                                                      shared_from_this()));
     }
 
@@ -387,7 +387,7 @@ private:
             req.set(http::field::user_agent, "voip-client");
         }));
         m_ws->async_handshake(m_host, m_target,
-                              beast::bind_front_handler(&VoipClient::on_ws_handshake,
+                              beast::bind_front_handler(&WebWsClient::on_ws_handshake,
                                                         shared_from_this()));
     }
 
@@ -412,7 +412,7 @@ private:
     void do_read()
     {
         m_ws->async_read(m_buffer,
-                         beast::bind_front_handler(&VoipClient::on_read,
+                         beast::bind_front_handler(&WebWsClient::on_read,
                                                    shared_from_this()));
     }
 
