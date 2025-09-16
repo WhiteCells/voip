@@ -45,6 +45,18 @@ public:
         m_gui_server_sender = sender;
     }
 
+    void send(const std::string &msg)
+    {
+        m_ws->text(true);
+        m_ws->async_write(asio::buffer(msg),
+                          [self = shared_from_this()](beast::error_code ec, std::size_t) {
+                              if (ec) {
+                                  LOG_ERROR("Agent Ws Client Send Failed {}", ec.message());
+                                  return;
+                              }
+                          });
+    }
+
     void restart()
     {
         stop();
@@ -60,7 +72,7 @@ public:
         ssl_ctx.load_verify_file(verify_file);
         m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(net::make_strand(ioc), ssl_ctx);
 
-        m_resolver->async_resolve(m_host, m_port, beast::bind_front_handler(&AgentWsClient::on_resolver));
+        m_resolver->async_resolve(m_host, m_port, beast::bind_front_handler(&AgentWsClient::on_resolver, shared_from_this()));
     }
 
     void stop()
@@ -96,7 +108,7 @@ private:
                                                      shared_from_this()));
     }
 
-    void on_connect(beast::error_code ec, tcp::resolver::results_type endpoint)
+    void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type endpoint)
     {
         if (ec) {
             Json::Value resp;
@@ -110,7 +122,7 @@ private:
         m_ws->set_option(websocket::stream_base::decorator([](websocket::request_type &req) {
             req.set(http::field::user_agent, "<ws>");
         }));
-        m_host += ":" + m_port;
+        m_host += ":" + std::to_string(endpoint.port());
         // m_target;
         m_ws->next_layer().async_handshake(ssl::stream_base::client,
                                            beast::bind_front_handler(&AgentWsClient::on_tls_handshake,
@@ -160,7 +172,7 @@ private:
                                                    shared_from_this()));
     }
 
-    void on_read(beast::error_code ec, std::size_t len)
+    void on_read(beast::error_code ec, std::size_t)
     {
         if (ec) {
             Json::Value resp;
@@ -172,6 +184,8 @@ private:
         }
         std::string msg = beast::buffers_to_string(m_buffer.data());
         m_buffer.consume(m_buffer.size());
+
+        LOG_INFO("recv Agent Ws Client {}", msg);
 
         // handler msg
 

@@ -25,7 +25,6 @@ namespace asio = boost::asio;
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace ssl = asio::ssl;
-namespace json = Json;
 using tcp = asio::ip::tcp;
 
 /**
@@ -37,9 +36,9 @@ using tcp = asio::ip::tcp;
  * @param method 请求方法
  * @param params 可选请求路径查询参数
  * @param body 可选请求体内容
- * @return json::Value 响应数据回包
+ * @return Json::Value 响应数据回包
  */
-inline json::Value httpRequest(const std::string &host,
+inline Json::Value httpRequest(const std::string &host,
                                const std::string &port,
                                const std::string &target,
                                http::verb method,
@@ -70,7 +69,7 @@ inline json::Value httpRequest(const std::string &host,
     // Body
     if (!body.empty() && (method == http::verb::post || method == http::verb::put)) {
         req.body() = body;
-        req.set(http::field::content_type, "application/json");
+        req.set(http::field::content_type, "application/Json");
         req.content_length(body.size());
     }
 
@@ -81,13 +80,13 @@ inline json::Value httpRequest(const std::string &host,
     http::response<http::string_body> res;
     http::read(stream, buffer, res);
 
-    // Parse `res` to json::Value
-    json::Value resp;
+    // Parse `res` to Json::Value
+    Json::Value resp;
     std::string errs;
     std::istringstream iss(res.body());
-    json::CharReaderBuilder reader;
-    if (!json::parseFromStream(reader, iss, &resp, &errs)) {
-        return json::Value {};
+    Json::CharReaderBuilder reader;
+    if (!Json::parseFromStream(reader, iss, &resp, &errs)) {
+        return Json::Value {};
     }
 
     // Close `stream`
@@ -100,7 +99,7 @@ inline json::Value httpRequest(const std::string &host,
     return resp;
 }
 
-inline json::Value httpSSLRequest(const std::string &host,
+inline Json::Value httpSSLRequest(const std::string &host,
                                   const std::string &port,
                                   const std::string &target,
                                   http::verb method,
@@ -147,7 +146,7 @@ inline json::Value httpSSLRequest(const std::string &host,
 
     if (!body.empty() && (method == http::verb::post || method == http::verb::put)) {
         req.body() = body;
-        req.set(http::field::content_type, "application/json");
+        req.set(http::field::content_type, "application/Json");
         req.content_length(body.size());
     }
 
@@ -159,7 +158,7 @@ inline json::Value httpSSLRequest(const std::string &host,
     http::response<http::string_body> res;
     http::read(stream, buffer, res);
 
-    // parse json
+    // parse Json
     Json::Value resp;
     std::string errs;
     std::istringstream iss(res.body());
@@ -217,11 +216,11 @@ inline void notify()
     const auto target_url = genUrl(URL_NOTIFY, g_client_id);
     for (;;) {
         try {
-            json::Value body_json;
+            Json::Value body_json;
             body_json["threads_num"] = g_thread_num;
-            json::StreamWriterBuilder writer;
+            Json::StreamWriterBuilder writer;
             writer["indentation"] = "";
-            std::string body = json::writeString(writer, body_json);
+            std::string body = Json::writeString(writer, body_json);
 
             LOG_INFO("Client notify target_url: {}", target_url);
 
@@ -230,7 +229,7 @@ inline void notify()
                 target_url, http::verb::post,
                 {}, body);
             LOG_INFO("Client connect backend: {}:{} Response: {}", backend_host, backend_port, resp.toStyledString());
-            LOG_INFO("body json: {}", body);
+            LOG_INFO("body Json: {}", body);
 
             // resp::code
             if (!resp.isMember("code") || !resp["code"].isInt() || resp["code"] != 200) {
@@ -242,7 +241,7 @@ inline void notify()
                 LOG_ERROR("resp::data");
                 return;
             }
-            const json::Value &data = resp["data"];
+            const Json::Value &data = resp["data"];
             if (!data.isMember("client_id")) {
                 LOG_ERROR("resp::data::client_id");
                 return;
@@ -291,13 +290,13 @@ inline void pullAccount(std::vector<std::vector<std::string>> &accounts, const s
             return;
         }
         // resp::data
-        const json::Value &data = resp["data"];
+        const Json::Value &data = resp["data"];
         if (!data.isMember("accounts") || !data["accounts"].isArray()) {
             LOG_ERROR("resp::data");
             return;
         }
         // resp::data::accounts
-        const json::Value &accs = data["accounts"];
+        const Json::Value &accs = data["accounts"];
         for (const auto &acc : accs) {
             if (!acc.isMember("name") || !acc.isMember("pwd") || !acc.isMember("host")) {
                 LOG_ERROR("pull Account failed");
@@ -396,12 +395,12 @@ inline void pushRegStatus(const std::string &id, const std::string &state, const
 {
     const auto target_url = genUrl(URL_REG_STATUS, client_id);
     try {
-        json::Value body_json;
+        Json::Value body_json;
         body_json["account_id"] = id;
         body_json["status"] = state;
-        json::StreamWriterBuilder writer;
+        Json::StreamWriterBuilder writer;
         writer["indentation"] = "";
-        std::string body = json::writeString(writer, body_json);
+        std::string body = Json::writeString(writer, body_json);
         auto resp = httpRequest(
             backend_host, backend_port, target_url,
             http::verb::put, {}, body);
@@ -428,14 +427,14 @@ inline void pushDialStatus(
     const auto target_url = genUrl(URL_DIAL_STATUS, client_id);
 
     try {
-        json::Value body_json;
+        Json::Value body_json;
         body_json["id"] = dialplan_id;
         body_json["phone"] = phone_num;
         body_json["status"] = state;
         body_json["account_id"] = account_id;
-        json::StreamWriterBuilder writer;
+        Json::StreamWriterBuilder writer;
         writer["indentation"] = "";
-        std::string body = json::writeString(writer, body_json);
+        std::string body = Json::writeString(writer, body_json);
         LOG_INFO("dialplan status: {}", body);
         auto resp = httpRequest(
             backend_host, backend_port, target_url,
@@ -472,13 +471,13 @@ inline void pullDialplan(std::vector<std::pair<int, std::string>> &plans /* & */
             LOG_ERROR("resp::data");
             return;
         }
-        const json::Value data = resp["data"];
+        const Json::Value data = resp["data"];
         if (!data.isMember("dialplans") || !data["dialplans"].isArray()) {
             LOG_ERROR("resp::data::dialplans");
             return;
         }
         // resp::data::dialplans
-        const json::Value &dialplans = data["dialplans"];
+        const Json::Value &dialplans = data["dialplans"];
         for (const auto &dialplan : dialplans) {
             if (!dialplan.isMember("phone") || !dialplan.isMember("id")) {
                 LOG_ERROR("resp::data::dialplans::phone");
@@ -527,16 +526,16 @@ inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_r
     try {
         Json::Value accounts_array(Json::arrayValue);
         for (const auto &account : accounts_reg_state) {
-            json::Value body_json;
+            Json::Value body_json;
             body_json["account_id"] = account.account_id;
             body_json["status"] = account.status;
             accounts_array.append(body_json);
         }
         Json::Value root;
         root["accounts"] = accounts_array;
-        json::StreamWriterBuilder writer;
+        Json::StreamWriterBuilder writer;
         writer["indentation"] = "";
-        std::string body = json::writeString(writer, root);
+        std::string body = Json::writeString(writer, root);
         LOG_INFO("push call state body: {}", body);
         auto resp = httpSSLRequest(backend_host, backend_port, target_url,
                                    http::verb::post, {}, body);
@@ -553,16 +552,16 @@ inline void pushCallState(const std::string &phone,
 {
     const auto target_url = genUrl(URL_CALL_STATE, g_gui_cfg.gui_client_id);
     try {
-        json::Value body_json;
+        Json::Value body_json;
         body_json["task_id"] = g_task_id;
         body_json["phone"] = phone;
         body_json["status"] = status;
         body_json["call_type"] = call_type;
         body_json["hangup_direction"] = hangup_direction;
 
-        json::StreamWriterBuilder writer;
+        Json::StreamWriterBuilder writer;
         writer["indentation"] = "";
-        std::string body = json::writeString(writer, body_json);
+        std::string body = Json::writeString(writer, body_json);
         LOG_INFO("push call state body: {}", body);
         auto resp = httpSSLRequest(backend_host, backend_port, target_url,
                                    http::verb::post, {}, body);

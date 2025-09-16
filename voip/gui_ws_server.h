@@ -1,5 +1,5 @@
-#ifndef _WS_SERVER_H_
-#define _WS_SERVER_H_
+#ifndef _GUI_WS_SERVER_H_
+#define _GUI_WS_SERVER_H_
 
 #include "logger.h"
 #include "io_context_pool.h"
@@ -22,7 +22,8 @@ class WebSocketSession :
     public std::enable_shared_from_this<WebSocketSession>
 {
 public:
-    explicit WebSocketSession(tcp::socket &&socket, std::shared_ptr<WebWsClient> client) :
+    explicit WebSocketSession(tcp::socket &&socket,
+                              std::shared_ptr<WebWsClient> client) :
         m_stream(std::move(socket)),
         m_client(client)
     {
@@ -109,13 +110,12 @@ private:
 
             if (type == "config") {
                 // 处理配置消息
-                LOG_INFO("config");
-                LOG_INFO("{}", root.toStyledString());
+                LOG_INFO("recv gui config: {}", root.toStyledString());
                 handleConfigMessage(root);
             }
             else if (type == "command") {
                 // 处理命令消息
-                LOG_INFO("command");
+                LOG_INFO("recv gui command: {}", root.toStyledString());
                 handleCommandMessage(root);
             }
         }
@@ -178,7 +178,7 @@ private:
     void do_write()
     {
         m_stream.text(true);
-        m_stream.async_write(boost::asio::buffer(m_write_que.front()),
+        m_stream.async_write(asio::buffer(m_write_que.front()),
                              [self = shared_from_this()](beast::error_code ec, std::size_t) {
                                  if (ec) {
                                      return;
@@ -198,11 +198,13 @@ private:
     std::shared_ptr<WebWsClient> m_client;
 };
 
-class WSServer :
+class GuiWsServer :
     public IWSSender
 {
 public:
-    WSServer(std::string addr, unsigned int port, std::shared_ptr<WebWsClient> client) :
+    GuiWsServer(const std::string &addr,
+                unsigned int port,
+                std::shared_ptr<WebWsClient> client) :
         m_acceptor(IOContextPool::getInstance()->getIOContext()),
         m_endpoint(asio::ip::make_address(addr), port),
         m_client(client)
@@ -260,4 +262,4 @@ private:
     std::mutex m_sessions_mtx;
 };
 
-#endif // _WS_SERVER_H_
+#endif // _GUI_WS_SERVER_H_

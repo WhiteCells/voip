@@ -1,5 +1,5 @@
-#ifndef _WS_CLIENT2_H_
-#define _WS_CLIENT2_H_
+#ifndef _WEB_WS_CLIENT_H_
+#define _WEB_WS_CLIENT_H_
 
 #include "logger.h"
 #include "global.h"
@@ -34,6 +34,7 @@ class WebWsClient :
     public std::enable_shared_from_this<WebWsClient>
 {
 private:
+    using AgentWsMsgHandler = std::function<void(const std::string &)>;
     std::unique_ptr<tcp::resolver> m_resolver;
     std::unique_ptr<websocket::stream<beast::ssl_stream<beast::tcp_stream>>> m_ws;
     beast::flat_buffer m_buffer;
@@ -54,11 +55,10 @@ private:
     std::vector<std::shared_ptr<voip::VAccount>> m_acc_vec;
     std::shared_ptr<IWSSender> m_server_sender;
     int m_recv_call_type;
+    AgentWsMsgHandler m_agent_ws_msg_handler;
 
 public:
     WebWsClient() :
-        // m_resolver(net::make_strand(ioc)),
-        // m_ws(net::make_strand(ioc)),
         m_thread_pool(5),
         m_caller_que(std::make_shared<CallerQueue>()),
         m_dialplan_que(std::make_shared<DialPlanQueue>())
@@ -210,6 +210,11 @@ public:
         m_server_sender = sender;
     }
 
+    void set_agent_ws_sender(AgentWsMsgHandler handler)
+    {
+        m_agent_ws_msg_handler = handler;
+    }
+
     void restart()
     {
         stop();
@@ -247,7 +252,7 @@ public:
         m_resolver->cancel();
     }
 
-    void start_call_client()
+    void start_call()
     {
         while (m_running) {
             m_worker_num = m_dialplan_que->size();
@@ -261,9 +266,9 @@ public:
             auto coordinator = std::make_shared<Coordinator>();
             coordinator->reset_();
             if (m_recv_call_type == 1) {
-                LOG_INFO("start_call_client single call");
+                LOG_INFO("start single call");
                 m_thread_pool.addTask([this, coordinator]() {
-                    single_task(coordinator);
+                    single_call(coordinator);
                     {
                         std::unique_lock<std::mutex> lock(m_batch_mtx);
                         --m_batch_remain;
@@ -280,10 +285,10 @@ public:
                 LOG_INFO("single finish, start next");
             }
             else if (m_recv_call_type == 0) {
-                LOG_INFO("start_call_client group call");
+                LOG_INFO("start group call");
                 for (std::size_t i = 0; i < m_worker_num; ++i) {
                     m_thread_pool.addTask([this, i, coordinator]() {
-                        call_task(i, coordinator);
+                        group_call(i, coordinator);
                         {
                             std::unique_lock<std::mutex> lock(m_batch_mtx);
                             --m_batch_remain;
@@ -311,25 +316,39 @@ public:
         }
     }
 
-    void single_task(std::shared_ptr<Coordinator> coordinator)
+    void single_call(std::shared_ptr<Coordinator> coordinator)
     {
+        LOG_INFO("single call");
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
         caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender);
+        LOG_INFO("single call over");
     }
 
-    void call_task(std::size_t i, std::shared_ptr<Coordinator> coordinator)
+    void group_call(std::size_t i, std::shared_ptr<Coordinator> coordinator)
     {
-        LOG_INFO("call task {}", i);
+        LOG_INFO("group call index: {}", i);
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender);
+        caller->group_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender);
         LOG_INFO("call {} over", dialplan.second);
     }
 
     void set_on_read_handler(std::function<void(const std::string &)> on_read_handler)
     {
         m_on_read_handler = on_read_handler;
+    }
+
+    void send(const std::string &msg)
+    {
+        m_ws->text(true);
+        m_ws->async_write(asio::buffer(msg),
+                          [self = shared_from_this()](beast::error_code ec, std::size_t) {
+                              if (ec) {
+                                  LOG_ERROR("Web Ws Client Send Failed {}", ec.message());
+                                  return;
+                              }
+                          });
     }
 
 private:
@@ -430,7 +449,7 @@ private:
         std::string msg = beast::buffers_to_string(m_buffer.data());
         m_buffer.consume(m_buffer.size());
 
-        // LOG_INFO("recv: {}", msg);
+        LOG_INFO("Web Ws Client recv: {}", msg);
         if (m_on_read_handler) {
             m_on_read_handler(msg);
         }
@@ -439,4 +458,4 @@ private:
     }
 };
 
-#endif // _WS_CLIENT2_H_
+#endif // _WEB_WS_CLIENT_H_

@@ -20,7 +20,7 @@ voip::Caller::~Caller()
     LOG_INFO("~Caller");
 }
 
-void voip::Caller::call(
+void voip::Caller::group_call(
     const std::string &phone,
     const std::string &client_id,
     const int dialplan_id,
@@ -30,7 +30,6 @@ void voip::Caller::call(
     call_type = 0;
     m_coordinator = coordinator;
     m_sender = sender;
-
     m_dialplan_id = dialplan_id;
     m_phone = phone;
     m_client_id = client_id;
@@ -44,12 +43,6 @@ void voip::Caller::call(
     catch (const pj::Error &err) {
         LOG_ERROR("pj::Error: {} {}", err.reason, err.info());
     }
-    catch (const std::exception &ex) {
-        LOG_ERROR("std::exception: {}", ex.what());
-    }
-    catch (...) {
-        LOG_ERROR("Unknown exception caught!");
-    }
 
     // 超时之前等待 winner
     // 是 winner 在 waitForCallFinished 阻塞，直到通话结束
@@ -58,14 +51,14 @@ void voip::Caller::call(
         m_coordinator->shouldAbort(shared_from_this())) {
 
         if (m_sender) {
-            json::Value status_msg;
+            Json::Value status_msg;
             status_msg["id"] = g_task_id;
             status_msg["phone"] = m_phone;
             status_msg["status"] = "DISCONNECTED";
 
             Json::StreamWriterBuilder builder;
             builder["indentation"] = "";
-            std::string msg = json::writeString(builder, status_msg);
+            std::string msg = Json::writeString(builder, status_msg);
             m_sender->send(msg);
         }
 
@@ -79,7 +72,6 @@ void voip::Caller::call(
                             "1");
         return;
     }
-
     m_coordinator->waitForCallFinished();
 }
 
@@ -98,23 +90,24 @@ void voip::Caller::single_call(const std::string &phone,
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
+
     try {
         this->makeCall(dst_uri, prm);
     }
     catch (const pj::Error &err) {
-        LOG_ERROR("make call error: {} {}", err.reason, err.info());
+        LOG_ERROR("pj::Error: {} {}", err.reason, err.info());
     }
     if (!m_coordinator->waitForSingleCallConfirmed(std::chrono::seconds(10))) {
 
         if (m_sender) {
-            json::Value status_msg;
+            Json::Value status_msg;
             status_msg["id"] = g_task_id;
             status_msg["phone"] = m_phone;
             status_msg["status"] = "DISCONNECTED";
 
             Json::StreamWriterBuilder builder;
             builder["indentation"] = "";
-            std::string msg = json::writeString(builder, status_msg);
+            std::string msg = Json::writeString(builder, status_msg);
             m_sender->send(msg);
         }
 
@@ -161,14 +154,14 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         case PJSIP_INV_STATE_CONNECTING: {
             LOG_INFO(">>> call: {}, phone: {} connecting", ci.id, m_phone);
             if (m_sender) {
-                json::Value status_msg;
+                Json::Value status_msg;
                 status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "CONNECTING";
 
                 Json::StreamWriterBuilder builder;
                 builder["indentation"] = "";
-                std::string msg = json::writeString(builder, status_msg);
+                std::string msg = Json::writeString(builder, status_msg);
                 m_sender->send(msg);
             }
             break;
@@ -176,14 +169,14 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         case PJSIP_INV_STATE_NULL: {
             LOG_INFO(">>> call: {}, phone: {} null", ci.id, m_phone);
             if (m_sender) {
-                json::Value status_msg;
+                Json::Value status_msg;
                 status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "NULL";
 
                 Json::StreamWriterBuilder builder;
                 builder["indentation"] = "";
-                std::string msg = json::writeString(builder, status_msg);
+                std::string msg = Json::writeString(builder, status_msg);
                 m_sender->send(msg);
             }
             break;
@@ -191,14 +184,14 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         case PJSIP_INV_STATE_CALLING: {
             LOG_INFO(">>> call: {}, phone: {} calling", ci.id, m_phone);
             if (m_sender) {
-                json::Value status_msg;
+                Json::Value status_msg;
                 status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "CALLING";
 
                 Json::StreamWriterBuilder builder;
                 builder["indentation"] = "";
-                std::string msg = json::writeString(builder, status_msg);
+                std::string msg = Json::writeString(builder, status_msg);
                 m_sender->send(msg);
             }
             break;
@@ -208,14 +201,14 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             // 当前线程如果已经接通了，通知其他线程挂断电话
             m_coordinator->notifyCallConfirmed(shared_from_this());
             if (m_sender) {
-                json::Value status_msg;
+                Json::Value status_msg;
                 status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "CONFIRMED";
 
                 Json::StreamWriterBuilder builder;
                 builder["indentation"] = "";
-                std::string msg = json::writeString(builder, status_msg);
+                std::string msg = Json::writeString(builder, status_msg);
                 m_sender->send(msg);
             }
 
@@ -248,14 +241,14 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             std::string hangup_direction1 = hangup_direction;
 
             if (m_sender) {
-                json::Value status_msg;
+                Json::Value status_msg;
                 status_msg["id"] = g_task_id;
                 status_msg["phone"] = tmp_phone1;
                 status_msg["status"] = "DISCONNECTED";
 
                 Json::StreamWriterBuilder builder;
                 builder["indentation"] = "";
-                std::string msg = json::writeString(builder, status_msg);
+                std::string msg = Json::writeString(builder, status_msg);
                 m_sender->send(msg);
             }
 

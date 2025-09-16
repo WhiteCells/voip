@@ -18,8 +18,6 @@ class VAccount;
 
 /**
  * @brief 呼叫者
- * 继承 pj::Call
- * 通过重载父类虚函数实现对状态的获取
  */
 class Caller :
     public pj::Call,
@@ -42,19 +40,11 @@ public:
 
     // virtual void onStreamCreated(pj::OnStreamCreatedParam &prm) override;
 
-    /**
-     * @brief 呼叫方法
-     *
-     * @param phone 呼叫手机号
-     * @param client_id 客户端 ID
-     * @param que 呼叫者队列，用于在呼叫完成后回收呼叫者
-     * @param caller 需要回收的呼叫者
-     */
-    void call(const std::string &phone,
-              const std::string &client_id,
-              const int dialplan_id,
-              std::shared_ptr<Coordinator> coordinator,
-              std::shared_ptr<IWSSender> sender);
+    void group_call(const std::string &phone,
+                    const std::string &client_id,
+                    const int dialplan_id,
+                    std::shared_ptr<Coordinator> coordinator,
+                    std::shared_ptr<IWSSender> sender);
 
     void single_call(const std::string &phone,
                      const std::string &client_id,
