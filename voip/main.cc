@@ -20,10 +20,14 @@ int main()
     auto agent_ws_client = std::make_shared<AgentWsClient>();
     auto gui_ws_server = std::make_shared<GuiWsServer>("0.0.0.0", 8001, web_ws_client);
 
-    agent_ws_client->start();
     web_ws_client->set_server_sender(gui_ws_server);
+    agent_ws_client->set_server_sender(gui_ws_server);
+
     web_ws_client->start();
+    agent_ws_client->start();
+
     auto bridget = std::make_shared<WebAgentBridge>(agent_ws_client, web_ws_client);
+
     web_ws_client->start_call();
 
     return 0;
