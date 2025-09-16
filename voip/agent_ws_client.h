@@ -72,7 +72,9 @@ public:
         ssl_ctx.load_verify_file(verify_file);
         m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(net::make_strand(ioc), ssl_ctx);
 
-        m_resolver->async_resolve(m_host, m_port, beast::bind_front_handler(&AgentWsClient::on_resolver, shared_from_this()));
+        m_resolver->async_resolve(m_host, m_port,
+                                  beast::bind_front_handler(&AgentWsClient::on_resolver,
+                                                            shared_from_this()));
     }
 
     void stop()
@@ -99,7 +101,7 @@ private:
             // resp[""];
             Json::StreamWriterBuilder builder;
             std::string resp_str = Json::writeString(builder, resp);
-            // m_gui_server_sender->send(resp_str);
+            m_gui_server_sender->send(resp_str);
             return;
         }
         beast::get_lowest_layer(*m_ws)
@@ -115,7 +117,7 @@ private:
             // resp[""];
             Json::StreamWriterBuilder builder;
             std::string resp_str = Json::writeString(builder, resp);
-            // m_gui_server_sender->send(resp_str);
+            m_gui_server_sender->send(resp_str);
             return;
         }
         beast::get_lowest_layer(*m_ws).expires_never();
@@ -136,7 +138,7 @@ private:
             //
             Json::StreamWriterBuilder builder;
             std::string resp_str = Json::writeString(builder, resp);
-            // m_gui_server_sender->send(resp_str);
+            m_gui_server_sender->send(resp_str);
             return;
         }
         m_ws->set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));
@@ -155,12 +157,12 @@ private:
         if (ec) {
             //
             std::string resp_str = Json::writeString(builder, resp);
-            // m_gui_server_sender->send(resp_str);
+            m_gui_server_sender->send(resp_str);
             return;
         }
         //
         std::string resp_str = Json::writeString(builder, resp);
-        // m_gui_server_sender->send(resp_str);
+        m_gui_server_sender->send(resp_str);
 
         do_read();
     }
@@ -179,7 +181,7 @@ private:
             //
             Json::StreamWriterBuilder builder;
             std::string resp_str = Json::writeString(builder, resp);
-            // m_gui_server_sender->send(resp_str);
+            m_gui_server_sender->send(resp_str);
             return;
         }
         std::string msg = beast::buffers_to_string(m_buffer.data());

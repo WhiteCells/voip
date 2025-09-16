@@ -355,12 +355,12 @@ private:
     void on_resolver(beast::error_code ec, tcp::resolver::results_type results)
     {
         if (ec) {
-            Json::Value response;
-            response["backend_status"] = "error";
+            Json::Value resp;
+            resp["backend_status"] = "error";
 
-            Json::StreamWriterBuilder writerBuilder;
-            std::string responseStr = Json::writeString(writerBuilder, response);
-            m_server_sender->send(responseStr);
+            Json::StreamWriterBuilder builder;
+            std::string resp_str = Json::writeString(builder, resp);
+            m_server_sender->send(resp_str);
             return;
         }
         beast::get_lowest_layer(*m_ws)
@@ -372,12 +372,12 @@ private:
     void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type endpoint)
     {
         if (ec) {
-            Json::Value response;
-            response["backend_status"] = "error";
+            Json::Value resp;
+            resp["backend_status"] = "error";
 
-            Json::StreamWriterBuilder writerBuilder;
-            std::string responseStr = Json::writeString(writerBuilder, response);
-            m_server_sender->send(responseStr);
+            Json::StreamWriterBuilder builder;
+            std::string resp_str = Json::writeString(builder, resp);
+            m_server_sender->send(resp_str);
             return;
         }
         beast::get_lowest_layer(*m_ws).expires_never();
@@ -394,11 +394,12 @@ private:
     void on_tls_handshake(beast::error_code ec)
     {
         if (ec) {
-            Json::Value response;
-            response["backend_status"] = "error";
-            Json::StreamWriterBuilder writerBuilder;
-            std::string responseStr = Json::writeString(writerBuilder, response);
-            m_server_sender->send(responseStr);
+            Json::Value resp;
+            resp["backend_status"] = "error";
+
+            Json::StreamWriterBuilder builder;
+            std::string resp_str = Json::writeString(builder, resp);
+            m_server_sender->send(resp_str);
             return;
         }
         m_ws->set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));
@@ -412,19 +413,17 @@ private:
 
     void on_ws_handshake(beast::error_code ec)
     {
+        Json::Value resp;
+        Json::StreamWriterBuilder builder;
         if (ec) {
-            Json::Value ec_response;
-            ec_response["backend_status"] = "error";
-            Json::StreamWriterBuilder writerBuilder;
-            std::string responseStr = Json::writeString(writerBuilder, ec_response);
-            m_server_sender->send(responseStr);
+            resp["backend_status"] = "error";
+            std::string resp_str = Json::writeString(builder, resp);
+            m_server_sender->send(resp_str);
             return;
         }
-        Json::Value response;
-        response["backend_status"] = "connected";
-        Json::StreamWriterBuilder writerBuilder;
-        std::string responseStr = Json::writeString(writerBuilder, response);
-        m_server_sender->send(responseStr);
+        resp["backend_status"] = "connected";
+        std::string resp_str = Json::writeString(builder, resp);
+        m_server_sender->send(resp_str);
         do_read();
     }
 
@@ -439,11 +438,11 @@ private:
     {
         boost::ignore_unused(len);
         if (ec) {
-            Json::Value response;
-            response["backend_status"] = "disconnected";
-            Json::StreamWriterBuilder writerBuilder;
-            std::string responseStr = Json::writeString(writerBuilder, response);
-            m_server_sender->send(responseStr);
+            Json::Value resp;
+            resp["backend_status"] = "disconnected";
+            Json::StreamWriterBuilder builder;
+            std::string resp_str = Json::writeString(builder, resp);
+            m_server_sender->send(resp_str);
             return;
         }
         std::string msg = beast::buffers_to_string(m_buffer.data());
