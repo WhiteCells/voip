@@ -1,7 +1,6 @@
 #include "vaccount.h"
 #include "caller.h"
-#include "request.hpp"
-#include "global.h"
+#include "logger.h"
 
 voip::VAccount::VAccount(
     const std::string &id,
@@ -26,13 +25,30 @@ voip::VAccount::VAccount(
 
 voip::VAccount::~VAccount()
 {
+    LOG_INFO("~VAccount");
+    pj::Account::shutdown();
 }
 
 void voip::VAccount::onRegState(pj::OnRegStateParam &prm)
 {
     pj::AccountInfo ai = getInfo();
     LOG_INFO("code: {} reason: {} {}", static_cast<int>(prm.code), prm.reason, ai.uri);
-    voip::pushRegStatus(m_id, STATUS_ACCOUNT_REGISTERED, g_client_id);
+    if (m_acc_result) {
+        m_acc_result->m_code = prm.code;
+        m_acc_result->m_msg = prm.reason;
+        LOG_INFO("m_acc_result: {}, m_acc_result: {}", m_acc_result->m_code, m_acc_result->m_msg);
+    }
+}
+
+void voip::VAccount::create_()
+{
+    try {
+        this->create(m_acc_cfg);
+        LOG_INFO("account::create");
+    }
+    catch (const pj::Error &err) {
+        LOG_ERROR("create err: {}", err.info());
+    }
 }
 
 // void voip::VAccount::onIncomingCall(pj::OnIncomingCallParam &iprm)

@@ -1,24 +1,31 @@
 #ifndef _COORDINATOR_H_
 #define _COORDINATOR_H_
 
-#include "singleton.hpp"
-#include "caller.h"
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
 #include <thread>
+#include <chrono>
 
-class Coordinator : public Singleton<Coordinator>
+namespace voip {
+class Caller;
+}
+
+class Coordinator
 {
 public:
-    friend class Singleton<Coordinator>;
+    Coordinator() = default;
     ~Coordinator() = default;
 
     void notifyCallConfirmed(std::shared_ptr<voip::Caller> winner);
     void notifyCallDisconnected(std::shared_ptr<voip::Caller> winner);
 
     void waitForWinner();
+    bool waitForWinner(std::chrono::seconds timeout);
     void waitForCallFinished();
+
+    bool waitForSingleCallConfirmed(std::chrono::seconds timeout);
+    void waitForSingleCallFinished();
 
     bool isWinner(std::shared_ptr<voip::Caller> winner) const;
     bool shouldAbort(std::shared_ptr<voip::Caller> winner) const;
@@ -32,8 +39,7 @@ private:
     std::condition_variable m_disconnected_cv;
     std::atomic<bool> m_confirmed = false;
     std::atomic<bool> m_finished = false;
-    // std::thread::id m_winner_tid;
-    std::shared_ptr<voip::Caller> m_winner_caller;
+    std::weak_ptr<voip::Caller> m_winner_caller;
 };
 
 #endif // _COORDINATOR_H_

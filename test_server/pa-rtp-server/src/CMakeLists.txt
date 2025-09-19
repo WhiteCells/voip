@@ -7,4 +7,7 @@ set(SRC
 
 add_executable(${PROJECT_NAME} ${SRC})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE portaudio /usr/local/lib/libjrtp.so)
+target_link_libraries(${PROJECT_NAME} PRIVATE portaudio 
+    /usr/local/lib/libjrtp.so
+    opus
+)

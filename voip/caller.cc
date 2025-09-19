@@ -6,61 +6,128 @@
 #include "request.hpp"
 #include "global.h"
 #include "coordinator.h"
+#include "ws_interface.h"
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
     acc_(acc),
-    m_aud_media_port(std::make_shared<AgentAudioMediaPort>()),
-    m_aud_media_player(std::make_shared<pj::AudioMediaPlayer>())
+    m_aud_media_port(std::make_shared<AgentAudioMediaPort>())
 {
-    // m_aud_media_player->createPlayer("input.wav");
 }
 
 voip::Caller::~Caller()
 {
-    LOG_INFO(">>> {}", __func__);
-    m_aud_media_port.reset();
-    LOG_INFO("<<< {}", __func__);
+    LOG_INFO("~Caller");
 }
 
-void voip::Caller::call(
+void voip::Caller::group_call(
     const std::string &phone,
     const std::string &client_id,
-    const int dialplan_id)
+    const int dialplan_id,
+    std::shared_ptr<Coordinator> coordinator,
+    std::shared_ptr<IWSSender> sender)
 {
-    auto coordinator = Coordinator::getInstance();
-    coordinator->reset_();
-
+    call_type = 0;
+    m_coordinator = coordinator;
+    m_sender = sender;
     m_dialplan_id = dialplan_id;
     m_phone = phone;
     m_client_id = client_id;
-    aud_media_recorder_.reset();
-    aud_media_recorder_ = std::make_shared<pj::AudioMediaRecorder>();
-    auto now = std::chrono::system_clock::now();
-    now_time = std::chrono::system_clock::to_time_t(now);
-    m_filename = phone + "_" +
-                 std::to_string(dialplan_id) + "_" +
-                 std::to_string(now_time) + ".wav";
-    aud_media_recorder_->createRecorder(m_filename);
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
-    this->makeCall(dst_uri, prm);
 
-    coordinator->waitForWinner();
-
-    if (coordinator->shouldAbort(shared_from_this())) {
-        LOG_WARN("should abort");
-        // hangup_();
+    try {
+        this->makeCall(dst_uri, prm);
+    }
+    catch (const pj::Error &err) {
+        LOG_ERROR("pj::Error: {} {}", err.reason, err.info());
     }
 
-    coordinator->waitForCallFinished();
+    // 超时之前等待 winner
+    // 是 winner 在 waitForCallFinished 阻塞，直到通话结束
+    // 非 winner 或者超时走挂断逻辑
+    if (!m_coordinator->waitForWinner(std::chrono::seconds(10)) ||
+        m_coordinator->shouldAbort(shared_from_this())) {
+
+        if (m_sender) {
+            Json::Value status_msg;
+            status_msg["id"] = g_task_id;
+            status_msg["phone"] = m_phone;
+            status_msg["status"] = "DISCONNECTED";
+
+            Json::StreamWriterBuilder builder;
+            builder["indentation"] = "";
+            std::string msg = Json::writeString(builder, status_msg);
+            m_sender->send(msg);
+        }
+
+        LOG_WARN("call {} wait winner time out", m_phone);
+        m_call_status = 2;
+        hangup_();
+        LOG_INFO("Caller::call phone {} call_status {} call_type {}", m_phone, m_call_status, call_type);
+        voip::pushCallState(m_phone,
+                            m_call_status,
+                            call_type,
+                            "1");
+        return;
+    }
+    m_coordinator->waitForCallFinished();
+}
+
+void voip::Caller::single_call(const std::string &phone,
+                               const std::string &client_id,
+                               const int dialplan_id,
+                               std::shared_ptr<Coordinator> coordinator,
+                               std::shared_ptr<IWSSender> sender)
+{
+    call_type = 1;
+    m_coordinator = coordinator;
+    m_sender = sender;
+    m_dialplan_id = dialplan_id;
+    m_phone = phone;
+    m_client_id = client_id;
+    const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
+    LOG_INFO("dst_uri: {}", dst_uri);
+    const pj::CallOpParam prm {true};
+
+    try {
+        this->makeCall(dst_uri, prm);
+    }
+    catch (const pj::Error &err) {
+        LOG_ERROR("pj::Error: {} {}", err.reason, err.info());
+    }
+    if (!m_coordinator->waitForSingleCallConfirmed(std::chrono::seconds(10))) {
+
+        if (m_sender) {
+            Json::Value status_msg;
+            status_msg["id"] = g_task_id;
+            status_msg["phone"] = m_phone;
+            status_msg["status"] = "DISCONNECTED";
+
+            Json::StreamWriterBuilder builder;
+            builder["indentation"] = "";
+            std::string msg = Json::writeString(builder, status_msg);
+            m_sender->send(msg);
+        }
+
+        LOG_WARN("call {} wait winner time out", m_phone);
+        m_call_status = 2;
+        hangup_();
+        voip::pushCallState(m_phone,
+                            m_call_status,
+                            call_type,
+                            "1");
+        return;
+    }
+    m_coordinator->waitForSingleCallFinished();
 }
 
 void voip::Caller::hangup_()
 {
     pj::CallOpParam prm;
-    // this->hangup(prm);
+    prm.statusCode = PJSIP_SC_OK;
+    //    pj::Call::hangup(prm);
 }
 
 void voip::Caller::onCallTsxState(pj::OnCallTsxStateParam &prm)
@@ -75,6 +142,10 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     pj::CallInfo ci = getInfo();
     LOG_INFO("call id: {} phone: {} state: {} code:{}",
              ci.id, m_phone, ci.stateText, (int)ci.lastStatusCode);
+    if (ci.lastStatusCode == 404) {
+        LOG_INFO("call last status code: {}", (int)ci.lastStatusCode);
+        return;
+    }
     if (!ci.lastReason.empty()) {
         LOG_INFO("call reason: {}", ci.lastReason);
     }
@@ -82,27 +153,118 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     switch (ci.state) {
         case PJSIP_INV_STATE_CONNECTING: {
             LOG_INFO(">>> call: {}, phone: {} connecting", ci.id, m_phone);
+            if (m_sender) {
+                Json::Value status_msg;
+                status_msg["id"] = g_task_id;
+                status_msg["phone"] = m_phone;
+                status_msg["status"] = "CONNECTING";
+
+                Json::StreamWriterBuilder builder;
+                builder["indentation"] = "";
+                std::string msg = Json::writeString(builder, status_msg);
+                m_sender->send(msg);
+            }
             break;
         }
         case PJSIP_INV_STATE_NULL: {
             LOG_INFO(">>> call: {}, phone: {} null", ci.id, m_phone);
+            if (m_sender) {
+                Json::Value status_msg;
+                status_msg["id"] = g_task_id;
+                status_msg["phone"] = m_phone;
+                status_msg["status"] = "NULL";
+
+                Json::StreamWriterBuilder builder;
+                builder["indentation"] = "";
+                std::string msg = Json::writeString(builder, status_msg);
+                m_sender->send(msg);
+            }
             break;
         }
         case PJSIP_INV_STATE_CALLING: {
             LOG_INFO(">>> call: {}, phone: {} calling", ci.id, m_phone);
+            if (m_sender) {
+                Json::Value status_msg;
+                status_msg["id"] = g_task_id;
+                status_msg["phone"] = m_phone;
+                status_msg["status"] = "CALLING";
+
+                Json::StreamWriterBuilder builder;
+                builder["indentation"] = "";
+                std::string msg = Json::writeString(builder, status_msg);
+                m_sender->send(msg);
+            }
             break;
         }
         case PJSIP_INV_STATE_CONFIRMED: {
             LOG_INFO(">>> call: {}, phone: {} confirmed", ci.id, m_phone);
-            auto coordinator = Coordinator::getInstance();
             // 当前线程如果已经接通了，通知其他线程挂断电话
-            coordinator->notifyCallConfirmed(shared_from_this());
+            m_coordinator->notifyCallConfirmed(shared_from_this());
+            if (m_sender) {
+                Json::Value status_msg;
+                status_msg["id"] = g_task_id;
+                status_msg["phone"] = m_phone;
+                status_msg["status"] = "CONFIRMED";
+
+                Json::StreamWriterBuilder builder;
+                builder["indentation"] = "";
+                std::string msg = Json::writeString(builder, status_msg);
+                m_sender->send(msg);
+            }
+
+            LOG_INFO(">>> pushCallState PJSIP_INV_STATE_CONFIRMED call: {}, phone: {}, call_type: {}", std::to_string(m_dialplan_id), m_phone, call_type);
+
+            voip::pushCallState(m_phone,
+                                0,
+                                call_type,
+                                "");
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
             LOG_INFO(">>> call: {}, phone: {} disconnected", ci.id, m_phone);
-            auto coordinator = Coordinator::getInstance();
-            coordinator->notifyCallDisconnected(shared_from_this());
+            m_coordinator->notifyCallDisconnected(shared_from_this());
+
+            if (local_hangup == "1") {
+                // 主叫方挂断
+                LOG_INFO("{}: 主叫方挂断", m_phone);
+                hangup_direction = "1";
+                local_hangup = "0";
+            }
+            else if (local_hangup == "0") {
+                // 被叫方挂断
+                LOG_INFO("{}: 被叫方挂断", m_phone);
+                hangup_direction = "0";
+            }
+            LOG_INFO(">>>phone {},hangup_direction {}", m_phone, hangup_direction);
+
+            std::string tmp_phone1 = m_phone;
+            std::string hangup_direction1 = hangup_direction;
+
+            if (m_sender) {
+                Json::Value status_msg;
+                status_msg["id"] = g_task_id;
+                status_msg["phone"] = tmp_phone1;
+                status_msg["status"] = "DISCONNECTED";
+
+                Json::StreamWriterBuilder builder;
+                builder["indentation"] = "";
+                std::string msg = Json::writeString(builder, status_msg);
+                m_sender->send(msg);
+            }
+
+            if (m_call_status != 2) {
+                m_call_status = 1;
+            }
+
+            LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}", std::to_string(m_dialplan_id), m_phone, m_call_status, call_type, hangup_direction);
+
+            std::string tmp_phone = tmp_phone1;
+            std::string tmp_hangup_direction = hangup_direction1;
+
+            voip::pushCallState(tmp_phone,
+                                m_call_status,
+                                call_type,
+                                tmp_hangup_direction);
             break;
         }
         default:
@@ -128,20 +290,8 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             LOG_INFO("used media index: {}", i);
             aud_med = (pj::AudioMedia *)getMedia(i);
 
-            //
-            // m_aud_media_player->startTransmit(*aud_med);
-            //
-            // m_aud_media_port->startTransmit(*aud_med);
             aud_med->startTransmit(*m_aud_media_port);
-            cap_dev_med.startTransmit(*aud_med);
-            aud_med->startTransmit(play_dev_med);
-            // m_aud_media_port->startTransmit(*aud_media_recorder_);
-            //
-            // cap_dev_med.startTransmit(*m_aud_media_port);
-            //
-            // cap_dev_med.startTransmit(*aud_med);
-            // aud_med->startTransmit(*aud_media_recorder_); // 录音无噪音
-            // aud_med->startTransmit(play_dev_med);         // 播放设备有明显电流声
+            m_aud_media_port->startTransmit(*aud_med);
         }
     }
 }

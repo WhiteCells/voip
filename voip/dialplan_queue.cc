@@ -24,29 +24,9 @@ void DialPlanQueue::addDialPlan(const std::pair<int, std::string> &dialplan)
 std::pair<int, std::string> DialPlanQueue::getDialPlan()
 {
     std::unique_lock<std::mutex> lock(m_que_mtx);
-
-    while (m_que.empty()) {
-        bool expected_is_fetching = false;
-        if (m_fetching.compare_exchange_strong(expected_is_fetching, true)) {
-            // 当前线程负责拉取
-            lock.unlock();
-            LOG_INFO("initiating fetch");
-            fetchDialPlan(); // 拉取结束时自动设置 fetching = false
-            LOG_INFO("re-acquired lock after fetch attempt. Queue empty: {}", m_que.empty());
-            lock.lock();
-        }
-        else {
-            // 其他线程
-            LOG_INFO("waiting as another fetch is in progress. Queue empty: {}", m_que.empty());
-            m_que_cv.wait(lock, [this]() {
-                return !m_que.empty();
-            });
-            LOG_INFO("Fetching: {}", m_fetching.load());
-        }
-        // todo 线程拉取拨号计划为空时需要等待
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-    }
-
+    m_que_cv.wait(lock, [this]() {
+        return !m_que.empty();
+    });
     auto dialplan = m_que.front();
     m_que.pop();
     LOG_INFO("popped: {} {}", dialplan.first, dialplan.second);

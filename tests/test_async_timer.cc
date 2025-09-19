@@ -1,6 +1,6 @@
 #define BOOST_TEST_MODULE ASYNC_TIMER_TEST
 
-#include "../async_timer.h"
+#include "../voip/async_timer.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/asio.hpp>

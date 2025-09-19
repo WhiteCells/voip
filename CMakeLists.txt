@@ -26,11 +26,11 @@ if(WIN32)
 
     set(PJPROJECT_DIR        "D:/third_party_libs/pjproject")
     set(PJSIP_INCLUDE_DIRS
-            "${PJPROJECT_DIR}/pjsip/include"
-            "${PJPROJECT_DIR}/pjlib/include"
-            "${PJPROJECT_DIR}/pjlib-util/include"
-            "${PJPROJECT_DIR}/pjmedia/include"
-            "${PJPROJECT_DIR}/pjnath/include"
+        "${PJPROJECT_DIR}/pjsip/include"
+        "${PJPROJECT_DIR}/pjlib/include"
+        "${PJPROJECT_DIR}/pjlib-util/include"
+        "${PJPROJECT_DIR}/pjmedia/include"
+        "${PJPROJECT_DIR}/pjnath/include"
     )
 
     set(PJSIP_LIBRARY_DIR "${PJPROJECT_DIR}/pjsip/lib")
@@ -47,7 +47,7 @@ if(WIN32)
             voip/caller_queue.cc
             voip/caller.cc
             voip/vaccount.cc
-            voip/client.cc
+            #voip/client.cc
             voip/request.hpp
             voip/io_context_pool.cc
             voip/ini.cc
@@ -55,12 +55,8 @@ if(WIN32)
             voip/thread_pool.cc
             voip/logger.cc
             voip/coordinator.cc
-            voip/server.cc
-            voip/handler.cc
-            voip/http.cc
-            voip/agent_audiomediaport.cc
-#            voip/account_check.cc
-#            voip/account_check_manager.cc
+            voip/account_check.cc
+            voip/account_check_manager.cc
             voip/main.cc
     )
 
@@ -74,82 +70,83 @@ if(WIN32)
     add_executable(${PROJECT_NAME} ${SRC})
 
     target_include_directories(${PROJECT_NAME} PRIVATE
-            ${Boost_INCLUDE_DIRS}
-            ${SPDLOG_INCLUDE_DIR}
-            ${JSONCPP_INCLUDE_DIR}
-            ${PJSIP_INCLUDE_DIRS}
-            ${JRTPLIB_INCLUDE_DIR}
-            D:/third_party_libs/JRTPLIB/build/src
-            D:/third_party_libs/JRTPLIB/src
-            D:/third_party_libs/JThread/src
+        ${Boost_INCLUDE_DIRS}
+        ${SPDLOG_INCLUDE_DIR}
+        ${JSONCPP_INCLUDE_DIR}
+        ${PJSIP_INCLUDE_DIRS}
+        ${JRTPLIB_INCLUDE_DIR}
+        D:/third_party_libs/JRTPLIB/build/src
+        D:/third_party_libs/JThread/src
     )
 
     target_link_directories(${PROJECT_NAME} PRIVATE
-            ${BOOST_LIBRARYDIR}
-            ${SPDLOG_LIBRARY_DIR}
-            ${JSONCPP_LIBRARY_DIR}
-            ${PJSIP_LIBRARY_DIR}
-            ${PJLIB_LIBRARY_DIR}
-            ${PJLIB_UTIL_LIBRARY_DIR}
-            ${PJMEDIA_LIBRARY_DIR}
-            ${PJNATH_LIBRARY_DIR}
-            ${THIRD_PARTY_LIB_DIR}
-            ${JRTPLIB_LIBRARY_DIR}
+        ${BOOST_LIBRARYDIR}
+        ${SPDLOG_LIBRARY_DIR}
+        ${JSONCPP_LIBRARY_DIR}
+        ${PJSIP_LIBRARY_DIR}
+        ${PJLIB_LIBRARY_DIR}
+        ${PJLIB_UTIL_LIBRARY_DIR}
+        ${PJMEDIA_LIBRARY_DIR}
+        ${PJNATH_LIBRARY_DIR}
+        ${THIRD_PARTY_LIB_DIR}
+        ${JRTPLIB_LIBRARY_DIR}
     )
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
-            # Boost
-            ${Boost_LIBRARIES}
+        # Boost
+        ${Boost_LIBRARIES}
 
-            # JsonCpp
-            jsoncpp_static.lib
+        # JsonCpp
+        jsoncpp_static.lib
 
-            # PJSIP
-            pjsip-core-x86_64-x64-vc14-Release.lib
-            pjsip-simple-x86_64-x64-vc14-Release.lib
-            pjsip-ua-x86_64-x64-vc14-Release.lib
-            pjsua-lib-x86_64-x64-vc14-Release.lib
-            pjsua2-lib-x86_64-x64-vc14-Release.lib
+        # PJSIP
+        pjsip-core-x86_64-x64-vc14-Release.lib
+        pjsip-simple-x86_64-x64-vc14-Release.lib
+        pjsip-ua-x86_64-x64-vc14-Release.lib
+        pjsua-lib-x86_64-x64-vc14-Release.lib
+        pjsua2-lib-x86_64-x64-vc14-Release.lib
 
-            # PJLIB
-            pjlib-x86_64-x64-vc14-Release.lib
-            pjlib-util-x86_64-x64-vc14-Release.lib
+        # PJLIB
+        pjlib-x86_64-x64-vc14-Release.lib
+        pjlib-util-x86_64-x64-vc14-Release.lib
 
-            # PJMEDIA
-            pjmedia-audiodev-x86_64-x64-vc14-Release.lib
-            pjmedia-codec-x86_64-x64-vc14-Release.lib
-            pjmedia-videodev-x86_64-x64-vc14-Release.lib
-            pjmedia-x86_64-x64-vc14-Release.lib
+        # PJMEDIA
+        pjmedia-audiodev-x86_64-x64-vc14-Release.lib
+        pjmedia-codec-x86_64-x64-vc14-Release.lib
+        pjmedia-videodev-x86_64-x64-vc14-Release.lib
+        pjmedia-x86_64-x64-vc14-Release.lib
 
-            # PJNATH
-            pjnath-x86_64-x64-vc14-Release.lib
+        # PJNATH
+        pjnath-x86_64-x64-vc14-Release.lib
 
-            # Third party
-            libbaseclasses-x86_64-x64-vc14-Release.lib
-            libg7221codec-x86_64-x64-vc14-Release.lib
-            libgsmcodec-x86_64-x64-vc14-Release.lib
-            libilbccodec-x86_64-x64-vc14-Release.lib
-            libmilenage-x86_64-x64-vc14-Release.lib
-            libresample-x86_64-x64-vc14-Release.lib
-            libspeex-x86_64-x64-vc14-Release.lib
-            libsrtp-x86_64-x64-vc14-Release.lib
-            libwebrtc-x86_64-x64-vc14-Release.lib
-            libyuv-x86_64-x64-vc14-Release.lib
+        # Third party
+        libbaseclasses-x86_64-x64-vc14-Release.lib
+        libg7221codec-x86_64-x64-vc14-Release.lib
+        libgsmcodec-x86_64-x64-vc14-Release.lib
+        libilbccodec-x86_64-x64-vc14-Release.lib
+        libmilenage-x86_64-x64-vc14-Release.lib
+        libresample-x86_64-x64-vc14-Release.lib
+        libspeex-x86_64-x64-vc14-Release.lib
+        libsrtp-x86_64-x64-vc14-Release.lib
+        libwebrtc-x86_64-x64-vc14-Release.lib
+        libyuv-x86_64-x64-vc14-Release.lib
 
-            # JRTPLIB
-            jrtplib.lib
+        # JRTPLIB
+        jrtplib.lib
 
-            D:/third_party_libs/JThread/build/src/Release/jthread.lib
-            # System
-            ws2_32.lib
+        D:/third_party_libs/JThread/build/src/Release/jthread.lib
 
-            # openssl
-            D:/vcpkg/packages/openssl_x64-windows/lib/libcrypto.lib
-            D:/vcpkg/packages/openssl_x64-windows/lib/libssl.lib
+        # System
+        ws2_32.lib
+
+        # openssl
+        D:/vcpkg/packages/openssl_x64-windows/lib/libcrypto.lib
+        D:/vcpkg/packages/openssl_x64-windows/lib/libssl.lib
 
     )
 else()
     configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/voip/.env COPYONLY)
+    configure_file(${CMAKE_SOURCE_DIR}/server.crt ${CMAKE_BINARY_DIR}/voip/server.crt COPYONLY)
 
     add_subdirectory(third_party/spdlog)
     add_subdirectory(third_party/jsoncpp)

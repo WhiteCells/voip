@@ -2,11 +2,15 @@
 #define _VCALL_H_
 
 #include "agent_audiomediaport.h"
+#include "coordinator.h"
 #include <pjsua2.hpp>
 #include <string>
 #include <memory>
+#include <ctime>
 
 class CallerQueue;
+
+class IWSSender;
 
 namespace voip {
 
@@ -14,8 +18,6 @@ class VAccount;
 
 /**
  * @brief 呼叫者
- * 继承 pj::Call
- * 通过重载父类虚函数实现对状态的获取
  */
 class Caller :
     public pj::Call,
@@ -38,17 +40,17 @@ public:
 
     // virtual void onStreamCreated(pj::OnStreamCreatedParam &prm) override;
 
-    /**
-     * @brief 呼叫方法
-     *
-     * @param phone 呼叫手机号
-     * @param client_id 客户端 ID
-     * @param que 呼叫者队列，用于在呼叫完成后回收呼叫者
-     * @param caller 需要回收的呼叫者
-     */
-    void call(const std::string &phone,
-              const std::string &client_id,
-              const int dialplan_id);
+    void group_call(const std::string &phone,
+                    const std::string &client_id,
+                    const int dialplan_id,
+                    std::shared_ptr<Coordinator> coordinator,
+                    std::shared_ptr<IWSSender> sender);
+
+    void single_call(const std::string &phone,
+                     const std::string &client_id,
+                     const int dialplan_id,
+                     std::shared_ptr<Coordinator> coordinator,
+                     std::shared_ptr<IWSSender> sender);
 
     void hangup_();
 
@@ -58,12 +60,15 @@ private:
     std::string m_filename;
     VAccount &acc_;
 
-    std::shared_ptr<pj::AudioMediaRecorder> aud_media_recorder_;
-
     std::string m_phone;
     std::string m_client_id;
+    std::shared_ptr<Coordinator> m_coordinator;
+    std::shared_ptr<IWSSender> m_sender;
+    int m_call_status = 0;
+    int call_type;
+    std::string hangup_direction;
+
     std::shared_ptr<AgentAudioMediaPort> m_aud_media_port;
-    std::shared_ptr<pj::AudioMediaPlayer> m_aud_media_player;
 };
 
 } // namespace voip

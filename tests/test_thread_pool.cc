@@ -1,6 +1,6 @@
 #define BOOST_TEST_MODULE THREAD_POOL_TEST
 
-#include "../thread_pool.h"
+#include "../voip/thread_pool.h"
 
 #include <boost/test/unit_test.hpp>
 

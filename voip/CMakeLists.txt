@@ -1,25 +1,26 @@
 set(SRC 
-    agent_audiomediaport.cc
     global.cc
     async_timer.cc
     dialplan_queue.cc
     caller_queue.cc
-    caller_vec.cc
     caller.cc
     vaccount.cc
-    client.cc
+    # client.cc
     request.hpp
     io_context_pool.cc
-    server.cc
     ini.cc
-    http.cc
-    handler.cc
     singleton.hpp
     thread_pool.cc
     logger.cc
     coordinator.cc
+    account_check.cc
+    account_check_manager.cc
+    agent_audiomediaport.cc
     main.cc
 )
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 add_executable(${PROJECT_NAME} ${SRC})
 
@@ -76,3 +77,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     opencore-amrwb
     bcg729
 )
+
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

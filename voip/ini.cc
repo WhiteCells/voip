@@ -1,15 +1,14 @@
 #include "ini.h"
 #include "global.h"
 #include "logger.h"
-
 #include <string>
 #include <fstream>
 
 /**
  * @brief 去除多余空格
- * 
+ *
  * @param str 输入字符串
- * @return std::string 
+ * @return std::string
  */
 std::string trimSpace(const std::string &str)
 {
@@ -28,7 +27,7 @@ std::string trimSpace(const std::string &str)
 
 /**
  * @brief 加载 .ini 配置文件
- * 
+ *
  * @param filename .ini 配置文件路径
  */
 void loadINICfg(const std::string &filename)
@@ -36,7 +35,7 @@ void loadINICfg(const std::string &filename)
     std::ifstream file(filename);
     if (!file.is_open()) {
         LOG_CRITICAL("load ini file failed");
-        throw std::runtime_error{"load ini file failed"};
+        throw std::runtime_error {"load ini file failed"};
     }
     std::string line;
 
@@ -62,4 +61,6 @@ void loadINICfg(const std::string &filename)
 
     backend_host = cfg["BACKEND_HOST"];
     backend_port = cfg["BACKEND_PORT"];
+    client_id = cfg["CLIENT_ID"];
+    verify_file = cfg["VERIFY_FILE"];
 }

@@ -1,12 +1,13 @@
 #include "coordinator.h"
 #include "logger.h"
+#include "caller.h"
 
 void Coordinator::notifyCallConfirmed(std::shared_ptr<voip::Caller> winner)
 {
     std::unique_lock<std::mutex> lock(m_mtx);
+    // 确保唯一 winner
     if (!m_confirmed) {
         m_confirmed = true;
-        // m_winner_tid = getThreadId();
         m_winner_caller = winner;
         m_confirmed_cv.notify_all();
         LOG_WARN("one call confirmed");
@@ -15,8 +16,17 @@ void Coordinator::notifyCallConfirmed(std::shared_ptr<voip::Caller> winner)
 
 void Coordinator::notifyCallDisconnected(std::shared_ptr<voip::Caller> winner)
 {
+    // std::unique_lock<std::mutex> lock(m_mtx);
+    // // 只有 winner 才可以通知通话结束
+    // if (winner.get() == m_winner_caller.get()) {
+    //     m_finished = true;
+    //     m_disconnected_cv.notify_all();
+    //     LOG_WARN("one call disconnected");
+    // }
     std::unique_lock<std::mutex> lock(m_mtx);
-    if (winner == m_winner_caller) {
+    auto cur = m_winner_caller.lock();
+    // 如果有 winner（weak -> shared 成功），或者直接比较裸指针
+    if (cur && winner.get() == cur.get()) {
         m_finished = true;
         m_disconnected_cv.notify_all();
         LOG_WARN("one call disconnected");
@@ -32,6 +42,19 @@ void Coordinator::waitForWinner()
     });
 }
 
+bool Coordinator::waitForWinner(std::chrono::seconds timeout)
+{
+    std::unique_lock<std::mutex> lock(m_mtx);
+    bool ok = m_confirmed_cv.wait_for(lock, timeout, [&]() {
+        LOG_WARN("recv confirmed notify to check confirmed");
+        return m_confirmed.load();
+    });
+    if (!ok) {
+        LOG_WARN("wait for winner time out");
+    }
+    return ok;
+}
+
 void Coordinator::waitForCallFinished()
 {
     std::unique_lock<std::mutex> lock(m_mtx);
@@ -41,10 +64,32 @@ void Coordinator::waitForCallFinished()
     });
 }
 
+bool Coordinator::waitForSingleCallConfirmed(std::chrono::seconds timeout)
+{
+    std::unique_lock<std::mutex> lock(m_mtx);
+    bool ok = m_confirmed_cv.wait_for(lock, timeout, [&]() {
+        LOG_WARN("wait for single call confirmed");
+        return m_confirmed.load();
+    });
+    if (!ok) {
+        LOG_WARN("wait for single confirmed timeout");
+    }
+    return ok;
+}
+
+void Coordinator::waitForSingleCallFinished()
+{
+    std::unique_lock<std::mutex> lock(m_mtx);
+    m_disconnected_cv.wait(lock, [&]() {
+        LOG_WARN("wait for notify");
+        return m_finished.load();
+    });
+}
+
 bool Coordinator::isWinner(std::shared_ptr<voip::Caller> winner) const
 {
-    // return getThreadId() == m_winner_tid;
-    return m_winner_caller == winner;
+    auto cur = m_winner_caller.lock();
+    return cur && cur.get() == winner.get();
 }
 
 bool Coordinator::shouldAbort(std::shared_ptr<voip::Caller> winner) const
@@ -64,6 +109,5 @@ void Coordinator::reset_()
     std::unique_lock<std::mutex> lock(m_mtx);
     m_confirmed = false;
     m_finished = false;
-    // m_winner_tid = getThreadId();
     m_winner_caller.reset();
 }

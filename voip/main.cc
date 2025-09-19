@@ -1,16 +1,13 @@
-#include "server.h"
-#include "client.h"
 #include "global.h"
 #include "ini.h"
 #include "logger.h"
-
-#include <iostream>
+#include "web_agent_bridge.h"
+#include "gui_ws_server.h"
 
 int main()
 {
     // logger
     Logger::init();
-    // LOG_INFO("client start");
     LOG_INFO("client start");
 
     // config
@@ -19,24 +16,19 @@ int main()
     // endpoint
     startEndpointLib(5060);
 
-    Client client;
+    auto web_ws_client = std::make_shared<WebWsClient>();
+    auto agent_ws_client = std::make_shared<AgentWsClient>();
+    auto gui_ws_server = std::make_shared<GuiWsServer>("0.0.0.0", 8001, web_ws_client);
 
-    try {
-        asio::io_context ioc(1);
-        asio::signal_set signals(ioc, SIGINT, SIGTERM);
-        signals.async_wait([&ioc](boost::system::error_code ec, int signal_num) {
-            if (ec) {
-                std::cerr << "[Signal Number]: " << signal_num << std::endl;
-                return;
-            }
-            ioc.stop();
-        });
-        std::make_shared<Server>(ioc, 8001)->start();
-        ioc.run();
-    }
-    catch (const std::exception &e) {
-        std::cerr << "[Exception]: " << e.what() << std::endl;
-        return 1;
-    }
+    web_ws_client->set_server_sender(gui_ws_server);
+    agent_ws_client->set_server_sender(gui_ws_server);
+
+    web_ws_client->start();
+    agent_ws_client->start();
+
+    auto bridget = std::make_shared<WebAgentBridge>(agent_ws_client, web_ws_client);
+
+    web_ws_client->start_call();
+
     return 0;
 }
