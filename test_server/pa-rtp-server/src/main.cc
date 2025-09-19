@@ -75,19 +75,21 @@ static int outputCallback(const void *, void *outputBuffer,
 
 int main(int argc, char *argv[])
 {
+    (void)argc;
+    (void)argv;
     signal(SIGINT, signal_handler);
 
-    AudioDev dev(8000, 160, 1, paInt16);
+    AudioDev dev(16000, 320, 1, paInt16);
     dev.openStream(outputCallback, inputCallback);
     dev.startStream();
 
-    RtpServer server(output_que, input_que, "127.0.0.1",
-                     8002,
-                     8000,
-                     1.0 / 8000.0,
-                     160);
+    RtpServer server(output_que, input_que, "192.168.2.3",
+                     51001,
+                     8004,
+                     1.0 / 16000.0,
+                     320);
 
-    std::thread t([&]() {
+    std::thread t1([&]() {
         server.poll(running);
     });
 
@@ -95,12 +97,7 @@ int main(int argc, char *argv[])
         server.send(running);
     });
 
-    // for (;;) {
-    //     std::vector<uint8_t> fake(160, 0x55);
-    //     server.sendFrame(fake.data(), fake.size());
-    // }
-
-    t.join();
+    t1.join();
     t2.join();
 
     return 0;

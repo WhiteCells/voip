@@ -12,6 +12,7 @@
 #include <functional>
 #include <atomic>
 #include <iostream>
+#include <opus/opus.h>
 
 class RtpServer
 {
@@ -19,12 +20,15 @@ public:
     using RecvCallback = std::function<void(const float *, size_t)>;
     RtpServer(AudioQueue &output_que, AudioQueue &input_que,
               const std::string &remote_ip,
-              int16_t remote_port, int16_t local_port,
+              uint16_t remote_port, uint16_t local_port,
               double tsunit, uint32_t tsinc) :
         m_remote_ip(remote_ip),
         m_output_que(output_que),
         m_input_que(input_que)
     {
+        m_encoder = opus_encoder_create(16000, 1, OPUS_APPLICATION_VOIP, nullptr);
+        m_decoder = opus_decoder_create(16000, 1, nullptr);
+
         jrtplib::RTPSessionParams sess_prm;
         sess_prm.SetOwnTimestampUnit(tsunit);
         sess_prm.SetAcceptOwnPackets(true);
@@ -35,7 +39,8 @@ public:
 
         int status = m_session.Create(sess_prm, &ts_prm);
         if (status) {
-            return;
+            std::cerr << "ERROR: " << jrtplib::RTPGetErrorString(status) << std::endl;
+            exit(-1);
         }
 
         std::cout << "listen port: " << local_port << std::endl;
@@ -46,7 +51,7 @@ public:
 
         jrtplib::RTPIPv4Address addr(ipval, remote_port);
         m_session.AddDestination(addr);
-        m_session.SetDefaultPayloadType(96);
+        m_session.SetDefaultPayloadType(0);
         m_session.SetDefaultMark(false);
         m_session.SetDefaultTimestampIncrement(tsinc);
     }
@@ -63,8 +68,19 @@ public:
         std::cout << __func__ << std::endl;
         while (running) {
             if (!m_input_que.empty()) {
+                const int max_packet_size = 1500;
+                std::vector<unsigned char> encoded(max_packet_size);
                 AudioQueue::FrameType p = m_input_que.pop();
-                m_session.SendPacket(p.first, p.second);
+                int bytes = opus_encode(m_encoder,
+                                        (const int16_t *)p.first,
+                                        320,
+                                        encoded.data(),
+                                        max_packet_size);
+                if (bytes < 0) {
+                    std::cerr << "encode failed: " << bytes << std::endl;
+                    continue;
+                }
+                m_session.SendPacket(encoded.data(), bytes);
                 std::cout << "Send Payload" << std::endl;
                 // std::cout << "Send Payload: " << p.first << ", Samples: " << p.second << std::endl;
             }
@@ -82,13 +98,26 @@ public:
                     jrtplib::RTPPacket *pkt;
                     while ((pkt = m_session.GetNextPacket()) != nullptr) {
                         size_t len = pkt->GetPayloadLength();
-                        int16_t *copy = new int16_t[len / sizeof(int16_t)];
-                        std::memcpy(copy, pkt->GetPayloadData(), len);
-                        // int16_t *data = (int16_t *)pkt->GetPayloadData();
-                        m_output_que.push(copy, len);
-                        std::cout << "Recv Payload" << std::endl;
-                        // std::cout << "Recv Payload: " << data << ", Samples: " << samples << std::endl;
-                        m_session.DeletePacket(pkt);
+                        const unsigned char *payload = pkt->GetPayloadData();
+                        int16_t pcm[320];
+                        int frame_size = opus_decode(m_decoder, payload, len, pcm, 320, 0);
+                        if (frame_size < 0) {
+                            std::cerr << "decode failed: " << frame_size << std::endl;
+                            m_session.DeletePacket(pkt);
+                            continue;
+                        }
+                        int16_t *copy = new int16_t[frame_size];
+                        std::memcpy(copy, pcm, frame_size * sizeof(int16_t));
+                        m_output_que.push(copy, frame_size * sizeof(int16_t));
+                        std::cout << "Recv Payload (decoded)" << std::endl;
+
+                        // int16_t *copy = new int16_t[len / sizeof(int16_t)];
+                        // std::memcpy(copy, pkt->GetPayloadData(), len);
+                        // // int16_t *data = (int16_t *)pkt->GetPayloadData();
+                        // m_output_que.push(copy, len);
+                        // std::cout << "Recv Payload" << std::endl;
+                        // // std::cout << "Recv Payload: " << data << ", Samples: " << samples << std::endl;
+                        // m_session.DeletePacket(pkt);
                     }
                 } while (m_session.GotoNextSourceWithData());
             }
@@ -102,6 +131,8 @@ private:
     std::atomic<bool> m_running;
     AudioQueue &m_output_que;
     AudioQueue &m_input_que;
+    OpusEncoder *m_encoder {nullptr};
+    OpusDecoder *m_decoder {nullptr};
 };
 
 #endif // _RTP_SERVER_H_
