@@ -22,7 +22,10 @@ if(WIN32)
     set(JSONCPP_LIBRARY_DIR  "D:/third_party_libs/jsoncpp/build/lib/Release")
 
     set(JRTPLIB_INCLUDE_DIR  "D:/third_party_libs/JRTPLIB/src")
-    set(JRTPLIB_LIBRARY_DIR  "D:/third_party_libs/JRTPLIB/build/src")
+    set(JRTPLIB_LIBRARY_DIR  "D:/third_party_libs/JRTPLIB/build/src/Release")
+
+    set(OPUSLIB_INCLUDE_DIR "D:/third_party_libs/opus-1.5.2/include")
+    set(OPUSLIB_LIBRARY_DIR "D:/third_party_libs/opus-1.5.2/build_release/Release")
 
     set(PJPROJECT_DIR        "D:/third_party_libs/pjproject")
     set(PJSIP_INCLUDE_DIRS
@@ -57,6 +60,7 @@ if(WIN32)
             voip/coordinator.cc
             voip/account_check.cc
             voip/account_check_manager.cc
+            voip/agent_audiomediaport.cc
             voip/main.cc
     )
 
@@ -77,6 +81,7 @@ if(WIN32)
         ${JRTPLIB_INCLUDE_DIR}
         D:/third_party_libs/JRTPLIB/build/src
         D:/third_party_libs/JThread/src
+        ${OPUSLIB_INCLUDE_DIR}
     )
 
     target_link_directories(${PROJECT_NAME} PRIVATE
@@ -90,6 +95,7 @@ if(WIN32)
         ${PJNATH_LIBRARY_DIR}
         ${THIRD_PARTY_LIB_DIR}
         ${JRTPLIB_LIBRARY_DIR}
+        ${OPUSLIB_LIBRARY_DIR}
     )
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -142,6 +148,8 @@ if(WIN32)
         # openssl
         D:/vcpkg/packages/openssl_x64-windows/lib/libcrypto.lib
         D:/vcpkg/packages/openssl_x64-windows/lib/libssl.lib
+
+        opus.lib
 
     )
 else()

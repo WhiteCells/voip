@@ -15,6 +15,10 @@ std::string client_id;
 
 std::string verify_file;
 
+std::string remote_host;
+
+std::string remote_port;
+
 cfg_map cfg;
 
 std::string local_hangup = "0";

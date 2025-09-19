@@ -63,4 +63,6 @@ void loadINICfg(const std::string &filename)
     backend_port = cfg["BACKEND_PORT"];
     client_id = cfg["CLIENT_ID"];
     verify_file = cfg["VERIFY_FILE"];
+    remote_host = cfg["REMOTE_HOST"];
+    remote_port = cfg["REMOTE_PORT"];
 }

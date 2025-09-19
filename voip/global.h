@@ -3,7 +3,7 @@
 
 #include "ini.h"
 #include <pjsua2.hpp>
-#include <opus/opus.h>
+#include <opus.h>
 #include <sstream>
 #include <string>
 
@@ -29,6 +29,10 @@ extern std::string backend_port;
 extern std::string client_id;
 
 extern std::string verify_file;
+
+extern std::string remote_host;
+
+extern std::string remote_port;
 
 extern cfg_map cfg;
 
