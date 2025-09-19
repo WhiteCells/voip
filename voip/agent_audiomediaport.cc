@@ -1,4 +1,5 @@
 #include "agent_audiomediaport.h"
+#include "global.h"
 #include "logger.h"
 #include <fstream>
 
@@ -12,8 +13,8 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     fmt.channelCount = 1;          //
     fmt.bitsPerSample = 16;        //
     fmt.frameTimeUsec = 20000;     //
-    fmt.avgBps = 256000;           //
-    fmt.maxBps = 256000;           //
+    fmt.avgBps = 32000;            //
+    fmt.maxBps = 32000;            //
     pj::AudioMediaPort::createPort("port", fmt);
 
     // RTP 会话初始化
@@ -32,13 +33,13 @@ AgentAudioMediaPort::AgentAudioMediaPort()
         return;
     }
 
-    m_session.SetDefaultPayloadType(96);
+    m_session.SetDefaultPayloadType(0);
     m_session.SetDefaultMark(false);
     m_session.SetDefaultTimestampIncrement(320);
 
-    uint32_t ip = inet_addr("127.0.0.1");
+    uint32_t ip = inet_addr("192.168.2.3");
     ip = ntohl(ip);
-    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, 8000)); // 远程服务器 IP:端口
+    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, 51001)); // 远程服务器 IP:端口
 
     m_running = true;
     m_rtp_recv_thread = std::thread([this]() {
@@ -48,9 +49,17 @@ AgentAudioMediaPort::AgentAudioMediaPort()
                 do {
                     jrtplib::RTPPacket *packet;
                     while ((packet = m_session.GetNextPacket()) != nullptr) {
-                        std::vector<uint8_t> data(
-                            packet->GetPayloadData(),
-                            packet->GetPayloadData() + packet->GetPayloadLength());
+                        std::size_t len = packet->GetPayloadLength();
+                        const unsigned char *payload = packet->GetPayloadData();
+                        int16_t pcm[320];
+                        int frame_size = opus_decode(decoder, payload, len, pcm, 320, 0);
+                        if (frame_size < 0) {
+                            LOG_ERROR("Opus decode failed: {}", opus_strerror(frame_size));
+                            m_session.DeletePacket(packet);
+                            continue;
+                        }
+                        std::vector<uint8_t> data(frame_size * sizeof(int16_t));
+                        memcpy(data.data(), pcm, frame_size * sizeof(int16_t));
                         {
                             std::lock_guard<std::mutex> lock(m_buffer_mtx);
                             m_rtp_recv_buffer.push_back(std::move(data));
@@ -113,17 +122,28 @@ void AgentAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 {
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
     if (frame.size > 0) {
-        int status = m_session.SendPacket(frame.buf.data(), frame.size);
+        const int max_packet_size = 1500;
+        std::vector<unsigned char> encoded(max_packet_size);
+        int encoded_bytes = opus_encode(encoder,
+                                        (const int16_t *)frame.buf.data(),
+                                        320,
+                                        encoded.data(),
+                                        max_packet_size);
+        if (encoded_bytes < 0) {
+            LOG_ERROR("Opus encode failed: {}", opus_strerror(encoded_bytes));
+            return;
+        }
+        int status = m_session.SendPacket(encoded.data(), encoded_bytes);
         // LOG_INFO("SendPacket: {}", std::string(reinterpret_cast<const char*>(frame.buf.data()), frame.size));
         if (status < 0) {
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
+            return;
         }
         LOG_INFO("Send RTP");
     }
 
-    static std::ofstream pcm_out(
-        "output.pcm",
-        std::ios::binary | std::ios::out | std::ios::trunc);
+    static std::ofstream pcm_out("output.pcm",
+                                 std::ios::binary | std::ios::out | std::ios::trunc);
     if (!pcm_out.is_open()) {
         LOG_ERROR("Failed to open output.pcm");
         return;

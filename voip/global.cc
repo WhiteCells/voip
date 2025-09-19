@@ -39,8 +39,14 @@ void startEndpointLib(unsigned port)
     endpoint.transportCreate(PJSIP_TRANSPORT_UDP, ts_cfg);
 
     endpoint.libStart();
+
+    encoder = opus_encoder_create(16000, 1, OPUS_APPLICATION_VOIP, nullptr);
+    decoder = opus_decoder_create(16000, 1, nullptr);
 }
 
 GUIConfig g_gui_cfg;
 
 std::string g_task_id;
+
+OpusEncoder *encoder;
+OpusDecoder *decoder;

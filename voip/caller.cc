@@ -291,8 +291,7 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             aud_med = (pj::AudioMedia *)getMedia(i);
 
             aud_med->startTransmit(*m_aud_media_port);
-            cap_dev_med.startTransmit(*aud_med);
-            aud_med->startTransmit(play_dev_med);
+            m_aud_media_port->startTransmit(*aud_med);
         }
     }
 }

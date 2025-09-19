@@ -3,6 +3,7 @@
 
 #include "ini.h"
 #include <pjsua2.hpp>
+#include <opus/opus.h>
 #include <sstream>
 #include <string>
 
@@ -92,5 +93,8 @@ struct AccountsRegState
 extern GUIConfig g_gui_cfg;
 
 extern std::string g_task_id;
+
+extern OpusEncoder *encoder;
+extern OpusDecoder *decoder;
 
 #endif // _GLOBAL_H_
