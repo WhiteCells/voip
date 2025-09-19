@@ -3,7 +3,11 @@
 
 #include "ini.h"
 #include <pjsua2.hpp>
+#ifdef _WIN32
 #include <opus.h>
+#else
+#include <opus/opus.h>
+#endif
 #include <sstream>
 #include <string>
 
