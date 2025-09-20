@@ -37,12 +37,8 @@ logs/
 
 # Audio files
 *.wav
-
-
-/jrtp
-
-/assert
+*.pcm
+*.opus
+*.ogg
 
 g_client_id
-
-*.pcm

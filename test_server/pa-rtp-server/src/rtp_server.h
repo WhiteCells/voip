@@ -2,7 +2,7 @@
 #define _RTP_SERVER_H_
 
 #include "audio_queue.h"
-#ifdef WIN32
+#ifdef _WIN32
 #include <rtpsession.h>
 #include <rtppacket.h>
 #include <rtpipv4address.h>
@@ -20,6 +20,7 @@
 #include <functional>
 #include <atomic>
 #include <iostream>
+#include <thread>
 #include <opus/opus.h>
 
 class RtpServer
@@ -75,6 +76,7 @@ public:
     {
         std::cout << __func__ << std::endl;
         while (running) {
+            // std::cout << __func__ << " loop" << std::endl;
             if (!m_input_que.empty()) {
                 const int max_packet_size = 1500;
                 std::vector<unsigned char> encoded(max_packet_size);
@@ -99,8 +101,8 @@ public:
     {
         std::cout << __func__ << std::endl;
         while (running) {
+            // std::cout << __func__ << " loop" << std::endl;
             m_session.Poll();
-            m_session.BeginDataAccess();
             if (m_session.GotoFirstSourceWithData()) {
                 do {
                     jrtplib::RTPPacket *pkt;
@@ -118,18 +120,10 @@ public:
                         std::memcpy(copy, pcm, frame_size * sizeof(int16_t));
                         m_output_que.push(copy, frame_size * sizeof(int16_t));
                         std::cout << "Recv Payload (decoded)" << std::endl;
-
-                        // int16_t *copy = new int16_t[len / sizeof(int16_t)];
-                        // std::memcpy(copy, pkt->GetPayloadData(), len);
-                        // // int16_t *data = (int16_t *)pkt->GetPayloadData();
-                        // m_output_que.push(copy, len);
-                        // std::cout << "Recv Payload" << std::endl;
-                        // // std::cout << "Recv Payload: " << data << ", Samples: " << samples << std::endl;
-                        // m_session.DeletePacket(pkt);
                     }
                 } while (m_session.GotoNextSourceWithData());
             }
-            m_session.EndDataAccess();
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
 

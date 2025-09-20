@@ -1,7 +1,6 @@
 #include "agent_audiomediaport.h"
 #include "global.h"
 #include "logger.h"
-#include "ini.h"
 #include <fstream>
 
 AgentAudioMediaPort::AgentAudioMediaPort()
@@ -38,8 +37,8 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     m_session.SetDefaultMark(false);
     m_session.SetDefaultTimestampIncrement(320);
 
-    const char* ip_str = remote_host.c_str();
-    uint16_t port =  static_cast<uint16_t>(std::stoi(remote_port));
+    const char *ip_str = remote_host.c_str();
+    uint16_t port = static_cast<uint16_t>(std::stoi(remote_port));
     uint32_t ip = inet_addr(ip_str);
     ip = ntohl(ip);
     m_session.AddDestination(jrtplib::RTPIPv4Address(ip, port)); // 远程服务器 IP:端口
@@ -61,15 +60,15 @@ AgentAudioMediaPort::AgentAudioMediaPort()
                             m_session.DeletePacket(packet);
                             continue;
                         }
-                        std::vector<uint8_t> data(frame_size * sizeof(int16_t));
+                        std::vector<uint16_t> data(frame_size * sizeof(int16_t));
                         memcpy(data.data(), pcm, frame_size * sizeof(int16_t));
                         {
                             std::lock_guard<std::mutex> lock(m_buffer_mtx);
                             m_rtp_recv_buffer.push_back(std::move(data));
-                            if (m_rtp_recv_buffer.size() > 50) {
-                                m_rtp_recv_buffer.pop_front(); // 限制缓冲大小
-                                // LOG_INFO("Rtp Recv Buffer pop font");
-                            }
+                            // if (m_rtp_recv_buffer.size() > 50) {
+                            //     m_rtp_recv_buffer.pop_front(); // 限制缓冲大小
+                            //     LOG_INFO("Rtp Recv Buffer pop font");
+                            // }
                             LOG_INFO("Recv RTP");
                         }
                         m_session.DeletePacket(packet);
@@ -99,17 +98,24 @@ AgentAudioMediaPort::~AgentAudioMediaPort()
 // 接收 rtp server 的音频数据
 void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
+    static std::ofstream recv_audio("agent2client.pcm",
+                                    std::ios::binary | std::ios::out | std::ios::app);
+    if (!recv_audio.is_open()) {
+        LOG_ERROR("Failed to open recv.pcm");
+    }
+
     const int sampleRate = 16000;
     const int channels = 1;
     const int duration_ms = 20;
-    const int samplesPerFrame = sampleRate * duration_ms / 1000;
+    const int samplesPerFrame = channels * sampleRate * duration_ms / 1000;
     frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
     frame.size = samplesPerFrame * sizeof(int16_t);
     frame.buf.resize(frame.size);
 
     std::lock_guard<std::mutex> lock(m_buffer_mtx);
     if (!m_rtp_recv_buffer.empty()) {
-        std::vector<uint8_t> &pkt = m_rtp_recv_buffer.front();
+        std::vector<uint16_t> &pkt = m_rtp_recv_buffer.front();
+        recv_audio.write(reinterpret_cast<char *>(pkt.data()), pkt.size());
         size_t copy_size = (std::min)(pkt.size(), frame.buf.size());
         memcpy(frame.buf.data(), pkt.data(), copy_size);
         m_rtp_recv_buffer.pop_front();
@@ -124,6 +130,12 @@ void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 void AgentAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 {
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
+    static std::ofstream send_audio("client2agent.pcm",
+                                    std::ios::binary | std::ios::out | std::ios::trunc);
+    if (!send_audio.is_open()) {
+        LOG_ERROR("Failed to open client2agent.pcm");
+    }
+
     if (frame.size > 0) {
         const int max_packet_size = 1500;
         std::vector<unsigned char> encoded(max_packet_size);
@@ -137,6 +149,7 @@ void AgentAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             return;
         }
         int status = m_session.SendPacket(encoded.data(), encoded_bytes);
+        send_audio.write(reinterpret_cast<char *>(encoded.data()), encoded_bytes);
         // LOG_INFO("SendPacket: {}", std::string(reinterpret_cast<const char*>(frame.buf.data()), frame.size));
         if (status < 0) {
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
@@ -144,12 +157,4 @@ void AgentAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         }
         LOG_INFO("Send RTP");
     }
-
-    static std::ofstream pcm_out("output.pcm",
-                                 std::ios::binary | std::ios::out | std::ios::trunc);
-    if (!pcm_out.is_open()) {
-        LOG_ERROR("Failed to open output.pcm");
-        return;
-    }
-    pcm_out.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
 }

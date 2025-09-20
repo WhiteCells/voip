@@ -1,7 +1,7 @@
 #ifndef _AGENT_AUDIOMEDIAPORT_H_
 #define _AGENT_AUDIOMEDIAPORT_H_
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <rtpsession.h>
 #include <rtppacket.h>
 #include <rtpipv4address.h>
@@ -54,7 +54,7 @@ private:
     jrtplib::RTPSession m_session;
     std::thread m_rtp_recv_thread;
     std::atomic<bool> m_running;
-    std::deque<std::vector<uint8_t>> m_rtp_recv_buffer;
+    std::deque<std::vector<uint16_t>> m_rtp_recv_buffer;
     std::mutex m_buffer_mtx;
 };
 

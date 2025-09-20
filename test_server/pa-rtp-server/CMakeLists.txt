@@ -1,13 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(voip LANGUAGES CXX VERSION 1.0)
+project(pa-rtp-server LANGUAGES CXX VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(WIN32)
     if (MSVC)
-
         add_compile_options(/bigobj)
         add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
     endif()
