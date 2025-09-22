@@ -1,4 +1,5 @@
 #include "caller.h"
+#include "agent_audiomediaport.h"
 #include "vaccount.h"
 #include "request.hpp"
 #include "caller_queue.h"
@@ -11,7 +12,8 @@
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
     acc_(acc),
-    m_aud_media_port(std::make_shared<AgentAudioMediaPort>())
+    m_agent_media_port(std::make_shared<AgentAudioMediaPort>()),
+    m_cap_agent_media_port(std::make_shared<AgentCapAudioMediaPort>())
 {
 }
 
@@ -290,8 +292,11 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             LOG_INFO("used media index: {}", i);
             aud_med = (pj::AudioMedia *)getMedia(i);
 
-            aud_med->startTransmit(*m_aud_media_port);
-            m_aud_media_port->startTransmit(*aud_med);
+            aud_med->startTransmit(*m_agent_media_port);
+            cap_dev_med.startTransmit(*m_cap_agent_media_port);
+
+            aud_med->startTransmit(play_dev_med);
+            cap_dev_med.startTransmit(*aud_med);
         }
     }
 }

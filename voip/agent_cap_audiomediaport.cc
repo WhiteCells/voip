@@ -1,9 +1,9 @@
-#include "agent_audiomediaport.h"
+#include "agent_cap_audiomediaport.h"
 #include "global.h"
 #include "logger.h"
 #include <fstream>
 
-AgentAudioMediaPort::AgentAudioMediaPort()
+AgentCapAudioMediaPort::AgentCapAudioMediaPort()
 {
     LOG_INFO(">>> construct {}", __func__);
     pj::MediaFormatAudio fmt;      //
@@ -24,7 +24,7 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     sessparams.SetAcceptOwnPackets(true);
 
     RTPUDPv4TransmissionParams transparams;
-    transparams.SetPortbase(8002); // 本地 RTP 端口
+    transparams.SetPortbase(8004); // 本地 RTP 端口
 
     int status = m_session.Create(sessparams, &transparams);
     if (status < 0) {
@@ -41,7 +41,7 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     uint16_t port = static_cast<uint16_t>(std::stoi(remote_port));
     uint32_t ip = inet_addr("192.168.2.3");
     ip = ntohl(ip);
-    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, 51002)); // 远程服务器 IP:端口
+    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, 51003)); // 远程服务器 IP:端口
 
     m_running = true;
     // m_rtp_recv_thread = std::thread([this]() {
@@ -81,7 +81,7 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     LOG_INFO("<<< construct {}", __func__);
 }
 
-AgentAudioMediaPort::~AgentAudioMediaPort()
+AgentCapAudioMediaPort::~AgentCapAudioMediaPort()
 {
     LOG_INFO(">>> {}", __func__);
     m_running = false;
@@ -96,7 +96,7 @@ AgentAudioMediaPort::~AgentAudioMediaPort()
 
 // 向客户推送音频
 // 接收 rtp server 的音频数据
-void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
+void AgentCapAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
     static std::ofstream recv_audio("agent2client.pcm",
                                     std::ios::binary | std::ios::out | std::ios::app);
@@ -127,7 +127,7 @@ void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 
 // 接收客户音频
 // 推送 rtp server 的音频数据
-void AgentAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
+void AgentCapAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 {
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
     static std::ofstream send_audio("client2agent.pcm",
@@ -155,6 +155,6 @@ void AgentAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-        LOG_INFO("Send customer RTP");
+        LOG_INFO("Send mediator RTP");
     }
 }

@@ -16,6 +16,7 @@ set(SRC
     account_check.cc
     account_check_manager.cc
     agent_audiomediaport.cc
+    agent_cap_audiomediaport.cc
     main.cc
 )
 

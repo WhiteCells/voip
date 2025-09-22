@@ -2,6 +2,7 @@
 #define _VCALL_H_
 
 #include "agent_audiomediaport.h"
+#include "agent_cap_audiomediaport.h"
 #include "coordinator.h"
 #include <pjsua2.hpp>
 #include <string>
@@ -68,7 +69,8 @@ private:
     int call_type;
     std::string hangup_direction;
 
-    std::shared_ptr<AgentAudioMediaPort> m_aud_media_port;
+    std::shared_ptr<AgentAudioMediaPort> m_agent_media_port;
+    std::shared_ptr<AgentCapAudioMediaPort> m_cap_agent_media_port;
 };
 
 } // namespace voip
