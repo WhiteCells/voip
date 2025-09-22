@@ -61,6 +61,7 @@ if(WIN32)
             voip/account_check.cc
             voip/account_check_manager.cc
             voip/agent_audiomediaport.cc
+            voip/agent_cap_audiomediaport.cc
             voip/main.cc
     )
 
