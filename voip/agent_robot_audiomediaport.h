@@ -1,5 +1,5 @@
-#ifndef _AGENT_AUDIOMEDIAPORT_H_
-#define _AGENT_AUDIOMEDIAPORT_H_
+#ifndef _AGENT_ROBOT_AUDIOMEDIAPORT_H_
+#define _AGENT_ROBOT_AUDIOMEDIAPORT_H_
 
 #ifdef _WIN32
 #include <rtpsession.h>
@@ -20,11 +20,11 @@
 #include <mutex>
 #include <atomic>
 
-class AgentAudioMediaPort : public pj::AudioMediaPort
+class AgentRobotAudioMediaPort : public pj::AudioMediaPort
 {
 public:
-    AgentAudioMediaPort();
-    ~AgentAudioMediaPort();
+    AgentRobotAudioMediaPort();
+    ~AgentRobotAudioMediaPort();
 
     /*
      * Callbacks
@@ -58,4 +58,4 @@ private:
     std::mutex m_buffer_mtx;
 };
 
-#endif // _AGENT_AUDIOMEDIAPORT_H_
+#endif // _AGENT_ROBOT_AUDIOMEDIAPORT_H_

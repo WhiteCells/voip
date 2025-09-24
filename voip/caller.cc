@@ -1,5 +1,4 @@
 #include "caller.h"
-#include "agent_audiomediaport.h"
 #include "vaccount.h"
 #include "request.hpp"
 #include "caller_queue.h"
@@ -12,8 +11,12 @@
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
     pj::Call(acc, call_id),
     acc_(acc),
-    m_agent_media_port(std::make_shared<AgentAudioMediaPort>()),
-    m_cap_agent_media_port(std::make_shared<AgentCapAudioMediaPort>())
+#ifdef REMINDER
+    m_agent_aud_media_port(std::make_shared<AgentAudAudioMediaPort>()),
+    m_agent_cap_media_port(std::make_shared<AgentCapAudioMediaPort>())
+#elif ROBOT
+    m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
+#endif
 {
 }
 
@@ -296,15 +299,21 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             LOG_INFO("used media index: {}", i);
             aud_med = (pj::AudioMedia *)getMedia(i);
 
-            if(m_call_method == "manual"){
-            //pass
-            }
-
-            aud_med->startTransmit(*m_agent_media_port);
-            cap_dev_med.startTransmit(*m_cap_agent_media_port);
+#ifdef REMINDER
+            aud_med->startTransmit(*m_agent_aud_media_port);
+            cap_dev_med.startTransmit(*m_agent_cap_media_port);
 
             aud_med->startTransmit(play_dev_med);
             cap_dev_med.startTransmit(*aud_med);
+
+            if (m_call_method == "manual") {
+                aud_med->startTransmit(*m_agent_robot_media_port);
+                m_agent_robot_media_port->startTransmit(*aud_med);
+            }
+#elif ROBOT
+            aud_med->startTransmit(*m_agent_robot_media_port);
+            m_agent_robot_media_port->startTransmit(*aud_med);
+#endif
         }
     }
 }

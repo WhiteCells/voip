@@ -1,9 +1,9 @@
-#include "agent_audiomediaport.h"
+#include "agent_aud_audiomediaport.h"
 #include "global.h"
 #include "logger.h"
 #include <fstream>
 
-AgentAudioMediaPort::AgentAudioMediaPort()
+AgentAudAudioMediaPort::AgentAudAudioMediaPort()
 {
     LOG_INFO(">>> construct {}", __func__);
     pj::MediaFormatAudio fmt;      //
@@ -44,44 +44,10 @@ AgentAudioMediaPort::AgentAudioMediaPort()
     m_session.AddDestination(jrtplib::RTPIPv4Address(ip, 51002)); // 远程服务器 IP:端口
 
     m_running = true;
-    // m_rtp_recv_thread = std::thread([this]() {
-    //     while (m_running) {
-    //         m_session.Poll();
-    //         if (m_session.GotoFirstSourceWithData()) {
-    //             do {
-    //                 jrtplib::RTPPacket *packet;
-    //                 while ((packet = m_session.GetNextPacket()) != nullptr) {
-    //                     std::size_t len = packet->GetPayloadLength();
-    //                     const unsigned char *payload = packet->GetPayloadData();
-    //                     int16_t pcm[320];
-    //                     int frame_size = opus_decode(decoder, payload, len, pcm, 320, 0);
-    //                     if (frame_size < 0) {
-    //                         LOG_ERROR("Opus decode failed: {}", opus_strerror(frame_size));
-    //                         m_session.DeletePacket(packet);
-    //                         continue;
-    //                     }
-    //                     std::vector<uint16_t> data(frame_size * sizeof(int16_t));
-    //                     memcpy(data.data(), pcm, frame_size * sizeof(int16_t));
-    //                     {
-    //                         std::lock_guard<std::mutex> lock(m_buffer_mtx);
-    //                         m_rtp_recv_buffer.push_back(std::move(data));
-    //                         // if (m_rtp_recv_buffer.size() > 50) {
-    //                         //     m_rtp_recv_buffer.pop_front(); // 限制缓冲大小
-    //                         //     LOG_INFO("Rtp Recv Buffer pop font");
-    //                         // }
-    //                         LOG_INFO("Recv RTP");
-    //                     }
-    //                     m_session.DeletePacket(packet);
-    //                 }
-    //             } while (m_session.GotoNextSourceWithData());
-    //         }
-    //         std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    //     }
-    // });
     LOG_INFO("<<< construct {}", __func__);
 }
 
-AgentAudioMediaPort::~AgentAudioMediaPort()
+AgentAudAudioMediaPort::~AgentAudAudioMediaPort()
 {
     LOG_INFO(">>> {}", __func__);
     m_running = false;
@@ -96,7 +62,7 @@ AgentAudioMediaPort::~AgentAudioMediaPort()
 
 // 向客户推送音频
 // 接收 rtp server 的音频数据
-void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
+void AgentAudAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
     static std::ofstream recv_audio("agent2client.pcm",
                                     std::ios::binary | std::ios::out | std::ios::app);
@@ -127,7 +93,7 @@ void AgentAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 
 // 接收客户音频
 // 推送 rtp server 的音频数据
-void AgentAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
+void AgentAudAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 {
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
     static std::ofstream send_audio("client2agent.pcm",

@@ -1,3 +1,6 @@
+option(SSL "Enable SSL" OFF)
+option(FEATURE "Feature to build: REMINDER or ROBOT" "REMINDER")
+
 set(SRC 
     global.cc
     async_timer.cc
@@ -15,8 +18,9 @@ set(SRC
     coordinator.cc
     account_check.cc
     account_check_manager.cc
-    agent_audiomediaport.cc
+    agent_aud_audiomediaport.cc
     agent_cap_audiomediaport.cc
+    agent_robot_audiomediaport.cc
     main.cc
 )
 
@@ -24,6 +28,16 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 add_executable(${PROJECT_NAME} ${SRC})
+
+if(FEATURE STREQUAL "REMINDER")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE REMINDER)
+elseif(FEATURE STREQUAL "ROBOT")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ROBOT)
+endif()
+
+if(SSL)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE SSL)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${Boost_INCLUDE_DIRS}
@@ -77,6 +91,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     opencore-amrnb 
     opencore-amrwb
     bcg729
-)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+    Qt${QT_VERSION_MAJOR}::Widgets
+)

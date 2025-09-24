@@ -4,16 +4,23 @@ project(voip LANGUAGES CXX VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/voip/.env COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/server.crt ${CMAKE_BINARY_DIR}/voip/server.crt COPYONLY)
 
 if(WIN32)
     if (MSVC)
-
         add_compile_options(/bigobj)
         add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
     endif()
 
+    if(POLICY CMP0167)
+        cmake_policy(SET CMP0167 NEW)
+    endif()
+
     set(BOOST_ROOT           "D:/third_party_libs/boost")
-    set(BOOST_LIBRARYDIR     "${BOOST_ROOT}/stage/lib")
+    set(BOOST_LIBRARY_DIR    "${BOOST_ROOT}/stage/lib")
 
     set(SPDLOG_INCLUDE_DIR   "D:/third_party_libs/spdlog/include")
     set(SPDLOG_LIBRARY_DIR   "D:/third_party_libs/spdlog/build/Release")
@@ -24,8 +31,8 @@ if(WIN32)
     set(JRTPLIB_INCLUDE_DIR  "D:/third_party_libs/JRTPLIB/src")
     set(JRTPLIB_LIBRARY_DIR  "D:/third_party_libs/JRTPLIB/build/src/Release")
 
-    set(OPUSLIB_INCLUDE_DIR "D:/third_party_libs/opus-1.5.2/include")
-    set(OPUSLIB_LIBRARY_DIR "D:/third_party_libs/opus-1.5.2/build_release/Release")
+    set(OPUSLIB_INCLUDE_DIR  "D:/third_party_libs/opus-1.5.2/include")
+    set(OPUSLIB_LIBRARY_DIR  "D:/third_party_libs/opus-1.5.2/build_release/Release")
 
     set(PJPROJECT_DIR        "D:/third_party_libs/pjproject")
     set(PJSIP_INCLUDE_DIRS
@@ -36,40 +43,35 @@ if(WIN32)
         "${PJPROJECT_DIR}/pjnath/include"
     )
 
-    set(PJSIP_LIBRARY_DIR "${PJPROJECT_DIR}/pjsip/lib")
-    set(PJLIB_LIBRARY_DIR "${PJPROJECT_DIR}/pjlib/lib")
+    set(PJSIP_LIBRARY_DIR      "${PJPROJECT_DIR}/pjsip/lib")
+    set(PJLIB_LIBRARY_DIR      "${PJPROJECT_DIR}/pjlib/lib")
     set(PJLIB_UTIL_LIBRARY_DIR "${PJPROJECT_DIR}/pjlib-util/lib")
-    set(PJMEDIA_LIBRARY_DIR "${PJPROJECT_DIR}/pjmedia/lib")
-    set(PJNATH_LIBRARY_DIR "${PJPROJECT_DIR}/pjnath/lib")
-    set(THIRD_PARTY_LIB_DIR "${PJPROJECT_DIR}/third_party/lib")
+    set(PJMEDIA_LIBRARY_DIR    "${PJPROJECT_DIR}/pjmedia/lib")
+    set(PJNATH_LIBRARY_DIR     "${PJPROJECT_DIR}/pjnath/lib")
 
-    set(VOIP_SRC
-            voip/global.cc
-            voip/async_timer.cc
-            voip/dialplan_queue.cc
-            voip/caller_queue.cc
-            voip/caller.cc
-            voip/vaccount.cc
-            #voip/client.cc
-            voip/request.hpp
-            voip/io_context_pool.cc
-            voip/ini.cc
-            voip/singleton.hpp
-            voip/thread_pool.cc
-            voip/logger.cc
-            voip/coordinator.cc
-            voip/account_check.cc
-            voip/account_check_manager.cc
-            voip/agent_audiomediaport.cc
-            voip/agent_cap_audiomediaport.cc
-            voip/main.cc
+    set(SRC
+        voip/global.cc
+        voip/async_timer.cc
+        voip/dialplan_queue.cc
+        voip/caller_queue.cc
+        voip/caller.cc
+        voip/vaccount.cc
+        # voip/client.cc
+        voip/request.hpp
+        voip/io_context_pool.cc
+        voip/ini.cc
+        voip/singleton.hpp
+        voip/thread_pool.cc
+        voip/logger.cc
+        voip/coordinator.cc
+        voip/account_check.cc
+        voip/account_check_manager.cc
+        voip/agent_audiomediaport.cc
+        voip/agent_cap_audiomediaport.cc
+        voip/main.cc
     )
 
-    set(SRC ${VOIP_SRC})
-
-    if(POLICY CMP0167)
-        cmake_policy(SET CMP0167 NEW)
-    endif()
+    set(SRC ${SRC})
 
     find_package(Boost REQUIRED COMPONENTS system filesystem)
     add_executable(${PROJECT_NAME} ${SRC})
@@ -86,7 +88,7 @@ if(WIN32)
     )
 
     target_link_directories(${PROJECT_NAME} PRIVATE
-        ${BOOST_LIBRARYDIR}
+        ${BOOST_LIBRARY_DIR}
         ${SPDLOG_LIBRARY_DIR}
         ${JSONCPP_LIBRARY_DIR}
         ${PJSIP_LIBRARY_DIR}
@@ -94,7 +96,6 @@ if(WIN32)
         ${PJLIB_UTIL_LIBRARY_DIR}
         ${PJMEDIA_LIBRARY_DIR}
         ${PJNATH_LIBRARY_DIR}
-        ${THIRD_PARTY_LIB_DIR}
         ${JRTPLIB_LIBRARY_DIR}
         ${OPUSLIB_LIBRARY_DIR}
     )
@@ -151,15 +152,9 @@ if(WIN32)
         D:/vcpkg/packages/openssl_x64-windows/lib/libssl.lib
 
         opus.lib
-
     )
 else()
-    configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/voip/.env COPYONLY)
-    configure_file(${CMAKE_SOURCE_DIR}/server.crt ${CMAKE_BINARY_DIR}/voip/server.crt COPYONLY)
-
     add_subdirectory(third_party/spdlog)
     add_subdirectory(third_party/jsoncpp)
     add_subdirectory(voip)
-
 endif ()
-

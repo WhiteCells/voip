@@ -8,11 +8,13 @@
 #include <rtpipv4address.h>
 #include <rtpsessionparams.h>
 #include <rtpudpv4transmitter.h>
+#include <opus.h>
 #else
 #include <jrtplib3/rtpsession.h>
 #include <jrtplib3/rtppacket.h>
 #include <jrtplib3/rtpsessionparams.h>
 #include <jrtplib3/rtpudpv4transmitter.h>
+#include <opus/opus.h>
 #endif
 #include <string>
 #include <cstdint>
@@ -21,7 +23,6 @@
 #include <atomic>
 #include <iostream>
 #include <thread>
-#include <opus.h>
 
 class RtpServer
 {

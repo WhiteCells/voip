@@ -9,3 +9,9 @@
 1. 信令安全（TLS）
 2. 媒体安全（音频数据）
 3. 鉴权机制（客户端）
+
+```sh
+cmake -B build \
+-DENABLE_SSL=ON \
+-DFEATURE=REMINDER # ROBOT
+```
