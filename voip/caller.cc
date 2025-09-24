@@ -9,13 +9,13 @@
 #include "ws_interface.h"
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id) :
-    pj::Call(acc, call_id),
-    acc_(acc),
+    pj::Call(acc, call_id)
+    , acc_(acc)
 #ifdef REMINDER
-    m_agent_aud_media_port(std::make_shared<AgentAudAudioMediaPort>()),
-    m_agent_cap_media_port(std::make_shared<AgentCapAudioMediaPort>())
+    , m_agent_aud_media_port(std::make_shared<AgentAudAudioMediaPort>())
+    , m_agent_cap_media_port(std::make_shared<AgentCapAudioMediaPort>())
 #elif ROBOT
-    m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
+    , m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
 #endif
 {
 }
@@ -76,7 +76,8 @@ void voip::Caller::group_call(
         voip::pushCallState(m_phone,
                             m_call_status,
                             call_type,
-                            "mediator");
+                            "mediator",
+                            m_call_method);
         return;
     }
     m_coordinator->waitForCallFinished();
@@ -126,7 +127,8 @@ void voip::Caller::single_call(const std::string &phone,
         voip::pushCallState(m_phone,
                             m_call_status,
                             call_type,
-                            "mediator");
+                            "mediator",
+                            m_call_method);
         return;
     }
     m_coordinator->waitForSingleCallFinished();
@@ -226,7 +228,8 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             voip::pushCallState(m_phone,
                                 "connect",
                                 call_type,
-                                "");
+                                "",
+                                m_call_method);
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
@@ -273,7 +276,8 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             voip::pushCallState(tmp_phone,
                                 m_call_status,
                                 call_type,
-                                tmp_hangup_direction);
+                                tmp_hangup_direction,
+                                m_call_method);
             break;
         }
         default:

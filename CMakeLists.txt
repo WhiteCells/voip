@@ -48,6 +48,7 @@ if(WIN32)
     set(PJLIB_UTIL_LIBRARY_DIR "${PJPROJECT_DIR}/pjlib-util/lib")
     set(PJMEDIA_LIBRARY_DIR    "${PJPROJECT_DIR}/pjmedia/lib")
     set(PJNATH_LIBRARY_DIR     "${PJPROJECT_DIR}/pjnath/lib")
+    set(THIRD_PARTY_LIB_DIR    "${PJPROJECT_DIR}/third_party/lib")
 
     set(SRC
         voip/global.cc
@@ -66,8 +67,9 @@ if(WIN32)
         voip/coordinator.cc
         voip/account_check.cc
         voip/account_check_manager.cc
-        voip/agent_audiomediaport.cc
+        voip/agent_aud_audiomediaport.cc
         voip/agent_cap_audiomediaport.cc
+        voip/agent_robot_audiomediaport.cc
         voip/main.cc
     )
 
@@ -97,6 +99,7 @@ if(WIN32)
         ${PJMEDIA_LIBRARY_DIR}
         ${PJNATH_LIBRARY_DIR}
         ${JRTPLIB_LIBRARY_DIR}
+        ${THIRD_PARTY_LIB_DIR}
         ${OPUSLIB_LIBRARY_DIR}
     )
 
