@@ -43,12 +43,12 @@ if(WIN32)
         "${PJPROJECT_DIR}/pjnath/include"
     )
 
-    set(PJSIP_LIBRARY_DIR      "${PJPROJECT_DIR}/pjsip/lib")
-    set(PJLIB_LIBRARY_DIR      "${PJPROJECT_DIR}/pjlib/lib")
-    set(PJLIB_UTIL_LIBRARY_DIR "${PJPROJECT_DIR}/pjlib-util/lib")
-    set(PJMEDIA_LIBRARY_DIR    "${PJPROJECT_DIR}/pjmedia/lib")
-    set(PJNATH_LIBRARY_DIR     "${PJPROJECT_DIR}/pjnath/lib")
-    set(THIRD_PARTY_LIB_DIR    "${PJPROJECT_DIR}/third_party/lib")
+    set(PJPROJECT_PJSIP_LIBRARY_DIR      "${PJPROJECT_DIR}/pjsip/lib")
+    set(PJPROJECT_PJLIB_LIBRARY_DIR      "${PJPROJECT_DIR}/pjlib/lib")
+    set(PJPROJECT_PJLIB_UTIL_LIBRARY_DIR "${PJPROJECT_DIR}/pjlib-util/lib")
+    set(PJPROJECT_PJMEDIA_LIBRARY_DIR    "${PJPROJECT_DIR}/pjmedia/lib")
+    set(PJPROJECT_PJNATH_LIBRARY_DIR     "${PJPROJECT_DIR}/pjnath/lib")
+    set(PJPROJECT_THIRD_PARTY_LIB_DIR    "${PJPROJECT_DIR}/third_party/lib")
 
     set(SRC
         voip/global.cc
@@ -93,13 +93,13 @@ if(WIN32)
         ${BOOST_LIBRARY_DIR}
         ${SPDLOG_LIBRARY_DIR}
         ${JSONCPP_LIBRARY_DIR}
-        ${PJSIP_LIBRARY_DIR}
-        ${PJLIB_LIBRARY_DIR}
-        ${PJLIB_UTIL_LIBRARY_DIR}
-        ${PJMEDIA_LIBRARY_DIR}
-        ${PJNATH_LIBRARY_DIR}
+        ${PJPROJECT_PJSIP_LIBRARY_DIR}
+        ${PJPROJECT_PJLIB_LIBRARY_DIR}
+        ${PJPROJECT_PJLIB_UTIL_LIBRARY_DIR}
+        ${PJPROJECT_PJMEDIA_LIBRARY_DIR}
+        ${PJPROJECT_PJNATH_LIBRARY_DIR}
+        ${PJPROJECT_THIRD_PARTY_LIB_DIR}
         ${JRTPLIB_LIBRARY_DIR}
-        ${THIRD_PARTY_LIB_DIR}
         ${OPUSLIB_LIBRARY_DIR}
     )
 

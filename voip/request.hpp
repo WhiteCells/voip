@@ -6,9 +6,11 @@
 #include "logger.h"
 #include "global.h"
 #include <boost/asio.hpp>
+#ifdef VOIP_SSL
 #include <boost/asio/ssl.hpp>
-#include <boost/beast/http.hpp>
 #include <boost/beast/ssl.hpp>
+#endif
+#include <boost/beast/http.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -24,7 +26,9 @@ namespace voip {
 namespace asio = boost::asio;
 namespace beast = boost::beast;
 namespace http = beast::http;
+#ifdef VOIP_SSL
 namespace ssl = asio::ssl;
+#endif
 using tcp = asio::ip::tcp;
 
 /**
@@ -99,6 +103,7 @@ inline Json::Value httpRequest(const std::string &host,
     return resp;
 }
 
+#ifdef VOIP_SSL
 inline Json::Value httpSSLRequest(const std::string &host,
                                   const std::string &port,
                                   const std::string &target,
@@ -179,6 +184,10 @@ inline Json::Value httpSSLRequest(const std::string &host,
 
     return resp;
 }
+#else
+
+
+#endif
 
 /**
  * @brief 通知服务端该客户端上线，同时获取客户端 ID
@@ -525,8 +534,13 @@ inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_r
         writer["indentation"] = "";
         std::string body = Json::writeString(writer, root);
         LOG_INFO("push call state body: {}", body);
+#ifdef VOIP_SSL
         auto resp = httpSSLRequest(backend_host, backend_port, target_url,
                                    http::verb::post, {}, body);
+#else
+        auto resp = httpRequest(backend_host, backend_port, target_url,
+                                http::verb::post, {}, body);
+#endif
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
@@ -553,8 +567,13 @@ inline void pushCallState(const std::string &phone,
         writer["indentation"] = "";
         std::string body = Json::writeString(writer, body_json);
         LOG_INFO("push call state body: {}", body);
+#ifdef VOIP_SSL
         auto resp = httpSSLRequest(backend_host, backend_port, target_url,
                                    http::verb::post, {}, body);
+#else
+        auto resp = httpRequest(backend_host, backend_port, target_url,
+                                http::verb::post, {}, body);
+#endif
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
@@ -567,8 +586,13 @@ inline void pushGroupCallFinished(bool is_push)
     try {
         std::map<std::string, std::string> params;
         params["is_push"] = is_push ? "true" : "false";
+#ifdef VOIP_SSL
         auto resp = httpSSLRequest(backend_host, backend_port, target_url,
                                    http::verb::post, params);
+#else
+        auto resp = httpRequest(backend_host, backend_port, target_url,
+                                http::verb::post, params);
+#endif
         LOG_INFO("push group call finished");
     }
     catch (const std::exception &e) {

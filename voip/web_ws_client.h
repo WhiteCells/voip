@@ -13,10 +13,12 @@
 #include "dialplan_queue.h"
 #include "ws_interface.h"
 #include "request.hpp"
-#include <boost/beast.hpp>
+#ifdef VOIP_SSL
 #include <boost/beast/ssl.hpp>
-#include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#endif
+#include <boost/beast.hpp>
+#include <boost/asio.hpp>
 #include <json/json.h>
 #include <functional>
 #include <memory>
@@ -27,7 +29,9 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 namespace websocket = beast::websocket;
 namespace net = boost::asio;
+#ifdef VOIP_SSL
 namespace ssl = boost::asio::ssl;
+#endif
 using tcp = net::ip::tcp;
 
 class WebWsClient :
@@ -36,7 +40,14 @@ class WebWsClient :
 private:
     using AgentWsMsgHandler = std::function<void(const std::string &)>;
     std::unique_ptr<tcp::resolver> m_resolver;
+
+#ifdef VOIP_SSL
     std::unique_ptr<websocket::stream<beast::ssl_stream<beast::tcp_stream>>> m_ws;
+    std::unique_ptr<ssl::context> m_ssl_ctx;
+#else
+    std::unique_ptr<websocket::stream<beast::tcp_stream>> m_ws;
+#endif
+
     beast::flat_buffer m_buffer;
     std::string m_host = backend_host;
     std::string m_port = backend_port;
@@ -59,10 +70,10 @@ private:
     AgentWsMsgHandler m_agent_ws_msg_handler;
 
 public:
-    WebWsClient() :
-        m_thread_pool(5),
-        m_caller_que(std::make_shared<CallerQueue>()),
-        m_dialplan_que(std::make_shared<DialPlanQueue>())
+    WebWsClient()
+        : m_thread_pool(5)
+        , m_caller_que(std::make_shared<CallerQueue>())
+        , m_dialplan_que(std::make_shared<DialPlanQueue>())
     {
         m_on_read_handler = [this](const std::string &msg) {
             static thread_local bool pj_thread_registered = false;
@@ -146,7 +157,7 @@ public:
                     return;
                 }
 
-                if(!root.isMember("call_method") || !root["call_method"].isString()){
+                if (!root.isMember("call_method") || !root["call_method"].isString()) {
                     LOG_ERROR("::call_method");
                     return;
                 }
@@ -160,7 +171,6 @@ public:
                 const std::string call_type = root["call_type"].asString();
                 m_recv_call_type = call_type;
                 m_call_method = root["call_method"].asString();
-
 
                 if (m_server_sender) {
                     Json::Value account_info;
@@ -177,7 +187,7 @@ public:
                     LOG_INFO("Sent account info to WebSocket: {}", message);
                 }
 
-                if (call_type == "group") {
+                if (call_type == "single") {
                     const std::string id = accounts_array[0]["id"].asString();
                     const std::string user = accounts_array[0]["extUser"].asString();
                     const std::string pass = accounts_array[0]["extPsd"].asString();
@@ -188,7 +198,7 @@ public:
                     m_caller_que->addCaller(caller);
                     m_dialplan_que->addDialPlan({1, dialplan});
                 }
-                else if (call_type == "single") {
+                else if (call_type == "group") {
                     for (Json::ArrayIndex i = 0; i < dialplans_array.size(); ++i) {
                         const Json::Value &item = accounts_array[i];
                         const std::string id = item["id"].asString();
@@ -234,11 +244,14 @@ public:
     {
         auto &ioc = IOContextPool::getInstance()->getIOContext();
         m_resolver = std::make_unique<tcp::resolver>(net::make_strand(ioc));
-        ssl::context ssl_ctx(ssl::context::tls_client);
-        ssl_ctx.set_verify_mode(ssl::verify_peer);
-        ssl_ctx.load_verify_file(verify_file);
-        m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(net::make_strand(ioc), ssl_ctx);
-
+#ifdef VOIP_SSL
+        m_ssl_ctx = std::make_unique<ssl::context>(ssl::context::tls_client);
+        m_ssl_ctx->set_verify_mode(ssl::verify_peer);
+        m_ssl_ctx->load_verify_file(verify_file);
+        m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(net::make_strand(ioc), *m_ssl_ctx);
+#else
+        m_ws = std::make_unique<websocket::stream<beast::tcp_stream>>(net::make_strand(ioc));
+#endif
         m_resolver->async_resolve(g_gui_cfg.gui_host,
                                   g_gui_cfg.gui_port,
                                   beast::bind_front_handler(&WebWsClient::on_resolver,
@@ -330,7 +343,7 @@ public:
         LOG_INFO("single call");
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender,m_call_method);
+        caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method);
         LOG_INFO("single call over");
     }
 
@@ -339,7 +352,7 @@ public:
         LOG_INFO("group call index: {}", i);
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->group_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender,m_call_method);
+        caller->group_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method);
         LOG_INFO("call {} over", dialplan.second);
     }
 
@@ -395,11 +408,19 @@ private:
         }));
         m_host = g_gui_cfg.gui_host + ":" + std::to_string(endpoint.port());
         m_target = g_gui_cfg.gui_target + "/" + g_gui_cfg.gui_client_id;
+
+#ifdef VOIP_SSL
         m_ws->next_layer().async_handshake(ssl::stream_base::client,
                                            beast::bind_front_handler(&WebWsClient::on_tls_handshake,
                                                                      shared_from_this()));
+#else
+        m_ws->async_handshake(m_host, m_target,
+                              beast::bind_front_handler(&WebWsClient::on_ws_handshake,
+                                                        shared_from_this()));
+#endif
     }
 
+#ifdef VOIP_SSL
     void on_tls_handshake(beast::error_code ec)
     {
         if (ec) {
@@ -419,6 +440,7 @@ private:
                               beast::bind_front_handler(&WebWsClient::on_ws_handshake,
                                                         shared_from_this()));
     }
+#endif
 
     void on_ws_handshake(beast::error_code ec)
     {

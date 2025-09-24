@@ -6,8 +6,8 @@
 #include "io_context_pool.h"
 #include "ws_interface.h"
 #include <json/json.h>
-#include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
+#include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <memory>

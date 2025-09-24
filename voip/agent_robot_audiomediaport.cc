@@ -155,6 +155,6 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-        LOG_INFO("Send customer RTP");
+        // LOG_INFO("Send customer RTP");
     }
 }

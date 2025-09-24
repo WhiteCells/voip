@@ -22,7 +22,7 @@ AlwaysBreakBeforeMultilineStrings: false              # 不在多行字符串前
 AlwaysBreakTemplateDeclarations: Yes                  # 模板声明始终换行
 BinPackArguments: true                                # 函数参数尽可能放在一行
 BinPackParameters: true                               # 函数声明中的参数尽可能放在一行
-BreakConstructorInitializers: AfterColon              # 构造函数初始化列表在冒号后换行
+BreakConstructorInitializers: BeforeComma              # 构造函数初始化列表在冒号后换行
 BreakInheritanceList: AfterColon                      # 继承列表在冒号后换行
 BreakStringLiterals: true                             # 允许将字符串字面量打断成多行
 CompactNamespaces: false                              # 不使用紧凑命名空间

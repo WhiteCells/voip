@@ -1,4 +1,4 @@
-option(SSL "Enable SSL" OFF)
+option(VOIP_SSL "Enable SSL" OFF)
 option(FEATURE "Feature to build: REMINDER or ROBOT" "REMINDER")
 
 set(SRC 
@@ -36,7 +36,7 @@ elseif(FEATURE STREQUAL "ROBOT")
 endif()
 
 if(SSL)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE SSL)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VOIP_SSL)
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
