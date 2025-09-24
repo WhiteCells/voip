@@ -52,7 +52,7 @@ static int outputCallback(const void *, void *outputBuffer,
 
     if (!output_que.empty()) {
         AudioQueue::FrameType p = output_que.pop();
-        size_t copy_len = std::min(p.second, framesPerBuffer * sizeof(int16_t));
+        size_t copy_len = (std::min)(p.second, framesPerBuffer * sizeof(int16_t));
         std::memcpy(output, p.first, copy_len);
         // delete[] static_cast<int8_t *>(p.first);
         delete[] p.first;
@@ -75,6 +75,10 @@ static int outputCallback(const void *, void *outputBuffer,
 
 int main(int argc, char *argv[])
 {
+#ifdef RTP_SOCKETTYPE_WINSOCK
+    WSADATA dat;
+    WSAStartup(MAKEWORD(2,2),&dat);
+#endif
     (void)argc;
     (void)argv;
     signal(SIGINT, signal_handler);

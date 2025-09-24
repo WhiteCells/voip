@@ -45,13 +45,15 @@ public:
                     const std::string &client_id,
                     const int dialplan_id,
                     std::shared_ptr<Coordinator> coordinator,
-                    std::shared_ptr<IWSSender> sender);
+                    std::shared_ptr<IWSSender> sender,
+                    const std::string &call_method);
 
     void single_call(const std::string &phone,
                      const std::string &client_id,
                      const int dialplan_id,
                      std::shared_ptr<Coordinator> coordinator,
-                     std::shared_ptr<IWSSender> sender);
+                     std::shared_ptr<IWSSender> sender,
+                     const std::string &call_method);
 
     void hangup_();
 
@@ -65,9 +67,10 @@ private:
     std::string m_client_id;
     std::shared_ptr<Coordinator> m_coordinator;
     std::shared_ptr<IWSSender> m_sender;
-    int m_call_status = 0;
-    int call_type;
+    std::string m_call_status;
+    std::string call_type;
     std::string hangup_direction;
+    std::string m_call_method;
 
     std::shared_ptr<AgentAudioMediaPort> m_agent_media_port;
     std::shared_ptr<AgentCapAudioMediaPort> m_cap_agent_media_port;

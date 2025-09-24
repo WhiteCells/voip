@@ -27,14 +27,16 @@ void voip::Caller::group_call(
     const std::string &client_id,
     const int dialplan_id,
     std::shared_ptr<Coordinator> coordinator,
-    std::shared_ptr<IWSSender> sender)
+    std::shared_ptr<IWSSender> sender,
+    const std::string &call_method)
 {
-    call_type = 0;
+    call_type = "group";
     m_coordinator = coordinator;
     m_sender = sender;
     m_dialplan_id = dialplan_id;
     m_phone = phone;
     m_client_id = client_id;
+    m_call_method = call_method;
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
@@ -65,13 +67,13 @@ void voip::Caller::group_call(
         }
 
         LOG_WARN("call {} wait winner time out", m_phone);
-        m_call_status = 2;
+        m_call_status = "no_answered";
         hangup_();
         LOG_INFO("Caller::call phone {} call_status {} call_type {}", m_phone, m_call_status, call_type);
         voip::pushCallState(m_phone,
                             m_call_status,
                             call_type,
-                            "1");
+                            "mediator");
         return;
     }
     m_coordinator->waitForCallFinished();
@@ -81,14 +83,16 @@ void voip::Caller::single_call(const std::string &phone,
                                const std::string &client_id,
                                const int dialplan_id,
                                std::shared_ptr<Coordinator> coordinator,
-                               std::shared_ptr<IWSSender> sender)
+                               std::shared_ptr<IWSSender> sender,
+                               const std::string &call_method)
 {
-    call_type = 1;
+    call_type = "single";
     m_coordinator = coordinator;
     m_sender = sender;
     m_dialplan_id = dialplan_id;
     m_phone = phone;
     m_client_id = client_id;
+    m_call_method = call_method;
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
@@ -114,12 +118,12 @@ void voip::Caller::single_call(const std::string &phone,
         }
 
         LOG_WARN("call {} wait winner time out", m_phone);
-        m_call_status = 2;
+        m_call_status = "no_answered";
         hangup_();
         voip::pushCallState(m_phone,
                             m_call_status,
                             call_type,
-                            "1");
+                            "mediator");
         return;
     }
     m_coordinator->waitForSingleCallFinished();
@@ -217,7 +221,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             LOG_INFO(">>> pushCallState PJSIP_INV_STATE_CONFIRMED call: {}, phone: {}, call_type: {}", std::to_string(m_dialplan_id), m_phone, call_type);
 
             voip::pushCallState(m_phone,
-                                0,
+                                "connect",
                                 call_type,
                                 "");
             break;
@@ -226,16 +230,16 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             LOG_INFO(">>> call: {}, phone: {} disconnected", ci.id, m_phone);
             m_coordinator->notifyCallDisconnected(shared_from_this());
 
-            if (local_hangup == "1") {
+            if (local_hangup == "mediator") {
                 // 主叫方挂断
                 LOG_INFO("{}: 主叫方挂断", m_phone);
-                hangup_direction = "1";
-                local_hangup = "0";
+                hangup_direction = "mediator";
+                local_hangup = "customer";
             }
-            else if (local_hangup == "0") {
+            else if (local_hangup == "customer") {
                 // 被叫方挂断
                 LOG_INFO("{}: 被叫方挂断", m_phone);
-                hangup_direction = "0";
+                hangup_direction = "customer";
             }
             LOG_INFO(">>>phone {},hangup_direction {}", m_phone, hangup_direction);
 
@@ -254,8 +258,8 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 m_sender->send(msg);
             }
 
-            if (m_call_status != 2) {
-                m_call_status = 1;
+            if (m_call_status != "no_answered") {
+                m_call_status = "hangup";
             }
 
             LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}", std::to_string(m_dialplan_id), m_phone, m_call_status, call_type, hangup_direction);
@@ -291,6 +295,10 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
         if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
             LOG_INFO("used media index: {}", i);
             aud_med = (pj::AudioMedia *)getMedia(i);
+
+            if(m_call_method == "manual"){
+            //pass
+            }
 
             aud_med->startTransmit(*m_agent_media_port);
             cap_dev_med.startTransmit(*m_cap_agent_media_port);

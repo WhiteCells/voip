@@ -21,10 +21,13 @@ if(WIN32)
     set(JSONCPP_LIBRARY_DIR  "D:/third_party_libs/jsoncpp/build/lib/Release")
 
     set(JRTPLIB_INCLUDE_DIR  "D:/third_party_libs/JRTPLIB/src")
-    set(JRTPLIB_LIBRARY_DIR  "D:/third_party_libs/JRTPLIB/build/src")
+    set(JRTPLIB_LIBRARY_DIR  "D:/third_party_libs/JRTPLIB/build/src/Release")
 
     set(PORTAUDIO_INCLUDE_DIR "D:/third_party_libs/portaudio/include")
     set(PORTAUDIO_LIBRARY_DIR "D:/third_party_libs/portaudio/build/Release")
+
+    set(OPUSLIB_INCLUDE_DIR "D:/third_party_libs/opus-1.5.2/include")
+    set(OPUSLIB_LIBRARY_DIR "D:/third_party_libs/opus-1.5.2/build_release/Release")
 
     set(PJPROJECT_DIR        "D:/third_party_libs/pjproject")
     set(PJSIP_INCLUDE_DIRS
@@ -65,6 +68,7 @@ if(WIN32)
             D:/third_party_libs/JRTPLIB/src
             D:/third_party_libs/JThread/src
             ${PORTAUDIO_INCLUDE_DIR}
+            ${OPUSLIB_INCLUDE_DIR}
     )
 
     target_link_directories(${PROJECT_NAME} PRIVATE
@@ -79,6 +83,7 @@ if(WIN32)
             ${THIRD_PARTY_LIB_DIR}
             ${JRTPLIB_LIBRARY_DIR}
             ${PORTAUDIO_LIBRARY_DIR}
+            ${OPUSLIB_LIBRARY_DIR}
     )
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -132,6 +137,8 @@ if(WIN32)
             D:/vcpkg/packages/openssl_x64-windows/lib/libssl.lib
 
             portaudio.lib
+
+            opus.lib
 
     )
 else()

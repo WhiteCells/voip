@@ -169,7 +169,7 @@ inline Json::Value httpSSLRequest(const std::string &host,
 
     // close
     beast::error_code ec;
-    ec = stream.shutdown(ec);
+    stream.shutdown(ec);
     if (ec == asio::error::eof) {
         ec.assign(0, ec.category()); // 忽略 EOF
     }
@@ -534,8 +534,8 @@ inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_r
 }
 
 inline void pushCallState(const std::string &phone,
-                          const int status,
-                          const int call_type,
+                          const std::string &status,
+                          const std::string &call_type,
                           const std::string &hangup_direction)
 {
     const auto target_url = genUrl(URL_CALL_STATE, g_gui_cfg.gui_client_id);

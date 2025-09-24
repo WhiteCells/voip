@@ -160,7 +160,7 @@ private:
             std::string action = root["action"].asString();
 
             if (action == "hangup" || action == "close") {
-                local_hangup = "1";
+                local_hangup = "mediator";
                 // 尝试执行挂断所有呼叫操作
                 endpoint.hangupAllCalls();
 

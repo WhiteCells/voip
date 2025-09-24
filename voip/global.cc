@@ -21,7 +21,7 @@ std::string remote_port;
 
 cfg_map cfg;
 
-std::string local_hangup = "0";
+std::string local_hangup = "customer";
 
 void startEndpointLib(unsigned port)
 {

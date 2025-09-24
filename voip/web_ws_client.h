@@ -54,7 +54,8 @@ private:
     std::shared_ptr<DialPlanQueue> m_dialplan_que;
     std::vector<std::shared_ptr<voip::VAccount>> m_acc_vec;
     std::shared_ptr<IWSSender> m_server_sender;
-    int m_recv_call_type;
+    std::string m_recv_call_type;
+    std::string m_call_method;
     AgentWsMsgHandler m_agent_ws_msg_handler;
 
 public:
@@ -86,10 +87,10 @@ public:
                 return;
             }
             LOG_INFO("recv json format: {}", root.toStyledString());
-            const int request_type = root["request_type"].asInt();
+            const std::string request_type = root["request_type"].asString();
             // 经过 1 后才能 0
             // 账号校验
-            if (request_type == 1) {
+            if (request_type == "check") {
                 LOG_INFO("check accounts type");
                 // accounts
                 if (!root.isMember("accounts") || !root["accounts"].isArray()) {
@@ -117,7 +118,7 @@ public:
                     AccountCheckManager::getInstance()->regAccount(acc);
                 }
             }
-            else if (request_type == 0) {
+            else if (request_type == "dialplan") {
                 LOG_INFO("callinfo");
                 // node
                 if (!root.isMember("node") || !root["node"].isString()) {
@@ -140,18 +141,26 @@ public:
                     return;
                 }
                 // call_type
-                if (!root.isMember("call_type") || !root["call_type"].isInt()) {
+                if (!root.isMember("call_type") || !root["call_type"].isString()) {
                     LOG_ERROR("::call_type");
                     return;
                 }
+
+                if(!root.isMember("call_method") || !root["call_method"].isString()){
+                    LOG_ERROR("::call_method");
+                    return;
+                }
+
                 const Json::Value accounts_array = root["accounts"];
                 const std::string node = root["node"].asString();
                 const std::string task_id = root["task_id"].asString();
                 g_task_id = root["task_id"].asString();
                 const Json::Value dialplans_array = root["phones"];
                 m_worker_num = dialplans_array.size();
-                int call_type = root["call_type"].asInt();
+                const std::string call_type = root["call_type"].asString();
                 m_recv_call_type = call_type;
+                m_call_method = root["call_method"].asString();
+
 
                 if (m_server_sender) {
                     Json::Value account_info;
@@ -168,7 +177,7 @@ public:
                     LOG_INFO("Sent account info to WebSocket: {}", message);
                 }
 
-                if (call_type == 1) {
+                if (call_type == "group") {
                     const std::string id = accounts_array[0]["id"].asString();
                     const std::string user = accounts_array[0]["extUser"].asString();
                     const std::string pass = accounts_array[0]["extPsd"].asString();
@@ -179,7 +188,7 @@ public:
                     m_caller_que->addCaller(caller);
                     m_dialplan_que->addDialPlan({1, dialplan});
                 }
-                else if (call_type == 0) {
+                else if (call_type == "single") {
                     for (Json::ArrayIndex i = 0; i < dialplans_array.size(); ++i) {
                         const Json::Value &item = accounts_array[i];
                         const std::string id = item["id"].asString();
@@ -265,7 +274,7 @@ public:
             }
             auto coordinator = std::make_shared<Coordinator>();
             coordinator->reset_();
-            if (m_recv_call_type == 1) {
+            if (m_recv_call_type == "single") {
                 LOG_INFO("start single call");
                 m_thread_pool.addTask([this, coordinator]() {
                     single_call(coordinator);
@@ -284,7 +293,7 @@ public:
                 });
                 LOG_INFO("single finish, start next");
             }
-            else if (m_recv_call_type == 0) {
+            else if (m_recv_call_type == "group") {
                 LOG_INFO("start group call");
                 for (std::size_t i = 0; i < m_worker_num; ++i) {
                     m_thread_pool.addTask([this, i, coordinator]() {
@@ -321,7 +330,7 @@ public:
         LOG_INFO("single call");
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender);
+        caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender,m_call_method);
         LOG_INFO("single call over");
     }
 
@@ -330,7 +339,7 @@ public:
         LOG_INFO("group call index: {}", i);
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->group_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender);
+        caller->group_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender,m_call_method);
         LOG_INFO("call {} over", dialplan.second);
     }
 

@@ -21,7 +21,7 @@
 #include <atomic>
 #include <iostream>
 #include <thread>
-#include <opus/opus.h>
+#include <opus.h>
 
 class RtpServer
 {
