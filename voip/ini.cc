@@ -63,6 +63,10 @@ void loadINICfg(const std::string &filename)
     backend_port = cfg["BACKEND_PORT"];
     client_id = cfg["CLIENT_ID"];
     verify_file = cfg["VERIFY_FILE"];
-    remote_host = cfg["REMOTE_HOST"];
-    remote_port = cfg["REMOTE_PORT"];
+    reminder_consumer_remote_host = cfg["REMINDER_CONSUMER_REMOTE_HOST"];
+    reminder_consumer_remote_port = cfg["REMINDER_CONSUMER_REMOTE_PORT"];
+    reminder_mediator_remote_host = cfg["REMINDER_MEDIATOR_REMOTE_HOST"];
+    reminder_mediator_remote_port = cfg["REMINDER_MEDIATOR_REMOTE_PORT"];
+    robot_remote_host = cfg["ROBOT_REMOTE_HOST"];
+    robot_remote_port = cfg["ROBOT_REMOTE_PORT"];
 }

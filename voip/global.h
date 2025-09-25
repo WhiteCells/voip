@@ -34,9 +34,17 @@ extern std::string client_id;
 
 extern std::string verify_file;
 
-extern std::string remote_host;
+extern std::string reminder_consumer_remote_host;
 
-extern std::string remote_port;
+extern std::string reminder_consumer_remote_port;
+
+extern std::string reminder_mediator_remote_host;
+
+extern std::string reminder_mediator_remote_port;
+
+extern std::string robot_remote_host;
+
+extern std::string robot_remote_port;
 
 extern cfg_map cfg;
 

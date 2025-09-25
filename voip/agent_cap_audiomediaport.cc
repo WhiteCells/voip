@@ -37,11 +37,11 @@ AgentCapAudioMediaPort::AgentCapAudioMediaPort()
     m_session.SetDefaultMark(false);
     m_session.SetDefaultTimestampIncrement(320);
 
-    const char *ip_str = remote_host.c_str();
-    uint16_t port = static_cast<uint16_t>(std::stoi(remote_port));
-    uint32_t ip = inet_addr("192.168.2.3");
+    const char *ip_str = reminder_mediator_remote_host.c_str();
+    uint16_t port = static_cast<uint16_t>(std::stoi(reminder_mediator_remote_port));
+    uint32_t ip = inet_addr(ip_str); // 192.168.2.3
     ip = ntohl(ip);
-    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, 51003)); // 远程服务器 IP:端口
+    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, port)); // 远程服务器 IP:端口  51003
 
     m_running = true;
     LOG_INFO("<<< construct {}", __func__);
@@ -121,6 +121,6 @@ void AgentCapAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-        // LOG_INFO("Send mediator RTP");
+         LOG_INFO("Send mediator RTP");
     }
 }

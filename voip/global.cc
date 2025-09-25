@@ -15,9 +15,17 @@ std::string client_id;
 
 std::string verify_file;
 
-std::string remote_host;
+std::string reminder_consumer_remote_host;
 
-std::string remote_port;
+std::string reminder_consumer_remote_port;
+
+std::string reminder_mediator_remote_host;
+
+std::string reminder_mediator_remote_port;
+
+std::string robot_remote_host;
+
+std::string robot_remote_port;
 
 cfg_map cfg;
 
