@@ -39,9 +39,9 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
 
     const char *ip_str =robot_remote_host.c_str();
     uint16_t port = static_cast<uint16_t>(std::stoi(robot_remote_port));
-    uint32_t ip = inet_addr("192.168.2.3"); //192.168.2.3
+    uint32_t ip = inet_addr(ip_str); //192.168.2.3
     ip = ntohl(ip);
-    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, 51001)); // 远程服务器 IP:端口  51001
+    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, port)); // 远程服务器 IP:端口  51001
 
     m_running = true;
     m_rtp_recv_thread = std::thread([this]() {
