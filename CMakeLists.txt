@@ -9,6 +9,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/voip/.env COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/server.crt ${CMAKE_BINARY_DIR}/voip/server.crt COPYONLY)
 
+option(VOIP_SSL "Enable SSL" OFF)
+option(FEATURE "Feature to build: REMINDER or ROBOT" "REMINDER")
+
 if(WIN32)
     if (MSVC)
         add_compile_options(/bigobj)
@@ -160,4 +163,18 @@ else()
     add_subdirectory(third_party/spdlog)
     add_subdirectory(third_party/jsoncpp)
     add_subdirectory(voip)
+
 endif ()
+
+if(FEATURE STREQUAL "REMINDER")
+    message(">>> target compile definition REMINDER")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE REMINDER)
+elseif(FEATURE STREQUAL "ROBOT")
+    message(">>> target compile definition ROBOT")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ROBOT)
+endif()
+
+if(VOIP_SSL)
+    message(">>> target compile definition VOIP_SSL")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VOIP_SSL)
+endif()

@@ -1,6 +1,3 @@
-option(VOIP_SSL "Enable SSL" OFF)
-option(FEATURE "Feature to build: REMINDER or ROBOT" "REMINDER")
-
 set(SRC 
     global.cc
     async_timer.cc
@@ -28,16 +25,6 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 add_executable(${PROJECT_NAME} ${SRC})
-
-if(FEATURE STREQUAL "REMINDER")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE REMINDER)
-elseif(FEATURE STREQUAL "ROBOT")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE ROBOT)
-endif()
-
-if(SSL)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE VOIP_SSL)
-endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${Boost_INCLUDE_DIRS}
