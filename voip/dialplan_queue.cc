@@ -2,8 +2,8 @@
 #include "request.hpp"
 #include "global.h"
 
-DialPlanQueue::DialPlanQueue() :
-    m_fetching(false)
+DialPlanQueue::DialPlanQueue()
+    : m_fetching(false)
 {
 }
 

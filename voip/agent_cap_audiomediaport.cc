@@ -121,6 +121,6 @@ void AgentCapAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-        LOG_INFO("Send mediator RTP");
+        // LOG_INFO("Send mediator RTP");
     }
 }

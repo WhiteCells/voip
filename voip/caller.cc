@@ -8,8 +8,8 @@
 #include "coordinator.h"
 #include "ws_interface.h"
 
-voip::Caller::Caller(voip::VAccount &acc, int call_id) :
-    pj::Call(acc, call_id)
+voip::Caller::Caller(voip::VAccount &acc, int call_id)
+    : pj::Call(acc, call_id)
     , acc_(acc)
 #ifdef REMINDER
     , m_agent_aud_media_port(std::make_shared<AgentAudAudioMediaPort>())
@@ -25,13 +25,12 @@ voip::Caller::~Caller()
     LOG_INFO("~Caller");
 }
 
-void voip::Caller::group_call(
-    const std::string &phone,
-    const std::string &client_id,
-    const int dialplan_id,
-    std::shared_ptr<Coordinator> coordinator,
-    std::shared_ptr<IWSSender> sender,
-    const std::string &call_method)
+void voip::Caller::group_call(const std::string &phone,
+                              const std::string &client_id,
+                              const int dialplan_id,
+                              std::shared_ptr<Coordinator> coordinator,
+                              std::shared_ptr<IWSSender> sender,
+                              const std::string &call_method)
 {
     call_type = "group";
     m_coordinator = coordinator;
@@ -309,11 +308,6 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
 
             aud_med->startTransmit(play_dev_med);
             cap_dev_med.startTransmit(*aud_med);
-
-            if (m_call_method == "manual") {
-                aud_med->startTransmit(*m_agent_robot_media_port);
-                m_agent_robot_media_port->startTransmit(*aud_med);
-            }
 #elif ROBOT
             aud_med->startTransmit(*m_agent_robot_media_port);
             m_agent_robot_media_port->startTransmit(*aud_med);

@@ -4,8 +4,8 @@
 #include "global.h"
 #include <vector>
 
-AccountCheckManager::AccountCheckManager() :
-    m_pushed(false)
+AccountCheckManager::AccountCheckManager()
+    : m_pushed(false)
 {
 }
 

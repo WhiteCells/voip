@@ -9,9 +9,9 @@ class WebAgentBridge
 {
 public:
     WebAgentBridge(std::shared_ptr<AgentWsClient> agent_ws_client,
-                   std::shared_ptr<WebWsClient> web_ws_client) :
-        m_agent_ws_client(std::move(agent_ws_client)),
-        m_web_ws_client(std::move(web_ws_client))
+                   std::shared_ptr<WebWsClient> web_ws_client)
+        : m_agent_ws_client(std::move(agent_ws_client))
+        , m_web_ws_client(std::move(web_ws_client))
     {
         if (m_agent_ws_client) {
             m_agent_ws_client->set_web_ws_sender([this](const std::string &msg) {

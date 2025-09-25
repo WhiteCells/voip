@@ -6,11 +6,11 @@
 #include <boost/beast.hpp>
 #include <json/json.h>
 
-Client::Client(unsigned workers_num) :
-    m_running(true),
-    m_thread_pool(workers_num),
-    m_caller_que(std::make_shared<CallerQueue>()),
-    m_workers_num(workers_num)
+Client::Client(unsigned workers_num)
+    : m_running(true)
+    , m_thread_pool(workers_num)
+    , m_caller_que(std::make_shared<CallerQueue>())
+    , m_workers_num(workers_num)
 {
     voip::notify();
     voip::heartbeat();

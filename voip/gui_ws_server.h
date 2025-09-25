@@ -23,9 +23,9 @@ class WebSocketSession :
 {
 public:
     explicit WebSocketSession(tcp::socket &&socket,
-                              std::shared_ptr<WebWsClient> client) :
-        m_stream(std::move(socket)),
-        m_client(client)
+                              std::shared_ptr<WebWsClient> client)
+        : m_stream(std::move(socket))
+        , m_client(client)
     {
     }
     ~WebSocketSession() = default;
@@ -204,10 +204,8 @@ class GuiWsServer :
 public:
     GuiWsServer(const std::string &addr,
                 unsigned int port,
-                std::shared_ptr<WebWsClient> client) :
-        m_acceptor(IOContextPool::getInstance()->getIOContext()),
-        m_endpoint(asio::ip::make_address(addr), port),
-        m_client(client)
+                std::shared_ptr<WebWsClient> client)
+        : m_acceptor(IOContextPool::getInstance()->getIOContext()), m_endpoint(asio::ip::make_address(addr), port), m_client(client)
     {
         beast::error_code ec;
         if (m_acceptor.open(m_endpoint.protocol(), ec)) {

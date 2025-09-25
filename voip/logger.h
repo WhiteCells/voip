@@ -17,13 +17,12 @@
 class Logger
 {
 public:
-    static void init(
-        std::string title = "logger",
-        unsigned que_size = 8192,
-        unsigned thread_cnt = 1,
-        const std::string &log_dir = "logs",
-        unsigned max_byte = 1048576 * 5,
-        unsigned max_save = 3)
+    static void init(std::string title = "logger",
+                     unsigned que_size = 8192,
+                     unsigned thread_cnt = 1,
+                     const std::string &log_dir = "logs",
+                     unsigned max_byte = 1048576 * 5,
+                     unsigned max_save = 3)
     {
         spdlog::init_thread_pool(que_size, thread_cnt);
 

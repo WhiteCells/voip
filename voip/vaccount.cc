@@ -2,15 +2,14 @@
 #include "caller.h"
 #include "logger.h"
 
-voip::VAccount::VAccount(
-    const std::string &id,
-    const std::string &user,
-    const std::string &pass,
-    const std::string &host) :
-    m_id(id),
-    m_user(user),
-    m_pass(pass),
-    m_host(host)
+voip::VAccount::VAccount(const std::string &id,
+                         const std::string &user,
+                         const std::string &pass,
+                         const std::string &host)
+    : m_id(id)
+    , m_user(user)
+    , m_pass(pass)
+    , m_host(host)
 {
     LOG_INFO("register Account: {} {} {} {}", id, user, pass, host);
     m_auth_cred_info = pj::AuthCredInfo("digest", "*",
