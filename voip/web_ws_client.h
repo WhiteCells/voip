@@ -67,6 +67,7 @@ private:
     std::shared_ptr<IWSSender> m_server_sender;
     std::string m_recv_call_type;
     std::string m_call_method;
+    std::string m_different;
     AgentWsMsgHandler m_agent_ws_msg_handler;
 
 public:
@@ -162,6 +163,11 @@ public:
                     return;
                 }
 
+                if (!root.isMember("different") || !root["different"].isString()) {
+                    LOG_ERROR("::different");
+                    return;
+                }
+
                 const Json::Value accounts_array = root["accounts"];
                 const std::string node = root["node"].asString();
                 const std::string task_id = root["task_id"].asString();
@@ -171,6 +177,8 @@ public:
                 const std::string call_type = root["call_type"].asString();
                 m_recv_call_type = call_type;
                 m_call_method = root["call_method"].asString();
+                const std::string different = root["different"].asString();
+                m_different = different;
 
                 if (m_server_sender) {
                     Json::Value account_info;
@@ -343,7 +351,7 @@ public:
         LOG_INFO("single call");
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method);
+        caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method,m_different);
         LOG_INFO("single call over");
     }
 
@@ -352,7 +360,7 @@ public:
         LOG_INFO("group call index: {}", i);
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->group_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method);
+        caller->group_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method,m_different);
         LOG_INFO("call {} over", dialplan.second);
     }
 

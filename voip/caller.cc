@@ -30,7 +30,8 @@ void voip::Caller::group_call(const std::string &phone,
                               const int dialplan_id,
                               std::shared_ptr<Coordinator> coordinator,
                               std::shared_ptr<IWSSender> sender,
-                              const std::string &call_method)
+                              const std::string &call_method,
+                              const std::string &different)
 {
     call_type = "group";
     m_coordinator = coordinator;
@@ -39,6 +40,7 @@ void voip::Caller::group_call(const std::string &phone,
     m_phone = phone;
     m_client_id = client_id;
     m_call_method = call_method;
+    m_different = different;
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
@@ -76,7 +78,8 @@ void voip::Caller::group_call(const std::string &phone,
                             m_call_status,
                             call_type,
                             "mediator",
-                            m_call_method);
+                            m_call_method,
+                            m_different);
         return;
     }
     m_coordinator->waitForCallFinished();
@@ -87,7 +90,8 @@ void voip::Caller::single_call(const std::string &phone,
                                const int dialplan_id,
                                std::shared_ptr<Coordinator> coordinator,
                                std::shared_ptr<IWSSender> sender,
-                               const std::string &call_method)
+                               const std::string &call_method,
+                               const std::string &different)
 {
     call_type = "single";
     m_coordinator = coordinator;
@@ -96,6 +100,7 @@ void voip::Caller::single_call(const std::string &phone,
     m_phone = phone;
     m_client_id = client_id;
     m_call_method = call_method;
+    m_different = different;
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
     LOG_INFO("dst_uri: {}", dst_uri);
     const pj::CallOpParam prm {true};
@@ -127,7 +132,8 @@ void voip::Caller::single_call(const std::string &phone,
                             m_call_status,
                             call_type,
                             "mediator",
-                            m_call_method);
+                            m_call_method,
+                            m_different);
         return;
     }
     m_coordinator->waitForSingleCallFinished();
@@ -228,7 +234,8 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                                 "connect",
                                 call_type,
                                 "",
-                                m_call_method);
+                                m_call_method,
+                                m_different);
             break;
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
@@ -276,7 +283,8 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                                 m_call_status,
                                 call_type,
                                 tmp_hangup_direction,
-                                m_call_method);
+                                m_call_method,
+                                m_different);
             break;
         }
         default:

@@ -551,7 +551,8 @@ inline void pushCallState(const std::string &phone,
                           const std::string &status,
                           const std::string &call_type,
                           const std::string &hangup_direction,
-                          const std::string &call_method)
+                          const std::string &call_method,
+                          const std::string &different)
 {
     const auto target_url = genUrl(URL_CALL_STATE, g_gui_cfg.gui_client_id);
     try {
@@ -562,6 +563,7 @@ inline void pushCallState(const std::string &phone,
         body_json["call_type"] = call_type;
         body_json["hangup_direction"] = hangup_direction;
         body_json["call_method"] = call_method;
+        body_json["different"] = different;
 
         Json::StreamWriterBuilder writer;
         writer["indentation"] = "";
