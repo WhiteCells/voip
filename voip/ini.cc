@@ -1,9 +1,10 @@
 #include "ini.h"
 #include "global.h"
 #include "logger.h"
+#include "spdlog/spdlog.h"
 #include <string>
 #include <fstream>
-
+#include <iostream>
 /**
  * @brief 去除多余空格
  *
@@ -59,14 +60,20 @@ void loadINICfg(const std::string &filename)
         }
     }
 
-    backend_host = cfg["BACKEND_HOST"];
-    backend_port = cfg["BACKEND_PORT"];
-    client_id = cfg["CLIENT_ID"];
-    verify_file = cfg["VERIFY_FILE"];
-    reminder_consumer_remote_host = cfg["REMINDER_CONSUMER_REMOTE_HOST"];
-    reminder_consumer_remote_port = cfg["REMINDER_CONSUMER_REMOTE_PORT"];
-    reminder_mediator_remote_host = cfg["REMINDER_MEDIATOR_REMOTE_HOST"];
-    reminder_mediator_remote_port = cfg["REMINDER_MEDIATOR_REMOTE_PORT"];
-    robot_remote_host = cfg["ROBOT_REMOTE_HOST"];
-    robot_remote_port = cfg["ROBOT_REMOTE_PORT"];
+    try {
+        backend_host = cfg.at("BACKEND_HOST");
+        backend_port = cfg.at("BACKEND_PORT");
+        client_id = cfg.at("CLIENT_ID");
+        verify_file = cfg.at("VERIFY_FILE");
+        reminder_consumer_remote_host = cfg.at("REMINDER_CONSUMER_REMOTE_HOST");
+        reminder_consumer_remote_port = cfg.at("REMINDER_CONSUMER_REMOTE_PORT");
+        reminder_mediator_remote_host = cfg.at("REMINDER_MEDIATOR_REMOTE_HOST");
+        reminder_mediator_remote_port = cfg.at("REMINDER_MEDIATOR_REMOTE_PORT");
+        robot_remote_host = cfg.at("ROBOT_REMOTE_HOST");
+        robot_remote_port = cfg.at("ROBOT_REMOTE_PORT");
+    }
+    catch (const std::exception &e) {
+        LOG_CRITICAL("load ini file failed, lack key");
+        throw std::runtime_error {"load ini file failed, lack key"};
+    }
 }
