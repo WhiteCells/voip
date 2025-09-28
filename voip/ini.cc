@@ -1,10 +1,9 @@
 #include "ini.h"
 #include "global.h"
 #include "logger.h"
-#include "spdlog/spdlog.h"
 #include <string>
 #include <fstream>
-#include <iostream>
+
 /**
  * @brief 去除多余空格
  *

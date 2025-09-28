@@ -1,9 +1,9 @@
 #include "async_timer.h"
 
-AsyncTimer::AsyncTimer(asio::io_context &ioc, std::chrono::seconds interval) :
-    m_timer(ioc),
-    m_interval_sec(interval),
-    m_running(false)
+AsyncTimer::AsyncTimer(asio::io_context &ioc, std::chrono::seconds interval)
+    : m_timer(ioc)
+    , m_interval_sec(interval)
+    , m_running(false)
 {
 }
 

@@ -4,8 +4,8 @@
 #include "request.hpp"
 #include <pjsua2.hpp>
 
-CallerQueue::CallerQueue() :
-    m_fetching(false)
+CallerQueue::CallerQueue()
+    : m_fetching(false)
 {
 }
 

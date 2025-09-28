@@ -25,10 +25,10 @@ void IOContextPool::stopAllIOContext()
     }
 }
 
-IOContextPool::IOContextPool(std::size_t size) :
-    iocontexts_(size),
-    workers_(size),
-    iocontext_next_(0)
+IOContextPool::IOContextPool(std::size_t size)
+    : iocontexts_(size)
+    , workers_(size)
+    , iocontext_next_(0)
 {
     for (std::size_t i = 0; i < size; ++i) {
         workers_[i] = std::make_unique<Worker>(

@@ -205,7 +205,9 @@ public:
     GuiWsServer(const std::string &addr,
                 unsigned int port,
                 std::shared_ptr<WebWsClient> client)
-        : m_acceptor(IOContextPool::getInstance()->getIOContext()), m_endpoint(asio::ip::make_address(addr), port), m_client(client)
+        : m_acceptor(IOContextPool::getInstance()->getIOContext())
+        , m_endpoint(asio::ip::make_address(addr), port)
+        , m_client(client)
     {
         beast::error_code ec;
         if (m_acceptor.open(m_endpoint.protocol(), ec)) {

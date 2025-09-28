@@ -14,6 +14,7 @@ voip::Caller::Caller(voip::VAccount &acc, int call_id)
 #ifdef REMINDER
     , m_agent_aud_media_port(std::make_shared<AgentAudAudioMediaPort>())
     , m_agent_cap_media_port(std::make_shared<AgentCapAudioMediaPort>())
+    , m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
 #elif ROBOT
     , m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
 #endif
@@ -311,11 +312,18 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             aud_med = (pj::AudioMedia *)getMedia(i);
 
 #ifdef REMINDER
-            aud_med->startTransmit(*m_agent_aud_media_port);
-            cap_dev_med.startTransmit(*m_agent_cap_media_port);
-
-            aud_med->startTransmit(play_dev_med);
-            cap_dev_med.startTransmit(*aud_med);
+            if (m_call_method == "manual") {
+                // interact with ai
+                aud_med->startTransmit(*m_agent_aud_media_port);
+                cap_dev_med.startTransmit(*m_agent_cap_media_port);
+                // interact with local audio device
+                aud_med->startTransmit(play_dev_med);
+                cap_dev_med.startTransmit(*aud_med);
+            }
+            else if (m_call_method == "agent") {
+                aud_med->startTransmit(*m_agent_robot_media_port);
+                m_agent_robot_media_port->startTransmit(*aud_med);
+            }
 #elif ROBOT
             aud_med->startTransmit(*m_agent_robot_media_port);
             m_agent_robot_media_port->startTransmit(*aud_med);
