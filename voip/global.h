@@ -10,6 +10,7 @@
 #endif
 #include <sstream>
 #include <string>
+#include <atomic>
 
 /**
  * @brief 客户端 ID
@@ -112,5 +113,7 @@ extern std::string g_task_id;
 
 extern OpusEncoder *encoder;
 extern OpusDecoder *decoder;
+
+extern std::atomic<bool> m_confirmed;
 
 #endif // _GLOBAL_H_

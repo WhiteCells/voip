@@ -62,3 +62,7 @@ std::string g_task_id;
 
 OpusEncoder *encoder;
 OpusDecoder *decoder;
+
+// std::condition_variable m_confirmed_cv;
+// std::mutex m_confirmed_mtx;
+std::atomic<bool> m_confirmed {false};

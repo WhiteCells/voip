@@ -215,6 +215,8 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         }
         case PJSIP_INV_STATE_CONFIRMED: {
             LOG_INFO(">>> call: {}, phone: {} confirmed", ci.id, m_phone);
+            m_confirmed = true;
+            LOG_INFO("set m_confirmed = true");
             // 当前线程如果已经接通了，通知其他线程挂断电话
             m_coordinator->notifyCallConfirmed(shared_from_this());
             if (m_sender) {
@@ -241,6 +243,8 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
         }
         case PJSIP_INV_STATE_DISCONNECTED: {
             LOG_INFO(">>> call: {}, phone: {} disconnected", ci.id, m_phone);
+            m_confirmed = false;
+            LOG_INFO("set m_confirmed = false");
             m_coordinator->notifyCallDisconnected(shared_from_this());
 
             if (local_hangup == "mediator") {

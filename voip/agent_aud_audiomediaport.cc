@@ -39,9 +39,9 @@ AgentAudAudioMediaPort::AgentAudAudioMediaPort()
 
     const char *ip_str = reminder_consumer_remote_host.c_str();
     uint16_t port = static_cast<uint16_t>(std::stoi(reminder_consumer_remote_port));
-    uint32_t ip = inet_addr(ip_str); // 192.168.2.3
+    uint32_t ip = inet_addr(ip_str);
     ip = ntohl(ip);
-    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, port)); // 远程服务器 IP:端口  51002
+    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, port));
 
     m_running = true;
     LOG_INFO("<<< construct {}", __func__);
@@ -96,6 +96,10 @@ void AgentAudAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 void AgentAudAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 {
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
+    if (m_confirmed.load() == false) {
+        LOG_WARN("call not confirmed, drop frame");
+        return;
+    }
     static std::ofstream send_audio("client2agent.pcm",
                                     std::ios::binary | std::ios::out | std::ios::trunc);
     if (!send_audio.is_open()) {
@@ -121,6 +125,6 @@ void AgentAudAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-         LOG_INFO("Send customer RTP");
+        LOG_INFO("Send customer RTP");
     }
 }

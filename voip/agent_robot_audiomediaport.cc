@@ -24,7 +24,7 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     sessparams.SetAcceptOwnPackets(true);
 
     RTPUDPv4TransmissionParams transparams;
-    transparams.SetPortbase(8002); // 本地 RTP 端口
+    transparams.SetPortbase(8006); // 本地 RTP 端口
 
     int status = m_session.Create(sessparams, &transparams);
     if (status < 0) {
@@ -37,11 +37,11 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     m_session.SetDefaultMark(false);
     m_session.SetDefaultTimestampIncrement(320);
 
-    const char *ip_str =robot_remote_host.c_str();
+    const char *ip_str = robot_remote_host.c_str();
     uint16_t port = static_cast<uint16_t>(std::stoi(robot_remote_port));
-    uint32_t ip = inet_addr(ip_str); //192.168.2.3
+    uint32_t ip = inet_addr(ip_str);
     ip = ntohl(ip);
-    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, port)); // 远程服务器 IP:端口  51001
+    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, port));
 
     m_running = true;
     m_rtp_recv_thread = std::thread([this]() {
@@ -130,13 +130,17 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 {
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
-    static std::ofstream send_audio("client2agent.pcm",
-                                    std::ios::binary | std::ios::out | std::ios::trunc);
+    if (m_confirmed.load() == false) {
+        LOG_WARN("call not confirmed, drop frame");
+        return;
+    }
+    static std::ofstream send_audio("client2agent.pcm", std::ios::binary | std::ios::out | std::ios::trunc);
     if (!send_audio.is_open()) {
         LOG_ERROR("Failed to open client2agent.pcm");
     }
 
     if (frame.size > 0) {
+        send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
         const int max_packet_size = 1500;
         std::vector<unsigned char> encoded(max_packet_size);
         int encoded_bytes = opus_encode(encoder,
@@ -149,12 +153,12 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             return;
         }
         int status = m_session.SendPacket(encoded.data(), encoded_bytes);
-        send_audio.write(reinterpret_cast<char *>(encoded.data()), encoded_bytes);
+        // send_audio.write(reinterpret_cast<char *>(encoded.data()), encoded_bytes);
         // LOG_INFO("SendPacket: {}", std::string(reinterpret_cast<const char*>(frame.buf.data()), frame.size));
         if (status < 0) {
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-        // LOG_INFO("Send customer RTP");
+        LOG_INFO("Send customer RTP");
     }
 }
