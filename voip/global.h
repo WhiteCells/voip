@@ -116,4 +116,12 @@ extern OpusDecoder *decoder;
 
 extern std::atomic<bool> m_confirmed;
 
+#include "singleton.hpp"
+
+class Global : public Singleton<Global>
+{
+public:
+    // static 
+};
+
 #endif // _GLOBAL_H_

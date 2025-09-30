@@ -24,7 +24,7 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     sessparams.SetAcceptOwnPackets(true);
 
     RTPUDPv4TransmissionParams transparams;
-    transparams.SetPortbase(8006); // 本地 RTP 端口
+    transparams.SetPortbase(0); // 本地 RTP 端口
 
     int status = m_session.Create(sessparams, &transparams);
     if (status < 0) {
