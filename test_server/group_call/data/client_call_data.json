@@ -27,7 +27,7 @@
 			"id" : "1967767468196810754"
 		}
 	],
-	"call_method" : "agent",
+	"call_method" : "manual",
 	"call_type" : "single",
 	"different" : "myself",
 	"node" : "192.168.10.51",

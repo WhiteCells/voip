@@ -33,7 +33,7 @@ AgentAudAudioMediaPort::AgentAudAudioMediaPort()
         return;
     }
 
-    m_session.SetDefaultPayloadType(0);
+    m_session.SetDefaultPayloadType(1);
     m_session.SetDefaultMark(false);
     m_session.SetDefaultTimestampIncrement(320);
 
@@ -109,9 +109,11 @@ void AgentAudAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     if (frame.size > 0) {
         const int max_packet_size = 1500;
         std::vector<unsigned char> encoded(max_packet_size);
+        int samples_pre_channel = frame.size / sizeof(opus_int16);
+        LOG_INFO("samples per channel: {}", samples_pre_channel);
         int encoded_bytes = opus_encode(encoder,
-                                        (const int16_t *)frame.buf.data(),
-                                        320,
+                                        (const opus_int16 *)frame.buf.data(),
+                                        samples_pre_channel,
                                         encoded.data(),
                                         max_packet_size);
         if (encoded_bytes < 0) {

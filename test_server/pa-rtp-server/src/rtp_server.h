@@ -23,6 +23,7 @@
 #include <atomic>
 #include <iostream>
 #include <thread>
+#include <fstream>
 
 class RtpServer
 {
@@ -61,7 +62,7 @@ public:
 
         jrtplib::RTPIPv4Address addr(ipval, remote_port);
         m_session.AddDestination(addr);
-        m_session.SetDefaultPayloadType(0);
+        m_session.SetDefaultPayloadType(1);
         m_session.SetDefaultMark(false);
         m_session.SetDefaultTimestampIncrement(tsinc);
     }
@@ -83,7 +84,7 @@ public:
                 std::vector<unsigned char> encoded(max_packet_size);
                 AudioQueue::FrameType p = m_input_que.pop();
                 int bytes = opus_encode(m_encoder,
-                                        (const int16_t *)p.first,
+                                        (const opus_int16 *)p.first,
                                         320,
                                         encoded.data(),
                                         max_packet_size);
@@ -92,7 +93,7 @@ public:
                     continue;
                 }
                 m_session.SendPacket(encoded.data(), bytes);
-                std::cout << "Send Payload" << std::endl;
+                // std::cout << "Send Payload" << std::endl;
                 // std::cout << "Send Payload: " << p.first << ", Samples: " << p.second << std::endl;
             }
         }
@@ -119,6 +120,12 @@ public:
                         }
                         int16_t *copy = new int16_t[frame_size];
                         std::memcpy(copy, pcm, frame_size * sizeof(int16_t));
+                        // save client audio to pcm file
+                        static std::ofstream recv_audio("client.pcm",
+                                                        std::ios::binary | std::ios::out | std::ios::trunc);
+                        recv_audio.write(reinterpret_cast<char *>(copy), frame_size * sizeof(int16_t));                        
+                        std::cout << "write client audio" << std::endl;
+                        // 
                         m_output_que.push(copy, frame_size * sizeof(int16_t));
                         std::cout << "Recv Payload (decoded)" << std::endl;
                     }

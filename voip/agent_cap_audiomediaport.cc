@@ -110,7 +110,7 @@ void AgentCapAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         const int max_packet_size = 1500;
         std::vector<unsigned char> encoded(max_packet_size);
         int encoded_bytes = opus_encode(encoder,
-                                        (const int16_t *)frame.buf.data(),
+                                        (const opus_int16 *)frame.buf.data(),
                                         320,
                                         encoded.data(),
                                         max_packet_size);

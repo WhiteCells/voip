@@ -33,7 +33,7 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
         return;
     }
 
-    m_session.SetDefaultPayloadType(0);
+    m_session.SetDefaultPayloadType(1);
     m_session.SetDefaultMark(false);
     m_session.SetDefaultTimestampIncrement(320);
 
@@ -144,7 +144,7 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         const int max_packet_size = 1500;
         std::vector<unsigned char> encoded(max_packet_size);
         int encoded_bytes = opus_encode(encoder,
-                                        (const int16_t *)frame.buf.data(),
+                                        (const opus_int16 *)frame.buf.data(),
                                         320,
                                         encoded.data(),
                                         max_packet_size);
