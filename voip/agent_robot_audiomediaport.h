@@ -19,6 +19,7 @@
 #include <deque>
 #include <mutex>
 #include <atomic>
+#include "tts_request.h"
 
 class AgentRobotAudioMediaPort : public pj::AudioMediaPort
 {
@@ -56,6 +57,10 @@ private:
     std::atomic<bool> m_running;
     std::deque<std::vector<uint16_t>> m_rtp_recv_buffer;
     std::mutex m_buffer_mtx;
+    std::deque<std::vector<int16_t>> m_tts_buffer; // 新增：存储 TTS 生成的 PCM 数据
+    std::mutex m_tts_buffer_mtx;                   // 新增：保护 m_tts_buffer 的互斥锁
+    std::shared_ptr<TTSPlayer> m_tts_player;  // 新增：TTS 异步播放器实例
+    bool m_tts_initialized = false;                // 新增：标记是否已初始化 TTS
 };
 
 #endif // _AGENT_ROBOT_AUDIOMEDIAPORT_H_

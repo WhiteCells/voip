@@ -12,6 +12,8 @@
 #include <string>
 #include <atomic>
 
+
+class AgentWsClient;
 /**
  * @brief 客户端 ID
  */
@@ -50,6 +52,8 @@ extern std::string robot_remote_port;
 extern cfg_map cfg;
 
 extern std::string local_hangup;
+
+extern std::shared_ptr<AgentWsClient> g_agent_ws_client;
 
 // url
 #define URL_NOTIFY            "notify"            // 客户端通知
@@ -121,7 +125,7 @@ extern std::atomic<bool> m_confirmed;
 class Global : public Singleton<Global>
 {
 public:
-    // static 
+    // static
 };
 
 #endif // _GLOBAL_H_

@@ -2,6 +2,8 @@
 #include "global.h"
 #include "logger.h"
 #include <fstream>
+#include "agent_ws_client.h"
+//#include "tts_request.h"
 
 AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
 {
@@ -112,8 +114,17 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     frame.size = samplesPerFrame * sizeof(int16_t);
     frame.buf.resize(frame.size);
 
+    std::vector<char> pcm;
+    TTSPlayer::getInstance()->getNextAudio(pcm);
+//    LOG_INFO("TTS agent_Audio Size: {}", pcm.size());
+
+    std::vector<uint16_t> pcm_uint16(pcm.size() / sizeof(uint16_t));
+    memcpy(pcm_uint16.data(), pcm.data(), pcm.size());
+    m_rtp_recv_buffer.push_back(std::move(pcm_uint16));
+
     std::lock_guard<std::mutex> lock(m_buffer_mtx);
     if (!m_rtp_recv_buffer.empty()) {
+        LOG_INFO("Rtp Recv Buffer size: {}", m_rtp_recv_buffer.size());
         std::vector<uint16_t> &pkt = m_rtp_recv_buffer.front();
         recv_audio.write(reinterpret_cast<char *>(pkt.data()), pkt.size());
         size_t copy_size = (std::min)(pkt.size(), frame.buf.size());
@@ -140,7 +151,14 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     }
 
     if (frame.size > 0) {
+
         send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
+
+        if (g_agent_ws_client){
+            g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char*>(frame.buf.data()), frame.size));
+
+        }
+
         const int max_packet_size = 1500;
         std::vector<unsigned char> encoded(max_packet_size);
         int encoded_bytes = opus_encode(encoder,
@@ -159,6 +177,6 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-        LOG_INFO("Send customer RTP");
+//        LOG_INFO("Send customer RTP");
     }
 }

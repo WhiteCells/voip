@@ -73,6 +73,7 @@ if(WIN32)
         voip/agent_aud_audiomediaport.cc
         voip/agent_cap_audiomediaport.cc
         voip/agent_robot_audiomediaport.cc
+        voip/tts_request.cc
         voip/main.cc
     )
 
