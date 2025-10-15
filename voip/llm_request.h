@@ -1,0 +1,95 @@
+#ifndef LLM_REQUEST_H
+#define LLM_REQUEST_H
+
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/connect.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <json/json.h>
+#include <string>
+#include <iostream>
+
+namespace beast = boost::beast;
+namespace http = beast::http;
+namespace net = boost::asio;
+using tcp = net::ip::tcp;
+
+class LLMRequest {
+public:
+    explicit LLMRequest(std::string host, std::string port, std::string target)
+            : m_host(std::move(host)), m_port(std::move(port)), m_target(std::move(target)) {}
+
+    // 发送请求
+    std::string sendRequest(const std::string& user_text, const std::string& status = "true") {
+        try {
+            net::io_context ioc;
+            tcp::resolver resolver(ioc);
+            beast::tcp_stream stream(ioc);
+
+            // 连接服务器
+            auto const results = resolver.resolve(m_host, m_port);
+            stream.connect(results);
+
+            // 构造 JSON 请求体
+            Json::Value root;
+            root["user_text"] = user_text;
+            root["status"] = status;
+            Json::StreamWriterBuilder writer;
+            std::string body = Json::writeString(writer, root);
+
+            // 构造 HTTP POST 请求
+            http::request<http::string_body> req{http::verb::post, m_target, 11};
+            req.set(http::field::host, m_host);
+            req.set(http::field::user_agent, "Boost.Beast-LLMRequest");
+            req.set(http::field::content_type, "application/json; charset=utf-8");
+            req.set(http::field::accept_charset, "utf-8");
+            req.body() = body;
+            req.prepare_payload();
+
+            // 发送请求
+            http::write(stream, req);
+
+            // 读取响应
+            beast::flat_buffer buffer;
+            http::response<http::string_body> res;
+            http::read(stream, buffer, res);
+
+            // 优雅关闭
+            beast::error_code ec;
+            stream.socket().shutdown(tcp::socket::shutdown_both, ec);
+            if (ec && ec != beast::errc::not_connected)
+                throw beast::system_error{ec};
+
+            Json::CharReaderBuilder readerBuilder;
+            Json::Value jsonResponse;
+            std::string errs;
+
+            std::istringstream iss(res.body());
+            if (Json::parseFromStream(readerBuilder, iss, &jsonResponse, &errs)) {
+                // 转为格式化 JSON（UTF-8 字符会自动解码）
+                Json::StreamWriterBuilder writer;
+                writer["emitUTF8"] = true;  // 确保输出 UTF-8 而不是 \uXXXX
+                return Json::writeString(writer, jsonResponse);
+            } else {
+                // 如果解析失败，就直接返回原始内容
+                return res.body();
+            }
+        }
+        catch (const std::exception& e) {
+//            std::cerr << "[LLMRequest] Exception: " << e.what() << std::endl;
+            return "";
+        }
+    }
+
+    void setTarget(const std::string& target) {
+        m_target = target;
+    }
+
+private:
+    std::string m_host;
+    std::string m_port;
+    std::string m_target = "/api/llm_request";
+};
+
+#endif // LLM_REQUEST_H
