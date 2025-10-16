@@ -160,6 +160,12 @@ public:
         return temp_list;
     }
 
+    void clear_llm_msg_list()
+    {
+        m_llm_msg_list.clear();
+        m_llm_msg_text.clear();
+    }
+
 private:
     void on_resolver(beast::error_code ec, tcp::resolver::results_type results)
     {
@@ -291,6 +297,7 @@ private:
             if (!self->m_llm_msg_text.empty()) {
                 LOG_INFO("Timeout reached ({}s), sending LLM request...", TIMEOUT_SECONDS);
                 std::string response = self->m_llm_client->sendRequest(self->m_llm_msg_text);
+                LOG_INFO("LLM response: {}", response);
 
                 Json::Value response_json;
                 Json::CharReaderBuilder builder;
@@ -298,11 +305,17 @@ private:
                 std::string errors;
                 if (reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &errors)) {
                     if (response_json.isMember("data") && response_json["data"].isArray()) {
+                        self->m_llm_msg_list.clear();
                         for (const auto& item : response_json["data"]) {
                             self->m_llm_msg_list.push_back(item.asString());
-                            TTSPlayer::getInstance()->produceTTS(self->m_llm_msg_list);
+//                            TTSPlayer::getInstance()->produceTTS(self->m_llm_msg_list);
                         }
-                        self->m_llm_msg_list.clear();
+                        LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", self->m_llm_msg_list.size());
+
+                        if(!self->m_llm_msg_list.empty()){
+                            TTSPlayer::getInstance()->produceTTS(self->m_llm_msg_list);
+                            self->m_llm_msg_list.clear();
+                        }
                     }
                 } else {
                     LOG_ERROR("Failed to parse LLM response JSON: {}", errors);

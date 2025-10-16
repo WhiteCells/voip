@@ -79,14 +79,13 @@ void TTSPlayer::produceTTS(const std::vector<std::string>& texts)
     for (auto& text : texts) {
         if (stop_flag_) break;
         try {
-//            auto pcm = requestTTS(text);
-            auto pcm = read_pcm("agent2client_2025-10-15.pcm");
+            auto pcm = requestTTS(text);
+//            auto pcm = read_pcm("agent2client_2025-10-15.pcm");
             {
                 std::lock_guard<std::mutex> lock(mtx_);
                 audio_queue_.push(std::move(pcm));
             }
-            LOG_DEBUG("[TTS] 音频大小: {}", audio_queue_.size());
-            LOG_INFO("[TTS] 成功生成音频: {}", text);
+            LOG_DEBUG("[TTS] 音频大小: {} 生成内容: {}", audio_queue_.size(), text);
         } catch (const std::exception& e) {
             LOG_ERROR("[TTS] 生成失败: {}", e.what());
         }
@@ -119,4 +118,5 @@ void TTSPlayer::stop()
     stop_flag_ = true;
     std::lock_guard<std::mutex> lock(mtx_);
     while (!audio_queue_.empty()) audio_queue_.pop();
+    LOG_INFO("[TTS] stop produce WAV");
 }
