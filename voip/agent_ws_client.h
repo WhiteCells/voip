@@ -78,7 +78,7 @@ public:
         ssl_ctx.load_verify_file(verify_file);
         // ssl_ctx.set_verify_mode(ssl::verify_none); // 禁用SSL证书验证
         m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(net::make_strand(ioc), ssl_ctx);
-
+        m_timer = std::make_unique<net::steady_timer>(ioc);
         m_resolver->async_resolve(m_host, m_port,
                                   beast::bind_front_handler(&AgentWsClient::on_resolver,
                                                             shared_from_this()));
@@ -119,6 +119,7 @@ public:
         Json::StreamWriterBuilder builder;
         std::string config_str = Json::writeString(builder, config);
         send(config_str);
+        LOG_INFO("success send asr start config");
     }
 
     void end_config_send(){
@@ -128,6 +129,7 @@ public:
         Json::StreamWriterBuilder builder;
         std::string config_str = Json::writeString(builder, config);
         send(config_str);
+        LOG_INFO("success send asr end config");
     }
 
     void sendBinary(const std::string& data) {
@@ -243,18 +245,16 @@ private:
     {
         if (ec) {
             Json::Value resp;
-            //
             Json::StreamWriterBuilder builder;
             std::string resp_str = Json::writeString(builder, resp);
             m_gui_server_sender->send(resp_str);
             return;
         }
+
         std::string msg = beast::buffers_to_string(m_buffer.data());
         m_buffer.consume(m_buffer.size());
-
         LOG_INFO("recv Agent Ws Client {}", msg);
 
-        // handler msg
         Json::Value root;
         Json::CharReaderBuilder builder;
         std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
@@ -263,54 +263,59 @@ private:
         if (reader->parse(msg.c_str(), msg.c_str() + msg.size(), &root, &errors)) {
             std::string is_final = root.get("is_final", "").asString();
             std::string text = root.get("text", "").asString();
-            std::string mode = root.get("mode", "").asString();
 
             if (is_final == "false") {
-                auto now = std::chrono::steady_clock::now();
-                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - m_last_final_time).count();
-
-                if (elapsed >= TIMEOUT_SECONDS) {
-                    if(m_llm_msg_text.size() > 0) {
-                        std::string response = m_llm_client->sendRequest(m_llm_msg_text); // 请求 llm 服务端
-                        LOG_INFO("LLM response: {}", response);
-
-                        Json::Value response_json;
-                        Json::CharReaderBuilder response_builder;
-                        std::unique_ptr<Json::CharReader> response_reader(response_builder.newCharReader());
-                        std::string response_errors;
-
-                        if (response_reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &response_errors)) {
-                            if (response_json.isMember("data") && response_json["data"].isArray()) {
-                                // 将data数组中的每个元素作为字符串推入m_llm_msg_list
-                                for (const auto& item : response_json["data"]) {
-                                    m_llm_msg_list.push_back(item.asString());
-                                    TTSPlayer::getInstance()->produceTTS(m_llm_msg_list);
-                                }
-                                LOG_INFO("LLM response data pushed to m_llm_msg_list {}", m_llm_msg_list.size());
-                                m_llm_msg_list.clear();
-                            }
-                        } else {
-                            LOG_ERROR("Failed to parse LLM response JSON: {}", errors);
-                        }
-                    }
-                    m_llm_msg_text.clear();  // 超时则清空累积文本
-                }
-
-                LOG_INFO("Final recognition result: {}", text);
                 m_llm_msg_text += text;
-                std::string msg_text = m_llm_msg_text;
-                LOG_INFO("LLM text {}", msg_text);
+                LOG_INFO("LLM text accumulating: {}", m_llm_msg_text);
+
+                reset_timer();
 
                 m_last_final_time = std::chrono::steady_clock::now();
+
             } else {
                 LOG_INFO("Intermediate recognition result: {}", text);
-                // 处理中间识别结果
             }
         } else {
             LOG_ERROR("Failed to parse JSON: {}", errors);
         }
+
         do_read();
     }
+
+    void reset_timer() {
+        if (!m_timer) return;
+        m_timer->expires_after(std::chrono::seconds(TIMEOUT_SECONDS));
+
+        m_timer->async_wait([self = shared_from_this()](beast::error_code ec) {
+            if (ec) return; // 被取消或关闭
+            if (!self->m_llm_msg_text.empty()) {
+                LOG_INFO("Timeout reached ({}s), sending LLM request...", TIMEOUT_SECONDS);
+                std::string response = self->m_llm_client->sendRequest(self->m_llm_msg_text);
+
+                Json::Value response_json;
+                Json::CharReaderBuilder builder;
+                std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+                std::string errors;
+                if (reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &errors)) {
+                    if (response_json.isMember("data") && response_json["data"].isArray()) {
+                        for (const auto& item : response_json["data"]) {
+                            self->m_llm_msg_list.push_back(item.asString());
+                            TTSPlayer::getInstance()->produceTTS(self->m_llm_msg_list);
+                        }
+                        self->m_llm_msg_list.clear();
+                    }
+                } else {
+                    LOG_ERROR("Failed to parse LLM response JSON: {}", errors);
+                }
+
+                self->m_llm_msg_text.clear();
+            }
+
+            // 重新启动检测
+            self->reset_timer();
+        });
+    }
+
 
     std::unique_ptr<tcp::resolver> m_resolver;
     std::unique_ptr<websocket::stream<beast::ssl_stream<beast::tcp_stream>>> m_ws;
@@ -323,6 +328,7 @@ private:
     std::string m_llm_msg_text;
     std::chrono::steady_clock::time_point m_last_final_time;
     std::vector<std::string> m_llm_msg_list;
+    std::unique_ptr<net::steady_timer> m_timer;
     static constexpr int TIMEOUT_SECONDS = 2;
 
     WebWsMsgHandler m_ws_msg_handler;

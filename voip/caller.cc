@@ -234,7 +234,6 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 
             if(g_agent_ws_client){
                 g_agent_ws_client->start_config_send();  //   发送asr启动配置
-                LOG_INFO("success send asr start config");
             }else{
                 LOG_ERROR("m_agent_ws_client is null");
             }
@@ -289,7 +288,6 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 
             if(g_agent_ws_client){
                 g_agent_ws_client->end_config_send();  // 发送asr结束配置
-                LOG_INFO("success send asr end config");
             }else{
                 LOG_INFO("m_agent_ws_client is null");
             }
