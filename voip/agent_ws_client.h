@@ -130,7 +130,7 @@ public:
         send(config_str);
     }
 
-    void AgentWsClient::sendBinary(const std::string& data) {
+    void sendBinary(const std::string& data) {
 //        LOG_INFO("Sending {} bytes of PCM data", data.size());
         if (m_ws && m_ws->is_open()) {
             // 设置为二进制模式

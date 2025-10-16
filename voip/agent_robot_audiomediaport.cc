@@ -98,41 +98,82 @@ AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 
 // 向客户推送音频
 // 接收 rtp server 的音频数据
+//void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
+//{
+//    static std::ofstream recv_audio("agent2client.pcm",
+//                                    std::ios::binary | std::ios::out | std::ios::app);
+//    if (!recv_audio.is_open()) {
+//        LOG_ERROR("Failed to open recv.pcm");
+//    }
+//
+//    const int sampleRate = 16000;
+//    const int channels = 1;
+//    const int duration_ms = 20;
+//    const int samplesPerFrame = channels * sampleRate * duration_ms / 1000;
+//    frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
+//    frame.size = samplesPerFrame * sizeof(int16_t);
+//    frame.buf.resize(frame.size);
+//
+//    std::vector<char> pcm;
+//    TTSPlayer::getInstance()->getNextAudio(pcm);
+////    LOG_INFO("TTS agent_Audio Size: {}", pcm.size());
+//
+//    std::vector<uint16_t> pcm_uint16(pcm.size() / sizeof(uint16_t));
+//    memcpy(pcm_uint16.data(), pcm.data(), pcm.size());
+//    m_rtp_recv_buffer.push_back(std::move(pcm_uint16));
+//
+//    std::lock_guard<std::mutex> lock(m_buffer_mtx);
+//    if (!m_rtp_recv_buffer.empty()) {
+//        LOG_INFO("Rtp Recv Buffer size: {}", m_rtp_recv_buffer.size());
+//        std::vector<uint16_t> &pkt = m_rtp_recv_buffer.front();
+//        recv_audio.write(reinterpret_cast<char *>(pkt.data()), pkt.size());
+//        size_t copy_size = (std::min)(pkt.size(), frame.buf.size());
+//        memcpy(frame.buf.data(), pkt.data(), copy_size);
+//        m_rtp_recv_buffer.pop_front();
+//    }
+//    else {
+//        memset(frame.buf.data(), 0, frame.size);
+//    }
+//}
+
 void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
-    static std::ofstream recv_audio("agent2client.pcm",
-                                    std::ios::binary | std::ios::out | std::ios::app);
-    if (!recv_audio.is_open()) {
-        LOG_ERROR("Failed to open recv.pcm");
-    }
-
     const int sampleRate = 16000;
-    const int channels = 1;
     const int duration_ms = 20;
-    const int samplesPerFrame = channels * sampleRate * duration_ms / 1000;
+    const int samplesPerFrame = sampleRate * duration_ms / 1000; // 320
+    const size_t bytesPerFrame = samplesPerFrame * sizeof(int16_t); // 640 bytes
+
     frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
-    frame.size = samplesPerFrame * sizeof(int16_t);
+    frame.size = bytesPerFrame;
     frame.buf.resize(frame.size);
 
-    std::vector<char> pcm;
-    TTSPlayer::getInstance()->getNextAudio(pcm);
-//    LOG_INFO("TTS agent_Audio Size: {}", pcm.size());
+    static std::vector<int16_t> tts_buf;
+    static size_t tts_pos = 0;
 
-    std::vector<uint16_t> pcm_uint16(pcm.size() / sizeof(uint16_t));
-    memcpy(pcm_uint16.data(), pcm.data(), pcm.size());
-    m_rtp_recv_buffer.push_back(std::move(pcm_uint16));
-
-    std::lock_guard<std::mutex> lock(m_buffer_mtx);
-    if (!m_rtp_recv_buffer.empty()) {
-        LOG_INFO("Rtp Recv Buffer size: {}", m_rtp_recv_buffer.size());
-        std::vector<uint16_t> &pkt = m_rtp_recv_buffer.front();
-        recv_audio.write(reinterpret_cast<char *>(pkt.data()), pkt.size());
-        size_t copy_size = (std::min)(pkt.size(), frame.buf.size());
-        memcpy(frame.buf.data(), pkt.data(), copy_size);
-        m_rtp_recv_buffer.pop_front();
+    // 如果当前缓存不够，尝试拉取新的 TTS 音频
+    if (tts_pos >= tts_buf.size()) {
+        std::vector<char> pcm;
+        if (TTSPlayer::getInstance()->getNextAudio(pcm) && !pcm.empty()) {
+            size_t samples = pcm.size() / sizeof(int16_t);
+            tts_buf.resize(samples);
+            memcpy(tts_buf.data(), pcm.data(), pcm.size());
+            tts_pos = 0;
+        } else {
+            memset(frame.buf.data(), 0, frame.size); // 无音频，静音输出
+            return;
+        }
     }
-    else {
-        memset(frame.buf.data(), 0, frame.size);
+
+    // 从缓冲中取 20ms 数据
+    size_t remain = tts_buf.size() - tts_pos;
+    size_t copy_samples = (std::min)((size_t)samplesPerFrame, remain);
+    memcpy(frame.buf.data(), tts_buf.data() + tts_pos, copy_samples * sizeof(int16_t));
+    tts_pos += copy_samples;
+
+    // 如果不满一帧，补零
+    if (copy_samples < samplesPerFrame) {
+        memset(frame.buf.data() + copy_samples * sizeof(int16_t), 0,
+               (samplesPerFrame - copy_samples) * sizeof(int16_t));
     }
 }
 

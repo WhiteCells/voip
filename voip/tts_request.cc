@@ -1,12 +1,29 @@
 #include "tts_request.h"
 #include "logger.h"
 #include <iostream>
+#include <fstream>
+#include <vector>
 
 using tcp = boost::asio::ip::tcp;
 namespace http = boost::beast::http;
 
 std::shared_ptr<TTSPlayer> TTSPlayer::instance_ = nullptr;
 std::string TTSPlayer::host_, TTSPlayer::port_, TTSPlayer::target_;
+
+static std::vector<char>read_pcm(const std::string& filename) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) throw std::runtime_error("无法打开文件: " + filename);
+
+    file.seekg(0, std::ios::end);
+    std::streampos size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<char> buffer(size);
+    file.read(buffer.data(), size);
+    file.close();
+
+    return buffer;
+}
 
 TTSPlayer::~TTSPlayer() {
     stop();
@@ -62,7 +79,8 @@ void TTSPlayer::produceTTS(const std::vector<std::string>& texts)
     for (auto& text : texts) {
         if (stop_flag_) break;
         try {
-            auto pcm = requestTTS(text);
+//            auto pcm = requestTTS(text);
+            auto pcm = read_pcm("agent2client_2025-10-15.pcm");
             {
                 std::lock_guard<std::mutex> lock(mtx_);
                 audio_queue_.push(std::move(pcm));
