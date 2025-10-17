@@ -8,18 +8,24 @@
 #include "coordinator.h"
 #include "ws_interface.h"
 #include "agent_ws_client.h"
+#include <chrono>
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id)
-        : pj::Call(acc, call_id)
-        , acc_(acc)
+    : pj::Call(acc, call_id)
+    , acc_(acc)
 #ifdef REMINDER
-, m_agent_aud_media_port(std::make_shared<AgentAudAudioMediaPort>())
+    , m_agent_aud_media_port(std::make_shared<AgentAudAudioMediaPort>())
     , m_agent_cap_media_port(std::make_shared<AgentCapAudioMediaPort>())
     , m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
 #elif ROBOT
-, m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
+    , m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
 #endif
+    , m_audio_media_recorder(std::make_shared<pj::AudioMediaRecorder>())
 {
+    auto now = std::chrono::system_clock::now();
+    auto now_time = std::chrono::system_clock::to_time_t(now);
+    auto recorder_filename = std::to_string(now_time) + ".wav";
+    m_audio_media_recorder->createRecorder(recorder_filename);
 }
 
 voip::Caller::~Caller()
@@ -232,10 +238,11 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 m_sender->send(msg);
             }
 
-            if(g_agent_ws_client){
-                g_agent_ws_client->start_config_send();  //   发送asr启动配置
-                g_agent_ws_client->start_llm_style();    //   开始开场话术
-            }else{
+            if (g_agent_ws_client) {
+                g_agent_ws_client->start_config_send(); //   发送asr启动配置
+                g_agent_ws_client->start_llm_style();   //   开始开场话术
+            }
+            else {
                 LOG_ERROR("m_agent_ws_client is null");
             }
 
@@ -287,10 +294,11 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 m_call_status = "hangup";
             }
 
-            if(g_agent_ws_client){
-                g_agent_ws_client->end_config_send();  // 发送asr结束配置
+            if (g_agent_ws_client) {
+                g_agent_ws_client->end_config_send(); // 发送asr结束配置
                 g_agent_ws_client->clear_llm_msg_list();
-            }else{
+            }
+            else {
                 LOG_INFO("m_agent_ws_client is null");
             }
 
@@ -349,4 +357,6 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
 #endif
         }
     }
+
+    aud_med->startTransmit(*m_audio_media_recorder);
 }

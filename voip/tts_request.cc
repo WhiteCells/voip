@@ -10,9 +10,11 @@ namespace http = boost::beast::http;
 std::shared_ptr<TTSPlayer> TTSPlayer::instance_ = nullptr;
 std::string TTSPlayer::host_, TTSPlayer::port_, TTSPlayer::target_;
 
-static std::vector<char>read_pcm(const std::string& filename) {
+static std::vector<char> read_pcm(const std::string &filename)
+{
     std::ifstream file(filename, std::ios::binary);
-    if (!file) throw std::runtime_error("无法打开文件: " + filename);
+    if (!file)
+        throw std::runtime_error("无法打开文件: " + filename);
 
     file.seekg(0, std::ios::end);
     std::streampos size = file.tellg();
@@ -25,12 +27,13 @@ static std::vector<char>read_pcm(const std::string& filename) {
     return buffer;
 }
 
-TTSPlayer::~TTSPlayer() {
+TTSPlayer::~TTSPlayer()
+{
     stop();
 }
 
 // --- HTTP 请求部分 ---
-std::vector<char> TTSPlayer::requestTTS(const std::string& text)
+std::vector<char> TTSPlayer::requestTTS(const std::string &text)
 {
     boost::asio::io_context ioc;
     tcp::resolver resolver(ioc);
@@ -46,7 +49,7 @@ std::vector<char> TTSPlayer::requestTTS(const std::string& text)
     std::string body = Json::writeString(writer, root);
 
     // 构造 HTTP POST 请求
-    http::request<http::string_body> req{http::verb::post, target_, 11};
+    http::request<http::string_body> req {http::verb::post, target_, 11};
     req.set(http::field::host, host_);
     req.set(http::field::user_agent, "Boost.Beast-TTSClient");
     req.set(http::field::content_type, "application/json");
@@ -74,22 +77,23 @@ std::vector<char> TTSPlayer::requestTTS(const std::string& text)
 }
 
 // --- 生产数据 ---
-void TTSPlayer::produceTTS(const std::vector<std::string>& texts)
+void TTSPlayer::produceTTS(const std::vector<std::string> &texts)
 {
-    for (auto& text : texts) {
+    for (auto &text : texts) {
         if (stop_flag_) {
             break;
         }
         try {
-//            LOG_INFO("[TTS] 获取内容: {}", text);
+            //            LOG_INFO("[TTS] 获取内容: {}", text);
             auto pcm = requestTTS(text);
-//            auto pcm = read_pcm("pcm_2025_10_14_10_30_09.pcm");
+            //            auto pcm = read_pcm("pcm_2025_10_14_10_30_09.pcm");
             {
                 std::lock_guard<std::mutex> lock(mtx_);
                 audio_queue_.push(std::move(pcm));
             }
             LOG_DEBUG("[TTS] 音频大小: {} ", audio_queue_.size());
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception &e) {
             LOG_ERROR("[TTS] 生成失败: {}", e.what());
         }
     }
@@ -102,21 +106,23 @@ void TTSPlayer::produceTTS(const std::vector<std::string>& texts)
 }
 
 // --- 消费数据 ---
-bool TTSPlayer::getNextAudio(std::vector<char>& pcm)
+bool TTSPlayer::getNextAudio(std::vector<char> &pcm)
 {
-//    LOG_INFO("[TTS] 获取音频");
+    //    LOG_INFO("[TTS] 获取音频");
     std::lock_guard<std::mutex> lock(mtx_);
-//    LOG_INFO("[TTS] 音频队列大小: {}", audio_queue_.size());
-    if (audio_queue_.empty()) return false;
+    //    LOG_INFO("[TTS] 音频队列大小: {}", audio_queue_.size());
+    if (audio_queue_.empty())
+        return false;
 
     pcm = std::move(audio_queue_.front());
-//    LOG_INFO("[TTS] pcm音频大小: {}", pcm.size());
+    //    LOG_INFO("[TTS] pcm音频大小: {}", pcm.size());
     audio_queue_.pop();
     return !pcm.empty();
 }
 
 // --- 停止 ---
-void TTSPlayer::stop(){
+void TTSPlayer::stop()
+{
     stop_flag_ = true;
     {
         std::lock_guard<std::mutex> lock(mtx_);
@@ -127,7 +133,8 @@ void TTSPlayer::stop(){
     }
 }
 
-void TTSPlayer::resume() {
+void TTSPlayer::resume()
+{
     stop_flag_ = false;
     LOG_INFO("[TTS] resume produce WAV and clear text_list");
 }

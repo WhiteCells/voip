@@ -3,7 +3,7 @@
 #include "logger.h"
 #include <fstream>
 #include "agent_ws_client.h"
-//#include "tts_request.h"
+// #include "tts_request.h"
 
 AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
 {
@@ -98,7 +98,7 @@ AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 
 // 向客户推送音频
 // 接收 rtp server 的音频数据
-//void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
+// void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 //{
 //    static std::ofstream recv_audio("agent2client.pcm",
 //                                    std::ios::binary | std::ios::out | std::ios::app);
@@ -140,7 +140,7 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
     const int sampleRate = 16000;
     const int duration_ms = 20;
-    const int samplesPerFrame = sampleRate * duration_ms / 1000; // 320
+    const int samplesPerFrame = sampleRate * duration_ms / 1000;    // 320
     const size_t bytesPerFrame = samplesPerFrame * sizeof(int16_t); // 640 bytes
 
     frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
@@ -150,7 +150,7 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     static std::vector<int16_t> tts_buf;
     static size_t tts_pos = 0;
 
-    if (TTSPlayer::getInstance()->isStopped()) {  // TTS 停止播放
+    if (TTSPlayer::getInstance()->isStopped()) { // TTS 停止播放
         tts_buf.clear();
         tts_pos = 0;
     }
@@ -163,7 +163,8 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
             tts_buf.resize(samples);
             memcpy(tts_buf.data(), pcm.data(), pcm.size());
             tts_pos = 0;
-        } else {
+        }
+        else {
             memset(frame.buf.data(), 0, frame.size); // 无音频，静音输出
             return;
         }
@@ -200,9 +201,8 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 
         send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
 
-        if (g_agent_ws_client){
-            g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char*>(frame.buf.data()), frame.size));
-
+        if (g_agent_ws_client) {
+            g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size));
         }
 
         const int max_packet_size = 1500;
@@ -223,6 +223,6 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-//        LOG_INFO("Send customer RTP");
+        //        LOG_INFO("Send customer RTP");
     }
 }

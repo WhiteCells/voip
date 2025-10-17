@@ -11,7 +11,7 @@
 #include <sstream>
 #include <string>
 #include <atomic>
-
+#include <memory>
 
 class AgentWsClient;
 /**

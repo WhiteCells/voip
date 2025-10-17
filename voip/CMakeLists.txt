@@ -5,7 +5,6 @@ set(SRC
     caller_queue.cc
     caller.cc
     vaccount.cc
-    # client.cc
     request.hpp
     io_context_pool.cc
     ini.cc
@@ -18,6 +17,7 @@ set(SRC
     agent_aud_audiomediaport.cc
     agent_cap_audiomediaport.cc
     agent_robot_audiomediaport.cc
+    tts_request.cc
     main.cc
 )
 

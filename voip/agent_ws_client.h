@@ -26,15 +26,13 @@ namespace ssl = boost::asio::ssl;
 using tcp = net::ip::tcp;
 
 class AgentWsClient :
-        public std::enable_shared_from_this<AgentWsClient>
+    public std::enable_shared_from_this<AgentWsClient>
 {
 public:
     using WebWsMsgHandler = std::function<void(const std::string &)>;
 
-    explicit AgentWsClient(const std::string& host, const std::string& port)
-            : m_host(host), m_port(port), m_target("/"),
-              m_llm_client(std::make_unique<LLMRequest>("127.0.0.1", "50000", "/api/llm_request")),
-              m_last_final_time(std::chrono::steady_clock::now())
+    explicit AgentWsClient(const std::string &host, const std::string &port)
+        : m_host(host), m_port(port), m_target("/"), m_llm_client(std::make_unique<LLMRequest>("127.0.0.1", "50000", "/api/llm_request")), m_last_final_time(std::chrono::steady_clock::now())
     {
     }
     explicit AgentWsClient() = default;
@@ -102,7 +100,8 @@ public:
         m_resolver->cancel();
     }
 
-    void start_config_send(){
+    void start_config_send()
+    {
         Json::Value config;
         config["mode"] = "2pass";
         config["wav_name"] = "record";
@@ -124,7 +123,8 @@ public:
         LOG_INFO("success send asr start config");
     }
 
-    void end_config_send(){
+    void end_config_send()
+    {
         Json::Value config;
         config["is_speaking"] = "false";
 
@@ -134,27 +134,31 @@ public:
         LOG_INFO("success send asr end config");
     }
 
-    void sendBinary(const std::string& data) {
-//        LOG_INFO("Sending {} bytes of PCM data", data.size());
+    void sendBinary(const std::string &data)
+    {
+        //        LOG_INFO("Sending {} bytes of PCM data", data.size());
         if (m_ws && m_ws->is_open()) {
             // 设置为二进制模式
             m_ws->binary(true);
             // 异步发送二进制数据
             m_ws->async_write(
-                    asio::buffer(data),
-                    [self = shared_from_this()](beast::error_code ec, std::size_t) {
-                        if (ec) {
-                            LOG_ERROR("Agent Ws Client Send Binary Failed {}", ec.message());
-                        } else {
-//                            LOG_INFO("Successfully sent PCM data");
-                        }
-                    });
-        } else {
+                asio::buffer(data),
+                [self = shared_from_this()](beast::error_code ec, std::size_t) {
+                    if (ec) {
+                        LOG_ERROR("Agent Ws Client Send Binary Failed {}", ec.message());
+                    }
+                    else {
+                        //                            LOG_INFO("Successfully sent PCM data");
+                    }
+                });
+        }
+        else {
             LOG_WARN("WebSocket connection is not open, cannot send binary data");
         }
     }
 
-    std::vector<std::string> getLLMMessageList() {
+    std::vector<std::string> getLLMMessageList()
+    {
         LOG_INFO("Get LLM Message msg_List {}", m_llm_msg_list.size());
         std::vector<std::string> temp_list = m_llm_msg_list;
         m_llm_msg_list.clear();
@@ -162,7 +166,8 @@ public:
         return temp_list;
     }
 
-    void start_llm_style(){
+    void start_llm_style()
+    {
         std::string response = m_llm_client->sendRequest("请用开场话术开始对话");
 
         Json::Value llm_style_json;
@@ -173,21 +178,22 @@ public:
         if (reader->parse(response.c_str(), response.c_str() + response.size(), &llm_style_json, &llm_style_errors)) {
             if (llm_style_json.isMember("data") && llm_style_json["data"].isArray()) {
                 m_llm_msg_list.clear();
-                for (const auto& item : llm_style_json["data"]) {
+                for (const auto &item : llm_style_json["data"]) {
                     m_llm_msg_list.push_back(item.asString());
                 }
                 LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
 
-                if(!m_llm_msg_list.empty()){
+                if (!m_llm_msg_list.empty()) {
                     TTSPlayer::getInstance()->produceTTS(m_llm_msg_list);
                     m_llm_msg_list.clear();
                 }
             }
-        } else {
+        }
+        else {
             LOG_ERROR("Failed to parse LLM response JSON: {}", llm_style_errors);
         }
 
-//        std::this_thread::sleep_for(std::chrono::seconds(1));
+        //        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     void clear_llm_msg_list()
@@ -208,9 +214,9 @@ private:
             return;
         }
         beast::get_lowest_layer(*m_ws)
-                .async_connect(results,
-                               beast::bind_front_handler(&AgentWsClient::on_connect,
-                                                         shared_from_this()));
+            .async_connect(results,
+                           beast::bind_front_handler(&AgentWsClient::on_connect,
+                                                     shared_from_this()));
     }
 
     void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type endpoint)
@@ -307,23 +313,27 @@ private:
                 reset_timer();
 
                 m_last_final_time = std::chrono::steady_clock::now();
-
-            } else {
+            }
+            else {
                 LOG_INFO("Intermediate recognition result: {}", text);
             }
-        } else {
+        }
+        else {
             LOG_ERROR("Failed to parse JSON: {}", errors);
         }
 
         do_read();
     }
 
-    void reset_timer() {
-        if (!m_timer) return;
+    void reset_timer()
+    {
+        if (!m_timer)
+            return;
         m_timer->expires_after(std::chrono::seconds(TIMEOUT_SECONDS));
 
         m_timer->async_wait([self = shared_from_this()](beast::error_code ec) {
-            if (ec) return; // 被取消或关闭
+            if (ec)
+                return; // 被取消或关闭
             if (!self->m_llm_msg_text.empty()) {
                 LOG_INFO("Timeout reached ({}s), sending LLM request...", TIMEOUT_SECONDS);
                 std::string response = self->m_llm_client->sendRequest(self->m_llm_msg_text);
@@ -336,19 +346,20 @@ private:
                 if (reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &errors)) {
                     if (response_json.isMember("data") && response_json["data"].isArray()) {
                         self->m_llm_msg_list.clear();
-                        for (const auto& item : response_json["data"]) {
+                        for (const auto &item : response_json["data"]) {
                             self->m_llm_msg_list.push_back(item.asString());
                         }
                         LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", self->m_llm_msg_list.size());
 
-                        if(!self->m_llm_msg_list.empty()){
-//                            std::this_thread::sleep_for(std::chrono::milliseconds(100));  // 等待100毫秒
-                            TTSPlayer::getInstance()->resume(); //恢复播放
+                        if (!self->m_llm_msg_list.empty()) {
+                            //                            std::this_thread::sleep_for(std::chrono::milliseconds(100));  // 等待100毫秒
+                            TTSPlayer::getInstance()->resume(); // 恢复播放
                             TTSPlayer::getInstance()->produceTTS(self->m_llm_msg_list);
                             self->m_llm_msg_list.clear();
                         }
                     }
-                } else {
+                }
+                else {
                     LOG_ERROR("Failed to parse LLM response JSON: {}", errors);
                 }
 
@@ -359,7 +370,6 @@ private:
             self->reset_timer();
         });
     }
-
 
     std::unique_ptr<tcp::resolver> m_resolver;
     std::unique_ptr<websocket::stream<beast::ssl_stream<beast::tcp_stream>>> m_ws;
