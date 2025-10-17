@@ -150,6 +150,11 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     static std::vector<int16_t> tts_buf;
     static size_t tts_pos = 0;
 
+    if (TTSPlayer::getInstance()->isStopped()) {  // TTS 停止播放
+        tts_buf.clear();
+        tts_pos = 0;
+    }
+
     // 如果当前缓存不够，尝试拉取新的 TTS 音频
     if (tts_pos >= tts_buf.size()) {
         std::vector<char> pcm;

@@ -14,6 +14,7 @@
 #include <functional>
 #include <vector>
 #include <chrono>
+#include <thread>
 #include "llm_request.h"
 #include "tts_request.h"
 
@@ -302,7 +303,7 @@ private:
             if (is_final == "false") {
                 m_llm_msg_text += text;
                 LOG_INFO("LLM text accumulating: {}", m_llm_msg_text);
-
+                TTSPlayer::getInstance()->stop(); // 停止播放
                 reset_timer();
 
                 m_last_final_time = std::chrono::steady_clock::now();
@@ -337,11 +338,12 @@ private:
                         self->m_llm_msg_list.clear();
                         for (const auto& item : response_json["data"]) {
                             self->m_llm_msg_list.push_back(item.asString());
-//                            TTSPlayer::getInstance()->produceTTS(self->m_llm_msg_list);
                         }
                         LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", self->m_llm_msg_list.size());
 
                         if(!self->m_llm_msg_list.empty()){
+//                            std::this_thread::sleep_for(std::chrono::milliseconds(100));  // 等待100毫秒
+                            TTSPlayer::getInstance()->resume(); //恢复播放
                             TTSPlayer::getInstance()->produceTTS(self->m_llm_msg_list);
                             self->m_llm_msg_list.clear();
                         }

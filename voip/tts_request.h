@@ -49,11 +49,17 @@ public:
     // 停止生产或消费
     void stop();
 
+    void TTSPlayer::resume();
+
+    bool isStopped() const {
+        return stop_flag_.load();
+    }
+
 private:
     static std::string host_, port_, target_;
     std::queue<std::vector<char>> audio_queue_;
     std::mutex mtx_;
-    std::atomic<bool> stop_flag_;
+    std::atomic<bool> stop_flag_ =  false;
 };
 
 
