@@ -13,6 +13,7 @@
 #include <memory>
 #include <functional>
 #include <vector>
+#include <chrono>
 #include "llm_request.h"
 #include "tts_request.h"
 
@@ -158,6 +159,34 @@ public:
         m_llm_msg_list.clear();
         LOG_INFO("Get LLM Message List {}", temp_list.size());
         return temp_list;
+    }
+
+    void start_llm_style(){
+        std::string response = m_llm_client->sendRequest("请用开场话术开始对话");
+
+        Json::Value llm_style_json;
+        Json::CharReaderBuilder llm_style_builder;
+        std::unique_ptr<Json::CharReader> reader(llm_style_builder.newCharReader());
+        std::string llm_style_errors;
+
+        if (reader->parse(response.c_str(), response.c_str() + response.size(), &llm_style_json, &llm_style_errors)) {
+            if (llm_style_json.isMember("data") && llm_style_json["data"].isArray()) {
+                m_llm_msg_list.clear();
+                for (const auto& item : llm_style_json["data"]) {
+                    m_llm_msg_list.push_back(item.asString());
+                }
+                LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
+
+                if(!m_llm_msg_list.empty()){
+                    TTSPlayer::getInstance()->produceTTS(m_llm_msg_list);
+                    m_llm_msg_list.clear();
+                }
+            }
+        } else {
+            LOG_ERROR("Failed to parse LLM response JSON: {}", llm_style_errors);
+        }
+
+//        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     void clear_llm_msg_list()

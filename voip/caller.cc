@@ -234,6 +234,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 
             if(g_agent_ws_client){
                 g_agent_ws_client->start_config_send();  //   发送asr启动配置
+                g_agent_ws_client->start_llm_style();    //   开始开场话术
             }else{
                 LOG_ERROR("m_agent_ws_client is null");
             }
