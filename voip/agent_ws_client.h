@@ -139,7 +139,7 @@ public:
 
     void sendBinary(const std::string &data)
     {
-        //        LOG_INFO("Sending {} bytes of PCM data", data.size());
+        // LOG_INFO("Sending {} bytes of PCM data", data.size());
         if (m_ws && m_ws->is_open()) {
             // 设置为二进制模式
             m_ws->binary(true);
@@ -151,7 +151,7 @@ public:
                         LOG_ERROR("Agent Ws Client Send Binary Failed {}", ec.message());
                     }
                     else {
-                        //                            LOG_INFO("Successfully sent PCM data");
+                        // LOG_INFO("Successfully sent PCM data");
                     }
                 });
         }
@@ -195,8 +195,6 @@ public:
         else {
             LOG_ERROR("Failed to parse LLM response JSON: {}", llm_style_errors);
         }
-
-        //        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     void clear_llm_msg_list()
