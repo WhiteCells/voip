@@ -32,7 +32,10 @@ public:
     using WebWsMsgHandler = std::function<void(const std::string &)>;
 
     explicit AgentWsClient(const std::string &host, const std::string &port)
-        : m_host(host), m_port(port), m_target("/"), m_llm_client(std::make_unique<LLMRequest>("127.0.0.1", "50000", "/api/llm_request")), m_last_final_time(std::chrono::steady_clock::now())
+        : m_host(host)
+        , m_port(port)
+        , m_target("/")
+        , m_llm_client(std::make_unique<LLMRequest>("127.0.0.1", "50000", "/api/llm_request"))
     {
     }
     explicit AgentWsClient() = default;
@@ -305,17 +308,38 @@ private:
         if (reader->parse(msg.c_str(), msg.c_str() + msg.size(), &root, &errors)) {
             std::string is_final = root.get("is_final", "").asString();
             std::string text = root.get("text", "").asString();
+            std::string mode = root.get("mode", "").asString();
 
-            if (is_final == "false") {
-                m_llm_msg_text += text;
-                LOG_INFO("LLM text accumulating: {}", m_llm_msg_text);
+            if (mode == "2pass-offline") {
                 TTSPlayer::getInstance()->stop(); // 停止播放
-                reset_timer();
 
-                m_last_final_time = std::chrono::steady_clock::now();
-            }
-            else {
-                LOG_INFO("Intermediate recognition result: {}", text);
+                m_llm_msg_text = text;
+                std::string response = m_llm_client->sendRequest(m_llm_msg_text);
+                LOG_INFO("LLM response: {}", response);
+                if (response.empty()) {
+                    do_read();
+                    return;
+                }
+                Json::Value response_json;
+                Json::CharReaderBuilder response_builder;
+                std::unique_ptr<Json::CharReader> response_reader(response_builder.newCharReader());
+                std::string response_errors;
+
+                if (response_reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &response_errors)) {
+                    if (response_json.isMember("data") && response_json["data"].isArray()) {
+                        m_llm_msg_list.clear();
+                        for (const auto &item : response_json["data"]) {
+                            m_llm_msg_list.push_back(item.asString());
+                        }
+                        LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
+
+                        if (!m_llm_msg_list.empty()) {
+                            TTSPlayer::getInstance()->resume(); // 恢复播放
+                            TTSPlayer::getInstance()->produceTTS(m_llm_msg_list);
+                            m_llm_msg_list.clear();
+                        }
+                    }
+                }
             }
         }
         else {
@@ -323,52 +347,6 @@ private:
         }
 
         do_read();
-    }
-
-    void reset_timer()
-    {
-        if (!m_timer)
-            return;
-        m_timer->expires_after(std::chrono::seconds(TIMEOUT_SECONDS));
-
-        m_timer->async_wait([self = shared_from_this()](beast::error_code ec) {
-            if (ec)
-                return; // 被取消或关闭
-            if (!self->m_llm_msg_text.empty()) {
-                LOG_INFO("Timeout reached ({}s), sending LLM request...", TIMEOUT_SECONDS);
-                std::string response = self->m_llm_client->sendRequest(self->m_llm_msg_text);
-                LOG_INFO("LLM response: {}", response);
-
-                Json::Value response_json;
-                Json::CharReaderBuilder builder;
-                std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-                std::string errors;
-                if (reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &errors)) {
-                    if (response_json.isMember("data") && response_json["data"].isArray()) {
-                        self->m_llm_msg_list.clear();
-                        for (const auto &item : response_json["data"]) {
-                            self->m_llm_msg_list.push_back(item.asString());
-                        }
-                        LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", self->m_llm_msg_list.size());
-
-                        if (!self->m_llm_msg_list.empty()) {
-                            //                            std::this_thread::sleep_for(std::chrono::milliseconds(100));  // 等待100毫秒
-                            TTSPlayer::getInstance()->resume(); // 恢复播放
-                            TTSPlayer::getInstance()->produceTTS(self->m_llm_msg_list);
-                            self->m_llm_msg_list.clear();
-                        }
-                    }
-                }
-                else {
-                    LOG_ERROR("Failed to parse LLM response JSON: {}", errors);
-                }
-
-                self->m_llm_msg_text.clear();
-            }
-
-            // 重新启动检测
-            self->reset_timer();
-        });
     }
 
     std::unique_ptr<tcp::resolver> m_resolver;
