@@ -6,26 +6,35 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <json/json.h>
 #include <string>
 #include <iostream>
+#include <chrono>
+#include "logger.h"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
+using namespace std::chrono_literals;
 
-class LLMRequest {
+class LLMRequest
+{
 public:
     explicit LLMRequest(std::string host, std::string port, std::string target)
-            : m_host(std::move(host)), m_port(std::move(port)), m_target(std::move(target)) {}
+        : m_host(std::move(host)), m_port(std::move(port)), m_target(std::move(target)) {}
 
-    // 发送请求
-    std::string sendRequest(const std::string& user_text, const std::string& status = "true") {
+    // 发送请求（带超时与异常处理）
+    std::string sendRequest(const std::string &user_text, const std::string &status = "true", int timeout_seconds = 10)
+    {
         try {
             net::io_context ioc;
             tcp::resolver resolver(ioc);
             beast::tcp_stream stream(ioc);
+
+            // 设置超时时间
+            stream.expires_after(std::chrono::seconds(timeout_seconds));
 
             // 连接服务器
             auto const results = resolver.resolve(m_host, m_port);
@@ -39,7 +48,7 @@ public:
             std::string body = Json::writeString(writer, root);
 
             // 构造 HTTP POST 请求
-            http::request<http::string_body> req{http::verb::post, m_target, 11};
+            http::request<http::string_body> req {http::verb::post, m_target, 11};
             req.set(http::field::host, m_host);
             req.set(http::field::user_agent, "Boost.Beast-LLMRequest");
             req.set(http::field::content_type, "application/json; charset=utf-8");
@@ -53,36 +62,49 @@ public:
             // 读取响应
             beast::flat_buffer buffer;
             http::response<http::string_body> res;
+
+            // 读取前重置超时
+            stream.expires_after(std::chrono::seconds(timeout_seconds));
             http::read(stream, buffer, res);
 
             // 优雅关闭
             beast::error_code ec;
             stream.socket().shutdown(tcp::socket::shutdown_both, ec);
             if (ec && ec != beast::errc::not_connected)
-                throw beast::system_error{ec};
+                throw beast::system_error {ec};
 
+            // 尝试解析 JSON 响应
             Json::CharReaderBuilder readerBuilder;
             Json::Value jsonResponse;
             std::string errs;
 
             std::istringstream iss(res.body());
             if (Json::parseFromStream(readerBuilder, iss, &jsonResponse, &errs)) {
-                // 转为格式化 JSON（UTF-8 字符会自动解码）
                 Json::StreamWriterBuilder writer;
-                writer["emitUTF8"] = true;  // 确保输出 UTF-8 而不是 \uXXXX
+                writer["emitUTF8"] = true;
                 return Json::writeString(writer, jsonResponse);
-            } else {
-                // 如果解析失败，就直接返回原始内容
+            }
+            else {
+                LOG_INFO("[LLMRequest] JSON parse failed: {}", errs.c_str());
                 return res.body();
             }
         }
-        catch (const std::exception& e) {
-//            std::cerr << "[LLMRequest] Exception: " << e.what() << std::endl;
+        catch (const beast::system_error &se) {
+            LOG_INFO("[LLMRequest] Beast system_error: {}", se.what());
+            return "";
+        }
+        catch (const std::exception &e) {
+            LOG_INFO("[LLMRequest] Exception: {}", e.what());
+            return "";
+        }
+        catch (...) {
+            LOG_INFO("[LLMRequest] Unknown exception caught");
             return "";
         }
     }
 
-    void setTarget(const std::string& target) {
+    void setTarget(const std::string &target)
+    {
         m_target = target;
     }
 
