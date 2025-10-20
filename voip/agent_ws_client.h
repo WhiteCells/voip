@@ -332,7 +332,7 @@ private:
         start_timeout_check(m_llm_start_time);
 
         m_llm_msg_text = text;
-        std::string response = m_llm_client->sendRequest(m_llm_msg_text);
+        std::string response = m_llm_client->sendRequest(m_llm_msg_text); // 发送ASR结果给LLM
         LOG_INFO("LLM response: {}", response);
         if (response.empty()) {
             do_read();
@@ -352,8 +352,8 @@ private:
                 LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
 
                 if (!m_llm_msg_list.empty()) {
-                    TTSPlayer::getInstance()->resume(); // 恢复播放
-                    TTSPlayer::getInstance()->produceTTS(m_llm_msg_list);
+                    TTSPlayer::getInstance()->resume();                   // 恢复播放
+                    TTSPlayer::getInstance()->produceTTS(m_llm_msg_list); // 将LLM的文本转换为TTS的音频
                     m_llm_msg_list.clear();
                 }
             }
