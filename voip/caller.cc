@@ -359,5 +359,5 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
     }
 
     // aud_med->startTransmit(*m_audio_media_recorder);
-    //    m_agent_robot_media_port->startTransmit(*m_audio_media_recorder);
+    m_agent_robot_media_port->startTransmit(*m_audio_media_recorder);
 }
