@@ -81,7 +81,6 @@ public:
         ssl_ctx.load_verify_file(verify_file);
         // ssl_ctx.set_verify_mode(ssl::verify_none); // 禁用SSL证书验证
         m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(net::make_strand(ioc), ssl_ctx);
-        m_timer = std::make_unique<net::steady_timer>(ioc);
         m_resolver->async_resolve(m_host, m_port,
                                   beast::bind_front_handler(&AgentWsClient::on_resolver,
                                                             shared_from_this()));
@@ -171,6 +170,10 @@ public:
 
     void start_llm_style()
     {
+        m_llm_start_time = std::chrono::steady_clock::now();
+        end_timeout_check();
+        start_timeout_check(m_llm_start_time);
+
         std::string response = m_llm_client->sendRequest("请用开场话术开始对话");
 
         Json::Value llm_style_json;
@@ -310,6 +313,9 @@ private:
 
             if (mode == "2pass-offline") {
                 TTSPlayer::getInstance()->stop(); // 停止播放
+                m_llm_start_time = std::chrono::steady_clock::now();
+                end_timeout_check();
+                start_timeout_check(m_llm_start_time);
 
                 m_llm_msg_text = text;
                 std::string response = m_llm_client->sendRequest(m_llm_msg_text);
@@ -347,19 +353,69 @@ private:
         do_read();
     }
 
+    void start_timeout_check(std::chrono::steady_clock::time_point timeout_time)
+    {
+        m_llm_start_time = timeout_time;
+        m_llm_timer_running = true;
+
+        LOG_INFO("Starting new LLM timeout timer...");
+
+        m_llm_timer_thread = std::thread([self = shared_from_this()]() {
+            LOG_INFO("LLM timeout timer started ({}s)", LLM_TIMEOUT_SECONDS);
+
+            // 等待超时时间或被手动中止
+            auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(LLM_TIMEOUT_SECONDS);
+            while (self->m_llm_timer_running && std::chrono::steady_clock::now() < deadline) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+
+            if (!self->m_llm_timer_running) {
+                LOG_INFO("LLM timeout timer manually stopped.");
+                return;
+            }
+
+            // 超时触发
+            LOG_WARN("LLM timeout ({}s) reached, executing hangup_call()", LLM_TIMEOUT_SECONDS);
+            self->clear_llm_msg_list();
+            self->hangup_call();
+        });
+    }
+
+    void end_timeout_check()
+    {
+        if (m_llm_timer_running) {
+            LOG_INFO("Stopping LLM timeout timer...");
+            m_llm_timer_running = false;
+            if (m_llm_timer_thread.joinable()) {
+                m_llm_timer_thread.join();
+            }
+            LOG_INFO("LLM timeout timer stopped.");
+        }
+    }
+
+    static void hangup_call()
+    {
+        endpoint.libRegisterThread("Worker");
+        endpoint.hangupAllCalls();
+        LOG_INFO("Hangup all calls");
+    }
+
     std::unique_ptr<tcp::resolver> m_resolver;
     std::unique_ptr<websocket::stream<beast::ssl_stream<beast::tcp_stream>>> m_ws;
     beast::flat_buffer m_buffer;
     std::string m_host;
     std::string m_port;
     std::string m_target;
+
     std::shared_ptr<IWSSender> m_gui_server_sender;
     std::shared_ptr<LLMRequest> m_llm_client;
+
     std::string m_llm_msg_text;
-    std::chrono::steady_clock::time_point m_last_final_time;
     std::vector<std::string> m_llm_msg_list;
-    std::unique_ptr<net::steady_timer> m_timer;
-    static constexpr int TIMEOUT_SECONDS = 2;
+    std::chrono::steady_clock::time_point m_llm_start_time;
+    static constexpr int LLM_TIMEOUT_SECONDS = 20;
+    std::thread m_llm_timer_thread;
+    std::atomic<bool> m_llm_timer_running {false};
 
     WebWsMsgHandler m_ws_msg_handler;
 };
