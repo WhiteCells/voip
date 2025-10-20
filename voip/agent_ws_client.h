@@ -314,7 +314,7 @@ private:
             std::string mode = root.get("mode", "").asString();
 
             if (mode == "2pass-offline") {
-                asr_to_tts(text);
+                process_asr_with_llm(text); // 将ASR结果推入到llm，将得到llm的文本转换为TTS的音频
             }
         }
         else {
@@ -324,7 +324,7 @@ private:
         do_read();
     }
 
-    void asr_to_tts(const std::string &text)
+    void process_asr_with_llm(const std::string &text)
     {
         TTSPlayer::getInstance()->stop(); // 停止播放
         m_llm_start_time = std::chrono::steady_clock::now();
