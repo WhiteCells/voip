@@ -27,8 +27,10 @@ endif()
 configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/voip/.env COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/server.crt ${CMAKE_BINARY_DIR}/voip/server.crt COPYONLY)
 
-option(VOIP_SSL "Enable SSL" OFF)
+option(VOIP_SSL "Enable SSL")
 option(FEATURE "Feature to build: REMINDER or ROBOT" "REMINDER")
+set(FEATURE "REMINDER")
+set(VOIP_SSL ON)
 
 if(WIN32)
     if (MSVC)
