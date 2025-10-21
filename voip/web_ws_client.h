@@ -103,7 +103,8 @@ public:
 
             if (root.isMember("session_id") && !root["session_id"].empty()) {
                 std::string session_id = root["session_id"].asString();
-                g_agent_ws_client->get_session_id(session_id);
+                std::string access_token = root["access_token"].asString();
+                g_agent_ws_client->get_session_id(session_id, access_token);
             }
 
             // 经过 1 后才能 0

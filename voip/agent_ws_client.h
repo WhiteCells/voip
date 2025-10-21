@@ -35,7 +35,7 @@ public:
         : m_host(host)
         , m_port(port)
         , m_target("/")
-        , m_llm_client(std::make_unique<LLMRequest>("127.0.0.1", "50000", "/api/llm_request"))
+        , m_llm_client(std::make_shared<LLMRequest>("127.0.0.1", "50000", "/api/llm_request"))
     {
     }
     explicit AgentWsClient() = default;
@@ -174,7 +174,7 @@ public:
         end_timeout_check();
         start_timeout_check(m_llm_start_time);
 
-        std::string response = m_llm_client->sendRequest("请用开场话术开始对话", m_session_id);
+        std::string response = m_llm_client->sendRequest("请用开场话术开始对话", m_session_id, m_access_token);
 
         Json::Value llm_style_json;
         Json::CharReaderBuilder llm_style_builder;
@@ -207,9 +207,12 @@ public:
         TTSPlayer::getInstance()->stop();
         TTSPlayer::getInstance()->resume();
     }
-    void get_session_id(std::string &session_id)
+    void get_session_id(const std::string &session_id,
+                        const std::string &access_token)
     {
         m_session_id = session_id;
+        m_access_token = access_token;
+        LOG_INFO("get session_id {} access_token {}", m_session_id, m_access_token);
     }
 
 private:
@@ -336,7 +339,7 @@ private:
         start_timeout_check(m_llm_start_time);
 
         m_llm_msg_text = text;
-        std::string response = m_llm_client->sendRequest(m_llm_msg_text, m_session_id); // 发送ASR结果给LLM
+        std::string response = m_llm_client->sendRequest(m_llm_msg_text, m_session_id, m_access_token); // 发送ASR结果给LLM
         LOG_INFO("LLM response: {}", response);
         if (response.empty()) {
             do_read();
@@ -428,6 +431,7 @@ private:
     std::thread m_llm_timer_thread;
     std::atomic<bool> m_llm_timer_running {false};
     std::string m_session_id;
+    std::string m_access_token;
     WebWsMsgHandler m_ws_msg_handler;
 };
 

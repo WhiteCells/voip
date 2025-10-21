@@ -26,7 +26,7 @@ public:
         : m_host(std::move(host)), m_port(std::move(port)), m_target(std::move(target)) {}
 
     // 发送请求（带超时与异常处理）
-    std::string sendRequest(const std::string &user_text, const std::string &session_id, const std::string &status = "true", int timeout_seconds = 10)
+    std::string sendRequest(const std::string &user_text, const std::string &session_id, const std::string &access_token, const std::string &status = "true", int timeout_seconds = 10)
     {
 
         try {
@@ -56,6 +56,7 @@ public:
             req.set(http::field::host, m_host);
             req.set(http::field::user_agent, "Boost.Beast-LLMRequest");
             req.set(http::field::content_type, "application/json; charset=utf-8");
+            req.set(http::field::authorization, "Bearer " + access_token);
             req.set(http::field::accept_charset, "utf-8");
             req.body() = body;
             req.prepare_payload();
