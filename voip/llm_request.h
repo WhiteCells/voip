@@ -26,8 +26,9 @@ public:
         : m_host(std::move(host)), m_port(std::move(port)), m_target(std::move(target)) {}
 
     // 发送请求（带超时与异常处理）
-    std::string sendRequest(const std::string &user_text, const std::string &status = "true", int timeout_seconds = 10)
+    std::string sendRequest(const std::string &user_text, const std::string &session_id, const std::string &status = "true", int timeout_seconds = 10)
     {
+
         try {
             net::io_context ioc;
             tcp::resolver resolver(ioc);
@@ -48,7 +49,10 @@ public:
             std::string body = Json::writeString(writer, root);
 
             // 构造 HTTP POST 请求
-            http::request<http::string_body> req {http::verb::post, m_target, 11};
+            std::string final_target = m_target + "/" + session_id;
+            LOG_INFO("[LLMRequest] Sending request to {}:{} {}", m_host, m_port, final_target);
+
+            http::request<http::string_body> req {http::verb::post, final_target, 11};
             req.set(http::field::host, m_host);
             req.set(http::field::user_agent, "Boost.Beast-LLMRequest");
             req.set(http::field::content_type, "application/json; charset=utf-8");

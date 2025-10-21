@@ -174,7 +174,7 @@ public:
         end_timeout_check();
         start_timeout_check(m_llm_start_time);
 
-        std::string response = m_llm_client->sendRequest("请用开场话术开始对话");
+        std::string response = m_llm_client->sendRequest("请用开场话术开始对话", m_session_id);
 
         Json::Value llm_style_json;
         Json::CharReaderBuilder llm_style_builder;
@@ -206,6 +206,10 @@ public:
         m_llm_msg_text.clear();
         TTSPlayer::getInstance()->stop();
         TTSPlayer::getInstance()->resume();
+    }
+    void get_session_id(std::string &session_id)
+    {
+        m_session_id = session_id;
     }
 
 private:
@@ -332,7 +336,7 @@ private:
         start_timeout_check(m_llm_start_time);
 
         m_llm_msg_text = text;
-        std::string response = m_llm_client->sendRequest(m_llm_msg_text); // 发送ASR结果给LLM
+        std::string response = m_llm_client->sendRequest(m_llm_msg_text, m_session_id); // 发送ASR结果给LLM
         LOG_INFO("LLM response: {}", response);
         if (response.empty()) {
             do_read();
@@ -423,7 +427,7 @@ private:
     static constexpr int LLM_TIMEOUT_SECONDS = 20;
     std::thread m_llm_timer_thread;
     std::atomic<bool> m_llm_timer_running {false};
-
+    std::string m_session_id;
     WebWsMsgHandler m_ws_msg_handler;
 };
 

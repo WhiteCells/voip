@@ -100,6 +100,12 @@ public:
             }
             LOG_INFO("recv json format: {}", root.toStyledString());
             const std::string request_type = root["request_type"].asString();
+
+            if (root.isMember("session_id") && !root["session_id"].empty()) {
+                std::string session_id = root["session_id"].asString();
+                g_agent_ws_client->get_session_id(session_id);
+            }
+
             // 经过 1 后才能 0
             // 账号校验
             if (request_type == "check") {
@@ -351,7 +357,7 @@ public:
         LOG_INFO("single call");
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method,m_different);
+        caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method, m_different);
         LOG_INFO("single call over");
     }
 
@@ -360,7 +366,7 @@ public:
         LOG_INFO("group call index: {}", i);
         auto caller = m_caller_que->getCaller();
         auto dialplan = m_dialplan_que->getDialPlan();
-        caller->group_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method,m_different);
+        caller->group_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method, m_different);
         LOG_INFO("call {} over", dialplan.second);
     }
 

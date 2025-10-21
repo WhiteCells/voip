@@ -85,7 +85,7 @@ std::vector<char> TTSPlayer::requestTTS(const std::string &text)
     boost::asio::steady_timer timer(ioc);
     bool timeout = false;
 
-    timer.expires_after(std::chrono::seconds(2)); // 设置超时时间为2秒
+    timer.expires_after(std::chrono::seconds(3)); // 设置超时时间为3秒
     timer.async_wait([&](const boost::system::error_code &e) {
         if (!e) {
             timeout = true;
