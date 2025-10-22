@@ -49,6 +49,12 @@ extern std::string robot_remote_host;
 
 extern std::string robot_remote_port;
 
+extern std::string agent_session_remote_host;
+
+extern std::string agent_session_remote_port;
+
+extern std::string agent_session_remote_target;
+
 extern cfg_map cfg;
 
 extern std::string local_hangup;

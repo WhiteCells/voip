@@ -27,6 +27,12 @@ std::string robot_remote_host;
 
 std::string robot_remote_port;
 
+std::string agent_session_remote_host;
+
+std::string agent_session_remote_port;
+
+std::string agent_session_remote_target;
+
 cfg_map cfg;
 
 std::string local_hangup = "customer";

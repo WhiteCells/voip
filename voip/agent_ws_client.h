@@ -35,7 +35,7 @@ public:
         : m_host(host)
         , m_port(port)
         , m_target("/")
-        , m_llm_client(std::make_shared<LLMRequest>("127.0.0.1", "8888", "/session/llm_recv"))
+        , m_llm_client(std::make_shared<LLMRequest>(agent_session_remote_host, agent_session_remote_port, agent_session_remote_target))
     {
     }
     explicit AgentWsClient() = default;
@@ -182,16 +182,19 @@ public:
         std::string llm_style_errors;
 
         if (reader->parse(response.c_str(), response.c_str() + response.size(), &llm_style_json, &llm_style_errors)) {
-            if (llm_style_json.isMember("data") && llm_style_json["data"].isArray()) {
-                m_llm_msg_list.clear();
-                for (const auto &item : llm_style_json["data"]["text"]) {
-                    m_llm_msg_list.push_back(item.asString());
-                }
-                LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
-
-                if (!m_llm_msg_list.empty()) {
-                    TTSPlayer::getInstance()->produceTTS(m_llm_msg_list);
+            if (llm_style_json.isMember("data") && llm_style_json["data"].isObject()) {
+                const auto &data = llm_style_json["data"];
+                if (data.isMember("text") && data["text"].isArray()) {
                     m_llm_msg_list.clear();
+                    for (const auto &item : data["text"]) {
+                        m_llm_msg_list.push_back(item.asString());
+                    }
+                    LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
+
+                    if (!m_llm_msg_list.empty()) {
+                        TTSPlayer::getInstance()->produceTTS(m_llm_msg_list);
+                        m_llm_msg_list.clear();
+                    }
                 }
             }
         }
@@ -352,17 +355,20 @@ private:
         std::string response_errors;
 
         if (response_reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &response_errors)) {
-            if (response_json.isMember("data") && response_json["data"].isArray()) {
-                m_llm_msg_list.clear();
-                for (const auto &item : response_json["data"]["text"]) {
-                    m_llm_msg_list.push_back(item.asString());
-                }
-                LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
-
-                if (!m_llm_msg_list.empty()) {
-                    TTSPlayer::getInstance()->resume();                   // 恢复播放
-                    TTSPlayer::getInstance()->produceTTS(m_llm_msg_list); // 将LLM的文本转换为TTS的音频
+            if (response_json.isMember("data") && response_json["data"].isObject()) {
+                const auto &data = response_json["data"];
+                if (data.isMember("text") && data["text"].isArray()) {
                     m_llm_msg_list.clear();
+                    for (const auto &item : data["text"]) {
+                        m_llm_msg_list.push_back(item.asString());
+                    }
+                    LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
+
+                    if (!m_llm_msg_list.empty()) {
+                        TTSPlayer::getInstance()->resume();                   // 恢复播放
+                        TTSPlayer::getInstance()->produceTTS(m_llm_msg_list); // 将LLM的文本转换为TTS的音频
+                        m_llm_msg_list.clear();
+                    }
                 }
             }
         }
@@ -428,7 +434,7 @@ private:
     std::string m_llm_msg_text;
     std::vector<std::string> m_llm_msg_list;
     std::chrono::steady_clock::time_point m_llm_start_time;
-    static constexpr int LLM_TIMEOUT_SECONDS = 20;
+    static constexpr int LLM_TIMEOUT_SECONDS = 60;
     std::thread m_llm_timer_thread;
     std::atomic<bool> m_llm_timer_running {false};
     std::string m_session_id;

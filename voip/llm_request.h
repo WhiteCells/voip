@@ -26,7 +26,7 @@ public:
         : m_host(std::move(host)), m_port(std::move(port)), m_target(std::move(target)) {}
 
     // 发送请求（带超时与异常处理）
-    std::string sendRequest(const std::string &user_text, const std::string &session_id, const std::string &access_token, const std::string &status = "true", int timeout_seconds = 2)
+    std::string sendRequest(const std::string &user_text, const std::string &session_id, const std::string &access_token, const std::string &status = "true", int timeout_seconds = 5)
     {
         try {
             m_session_id = session_id;
