@@ -26,10 +26,11 @@ public:
         : m_host(std::move(host)), m_port(std::move(port)), m_target(std::move(target)) {}
 
     // 发送请求（带超时与异常处理）
-    std::string sendRequest(const std::string &user_text, const std::string &session_id, const std::string &access_token, const std::string &status = "true", int timeout_seconds = 10)
+    std::string sendRequest(const std::string &user_text, const std::string &session_id, const std::string &access_token, const std::string &status = "true", int timeout_seconds = 2)
     {
-
         try {
+            m_session_id = session_id;
+
             net::io_context ioc;
             tcp::resolver resolver(ioc);
             beast::tcp_stream stream(ioc);
@@ -43,13 +44,12 @@ public:
 
             // 构造 JSON 请求体
             Json::Value root;
-            root["user_text"] = user_text;
-            root["status"] = status;
+            root["customer_text"] = user_text;
             Json::StreamWriterBuilder writer;
             std::string body = Json::writeString(writer, root);
 
             // 构造 HTTP POST 请求
-            std::string final_target = m_target + "/" + session_id;
+            std::string final_target = m_target + "/" + m_session_id;
             LOG_INFO("[LLMRequest] Sending request to {}:{} {}", m_host, m_port, final_target);
 
             http::request<http::string_body> req {http::verb::post, final_target, 11};
@@ -117,6 +117,7 @@ private:
     std::string m_host;
     std::string m_port;
     std::string m_target = "/api/llm_request";
+    std::string m_session_id;
 };
 
 #endif // LLM_REQUEST_H

@@ -35,7 +35,7 @@ public:
         : m_host(host)
         , m_port(port)
         , m_target("/")
-        , m_llm_client(std::make_shared<LLMRequest>("127.0.0.1", "50000", "/api/llm_request"))
+        , m_llm_client(std::make_shared<LLMRequest>("127.0.0.1", "8888", "/session/llm_recv"))
     {
     }
     explicit AgentWsClient() = default;
@@ -184,7 +184,7 @@ public:
         if (reader->parse(response.c_str(), response.c_str() + response.size(), &llm_style_json, &llm_style_errors)) {
             if (llm_style_json.isMember("data") && llm_style_json["data"].isArray()) {
                 m_llm_msg_list.clear();
-                for (const auto &item : llm_style_json["data"]) {
+                for (const auto &item : llm_style_json["data"]["text"]) {
                     m_llm_msg_list.push_back(item.asString());
                 }
                 LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
@@ -213,6 +213,7 @@ public:
         m_session_id = session_id;
         m_access_token = access_token;
         LOG_INFO("get session_id {} access_token {}", m_session_id, m_access_token);
+        start_llm_style();
     }
 
 private:
@@ -353,7 +354,7 @@ private:
         if (response_reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &response_errors)) {
             if (response_json.isMember("data") && response_json["data"].isArray()) {
                 m_llm_msg_list.clear();
-                for (const auto &item : response_json["data"]) {
+                for (const auto &item : response_json["data"]["text"]) {
                     m_llm_msg_list.push_back(item.asString());
                 }
                 LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());

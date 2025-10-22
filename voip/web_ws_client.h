@@ -13,6 +13,7 @@
 #include "dialplan_queue.h"
 #include "ws_interface.h"
 #include "request.hpp"
+#include "agent_ws_client.h"
 #ifdef VOIP_SSL
 #include <boost/beast/ssl.hpp>
 #include <boost/asio/ssl.hpp>
@@ -104,6 +105,7 @@ public:
             if (root.isMember("session_id") && !root["session_id"].empty() && root.isMember("access_token") && !root["access_token"].empty()) {
                 std::string session_id = root["session_id"].asString();
                 std::string access_token = root["access_token"].asString();
+                LOG_INFO("session_id: {}, access_token: {}", session_id, access_token);
                 g_agent_ws_client->get_session_id(session_id, access_token);
             }
 
