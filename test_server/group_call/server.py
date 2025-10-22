@@ -121,7 +121,8 @@ async def handler(websocket):
                 request_type = data.get("request_type", -1)
 
                 if request_type == 0:
-                    logger.info(f"[{client_id}] 呼叫数据: 节点={data.get('node')}, 任务ID={data.get('task_id')}, 电话数={len(data.get('phones', []))}")
+                    logger.info(
+                        f"[{client_id}] 呼叫数据: 节点={data.get('node')}, 任务ID={data.get('task_id')}, 电话数={len(data.get('phones', []))}")
                     response = {
                         "status": "success",
                         "message": "呼叫数据已接收",
@@ -170,23 +171,24 @@ async def handler(websocket):
 
 
 async def interactive_push(websocket, client_id):
-    global current_file
     logger.info(f"[{client_id}] 推送服务已启动")
     try:
         while True:
             user_input = await asyncio.get_event_loop().run_in_executor(
-                None, input, f"\n[{client_id}] 请输入命令 (回车推送/c切换/q停止): "
+                None, input, f"\n[{client_id}] 请输入命令 (1=呼叫数据, 2=验证数据, q=停止): "
             )
 
             if user_input.lower() == 'q':
                 logger.info(f"[{client_id}] 停止推送服务")
                 break
-            elif user_input.lower() == 'c':
-                current_file = 'verify' if current_file == 'data' else 'data'
-                logger.info(f"[{client_id}] 已切换到: {'验证数据' if current_file == 'verify' else '呼叫数据'}")
-            elif user_input == '':
-                logger.info(f"[{client_id}] 正在推送 {'验证数据' if current_file == 'verify' else '呼叫数据'}")
-                await send_push_data(websocket, client_id, current_file)
+            elif user_input == '1':
+                logger.info(f"[{client_id}] 正在推送呼叫数据")
+                await send_push_data(websocket, client_id, 'data')
+            elif user_input == '2':
+                logger.info(f"[{client_id}] 正在推送验证数据")
+                await send_push_data(websocket, client_id, 'verify')
+            else:
+                logger.warning(f"[{client_id}] 无效输入: {user_input}")
     except Exception as e:
         logger.error(f"[{client_id}] 推送服务出错: {e}")
 
