@@ -102,11 +102,14 @@ public:
             LOG_INFO("recv json format: {}", root.toStyledString());
             const std::string request_type = root["request_type"].asString();
 
-            if (root.isMember("session_id") && !root["session_id"].empty() && root.isMember("access_token") && !root["access_token"].empty()) {
-                std::string session_id = root["session_id"].asString();
-                std::string access_token = root["access_token"].asString();
-                LOG_INFO("session_id: {}, access_token: {}", session_id, access_token);
-                g_agent_ws_client->get_session_id(session_id, access_token);
+            if (root.isMember("request_type") && !root["request_type"].empty()) {
+                std::string agent_request_type = root["request_type"].asString();
+                if (agent_request_type == "auth") {
+                    std::string session_id = root["session_id"].asString();
+                    std::string access_token = root["access_token"].asString();
+                    LOG_INFO("session_id: {}, access_token: {}", session_id, access_token);
+                    g_agent_ws_client->get_session_id(session_id, access_token);
+                }
             }
 
             // 经过 1 后才能 0
