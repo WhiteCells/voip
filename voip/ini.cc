@@ -70,6 +70,8 @@ void loadINICfg(const std::string &filename)
         reminder_mediator_remote_port = cfg.at("REMINDER_MEDIATOR_REMOTE_PORT");
         robot_remote_host = cfg.at("ROBOT_REMOTE_HOST");
         robot_remote_port = cfg.at("ROBOT_REMOTE_PORT");
+        asr_server_remote_host = cfg.at("ASR_SERVER_REMOTE_HOST");
+        asr_server_remote_port = cfg.at("ASR_SERVER_REMOTE_PORT");
         agent_session_remote_host = cfg.at("AGENT_SESSION_REMOTE_HOST");
         agent_session_remote_port = cfg.at("AGENT_SESSION_REMOTE_PORT");
         agent_session_remote_target = cfg.at("AGENT_SESSION_REMOTE_TARGET");

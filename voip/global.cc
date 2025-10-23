@@ -27,6 +27,10 @@ std::string robot_remote_host;
 
 std::string robot_remote_port;
 
+std::string asr_server_remote_host;
+
+std::string asr_server_remote_port;
+
 std::string agent_session_remote_host;
 
 std::string agent_session_remote_port;
