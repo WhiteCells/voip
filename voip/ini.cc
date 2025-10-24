@@ -63,7 +63,7 @@ void loadINICfg(const std::string &filename)
         backend_host = cfg.at("BACKEND_HOST");
         backend_port = cfg.at("BACKEND_PORT");
         client_id = cfg.at("CLIENT_ID");
-        verify_file = cfg.at("VERIFY_FILE");
+        backend_verify_file = cfg.at("BACKEND_VERIFY_FILE");
         reminder_consumer_remote_host = cfg.at("REMINDER_CONSUMER_REMOTE_HOST");
         reminder_consumer_remote_port = cfg.at("REMINDER_CONSUMER_REMOTE_PORT");
         reminder_mediator_remote_host = cfg.at("REMINDER_MEDIATOR_REMOTE_HOST");
@@ -72,9 +72,11 @@ void loadINICfg(const std::string &filename)
         robot_remote_port = cfg.at("ROBOT_REMOTE_PORT");
         asr_server_remote_host = cfg.at("ASR_SERVER_REMOTE_HOST");
         asr_server_remote_port = cfg.at("ASR_SERVER_REMOTE_PORT");
+        asr_server_verify_file = cfg.at("ASR_SERVER_VERIFY_FILE");
         agent_session_remote_host = cfg.at("AGENT_SESSION_REMOTE_HOST");
         agent_session_remote_port = cfg.at("AGENT_SESSION_REMOTE_PORT");
         agent_session_remote_target = cfg.at("AGENT_SESSION_REMOTE_TARGET");
+        agent_session_verify_file = cfg.at("AGENT_SESSION_VERIFY_FILE");
     }
     catch (const std::exception &e) {
         LOG_CRITICAL("load ini file failed, lack key");

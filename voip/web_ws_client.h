@@ -264,7 +264,7 @@ public:
 #ifdef VOIP_SSL
         m_ssl_ctx = std::make_unique<ssl::context>(ssl::context::tls_client);
         m_ssl_ctx->set_verify_mode(ssl::verify_peer);
-        m_ssl_ctx->load_verify_file(verify_file);
+        m_ssl_ctx->load_verify_file(backend_verify_file);
         m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(net::make_strand(ioc), *m_ssl_ctx);
 #else
         m_ws = std::make_unique<websocket::stream<beast::tcp_stream>>(net::make_strand(ioc));

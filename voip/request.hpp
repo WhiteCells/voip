@@ -115,8 +115,8 @@ inline Json::Value httpSSLRequest(const std::string &host,
 
     // ssl
     ssl::context ctx(ssl::context::sslv23_client);
-    ctx.set_verify_mode(ssl::verify_peer); // 启用证书验证
-    ctx.load_verify_file(verify_file);     // CA
+    ctx.set_verify_mode(ssl::verify_peer);     // 启用证书验证
+    ctx.load_verify_file(backend_verify_file); // CA
 
     // resolve
     tcp::resolver resolver(ioc);
@@ -185,7 +185,6 @@ inline Json::Value httpSSLRequest(const std::string &host,
     return resp;
 }
 #else
-
 
 #endif
 

@@ -78,7 +78,7 @@ public:
         m_resolver = std::make_unique<tcp::resolver>(net::make_strand(ioc));
         ssl::context ssl_ctx(ssl::context::tls_client);
         ssl_ctx.set_verify_mode(ssl::verify_peer);
-        ssl_ctx.load_verify_file(verify_file);
+        ssl_ctx.load_verify_file(asr_server_verify_file);
         // ssl_ctx.set_verify_mode(ssl::verify_none); // 禁用SSL证书验证
         m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(net::make_strand(ioc), ssl_ctx);
         m_resolver->async_resolve(m_host, m_port,

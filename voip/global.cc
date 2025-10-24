@@ -13,7 +13,7 @@ std::string backend_port;
 
 std::string client_id;
 
-std::string verify_file;
+std::string backend_verify_file;
 
 std::string reminder_consumer_remote_host;
 
@@ -31,11 +31,15 @@ std::string asr_server_remote_host;
 
 std::string asr_server_remote_port;
 
+std::string asr_server_verify_file;
+
 std::string agent_session_remote_host;
 
 std::string agent_session_remote_port;
 
 std::string agent_session_remote_target;
+
+std::string agent_session_verify_file;
 
 cfg_map cfg;
 

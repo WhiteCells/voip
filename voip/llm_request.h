@@ -1,21 +1,27 @@
 #ifndef LLM_REQUEST_H
 #define LLM_REQUEST_H
 
+#include <boost/asio/ssl/error.hpp>
 #include <boost/beast/core.hpp>
+#include <boost/beast/core/stream_traits.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/beast/ssl/ssl_stream.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <json/json.h>
 #include <string>
-#include <iostream>
 #include <chrono>
+#include <boost/asio/ssl.hpp>
+#include <boost/beast/ssl.hpp>
+#include "global.h"
 #include "logger.h"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace net = boost::asio;
+namespace ssl = net::ssl;
 using tcp = net::ip::tcp;
 using namespace std::chrono_literals;
 
@@ -32,15 +38,32 @@ public:
             m_session_id = session_id;
 
             net::io_context ioc;
+            ssl::context ctx(ssl::context::sslv23_client);
+            ctx.set_verify_mode(ssl::verify_peer);
+            ctx.load_verify_file(agent_session_verify_file);
+
             tcp::resolver resolver(ioc);
-            beast::tcp_stream stream(ioc);
+            auto const results = resolver.resolve(m_host, m_port);
+
+            beast::ssl_stream<beast::tcp_stream> stream(ioc, ctx);
+
+            if (!SSL_set_tlsext_host_name(stream.native_handle(), m_host.c_str())) {
+                beast::error_code ec {static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
+                throw beast::system_error {ec};
+            }
+
+            beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(timeout_seconds));
+
+            beast::get_lowest_layer(stream).connect(results);
+
+            stream.handshake(ssl::stream_base::client);
 
             // 设置超时时间
-            stream.expires_after(std::chrono::seconds(timeout_seconds));
+            // stream.expires_after(std::chrono::seconds(timeout_seconds));
 
             // 连接服务器
-            auto const results = resolver.resolve(m_host, m_port);
-            stream.connect(results);
+            // auto const results = resolver.resolve(m_host, m_port);
+            // stream.connect(results);
 
             // 构造 JSON 请求体
             Json::Value root;
@@ -69,14 +92,15 @@ public:
             http::response<http::string_body> res;
 
             // 读取前重置超时
-            stream.expires_after(std::chrono::seconds(timeout_seconds));
+            // stream.expires_after(std::chrono::seconds(timeout_seconds));
             http::read(stream, buffer, res);
 
             // 优雅关闭
             beast::error_code ec;
-            stream.socket().shutdown(tcp::socket::shutdown_both, ec);
-            if (ec && ec != beast::errc::not_connected)
+            stream.shutdown(ec);
+            if (ec && ec != beast::errc::not_connected) {
                 throw beast::system_error {ec};
+            }
 
             // 尝试解析 JSON 响应
             Json::CharReaderBuilder readerBuilder;
