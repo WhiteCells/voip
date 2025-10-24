@@ -7,15 +7,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/voip/.env COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/server.crt ${CMAKE_BINARY_DIR}/voip/server.crt COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/crt/agent-session-server.crt ${CMAKE_BINARY_DIR}/voip/agent-session-server.crt COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/crt/asr-server.crt ${CMAKE_BINARY_DIR}/voip/asr-server.crt COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/crt/backend-server.crt ${CMAKE_BINARY_DIR}/voip/backend-server.crt COPYONLY)
 
 option(VOIP_SSL "Enable SSL")
 option(FEATURE "Feature to build: REMINDER or ROBOT" "REMINDER")
 
-if (CMKAE_BUILD_TYPE STREQUAL "Debug")
-    set(FEATURE "REMINDER")
-    set(VOIP_SSL ON)
-endif()
+set(FEATURE "REMINDER")
+set(VOIP_SSL ON)
 
 if(WIN32)
     if (MSVC)
