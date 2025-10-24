@@ -2,6 +2,7 @@
 #include "global.h"
 #include "logger.h"
 #include <fstream>
+#include "agent_ws_client.h"
 
 AgentAudAudioMediaPort::AgentAudAudioMediaPort()
 {
@@ -107,6 +108,11 @@ void AgentAudAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     }
 
     if (frame.size > 0) {
+
+        if (g_agent_ws_client) {
+            g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size));
+        }
+
         const int max_packet_size = 1500;
         std::vector<unsigned char> encoded(max_packet_size);
         int samples_pre_channel = frame.size / sizeof(opus_int16);
