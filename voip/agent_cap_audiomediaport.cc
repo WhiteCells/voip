@@ -2,6 +2,7 @@
 #include "global.h"
 #include "logger.h"
 #include <fstream>
+#include "agent_ws_client.h"
 
 AgentCapAudioMediaPort::AgentCapAudioMediaPort()
 {
@@ -97,16 +98,21 @@ void AgentCapAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 {
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
     if (m_confirmed.load() == false) {
-        LOG_WARN("call not confirmed, drop frame");
+        //        LOG_WARN("call not confirmed, drop frame");
         return;
     }
-    static std::ofstream send_audio("client2agent.pcm",
+    static std::ofstream send_audio("cap.pcm",
                                     std::ios::binary | std::ios::out | std::ios::trunc);
     if (!send_audio.is_open()) {
         LOG_ERROR("Failed to open client2agent.pcm");
     }
 
     if (frame.size > 0) {
+        //        LOG_INFO("frane size: {}", frame.size);
+        //        LOG_INFO("frane str: {}", std::string(reinterpret_cast<const char *>(frame.buf.data())));
+        if (g_manual_ws_client) {
+            g_manual_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "mediator");
+        }
         const int max_packet_size = 1500;
         std::vector<unsigned char> encoded(max_packet_size);
         int encoded_bytes = opus_encode(encoder,
@@ -119,12 +125,12 @@ void AgentCapAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             return;
         }
         int status = m_session.SendPacket(encoded.data(), encoded_bytes);
-        send_audio.write(reinterpret_cast<char *>(encoded.data()), encoded_bytes);
+        send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.buf.size());
         // LOG_INFO("SendPacket: {}", std::string(reinterpret_cast<const char*>(frame.buf.data()), frame.size));
         if (status < 0) {
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-        LOG_INFO("Send mediator RTP");
+        //        LOG_INFO("Send mediator RTP");
     }
 }

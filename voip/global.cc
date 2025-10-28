@@ -47,6 +47,8 @@ std::string local_hangup = "customer";
 
 std::shared_ptr<AgentWsClient> g_agent_ws_client;
 
+std::shared_ptr<AgentWsClient> g_manual_ws_client;
+
 void startEndpointLib(unsigned port)
 {
     endpoint.libCreate();

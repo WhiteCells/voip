@@ -32,9 +32,11 @@ public:
         : m_host(std::move(host)), m_port(std::move(port)), m_target(std::move(target)) {}
 
     // 发送请求（带超时与异常处理）
-    std::string sendRequest(const std::string &user_text, const std::string &session_id, const std::string &access_token, const std::string &status = "true", int timeout_seconds = 5)
+    std::string sendRequest(const std::string &user_text, const std::string &call_method, const std::string &role, const std::string &session_id, const std::string &access_token, const std::string &status = "true", int timeout_seconds = 5)
     {
         try {
+
+            LOG_INFO("start llm requests");
             m_session_id = session_id;
 
             net::io_context ioc;
@@ -67,13 +69,18 @@ public:
 
             // 构造 JSON 请求体
             Json::Value root;
-            root["customer_text"] = user_text;
+            root["call_method"] = call_method;
+            root["role"] = role;
+            root["text"] = user_text;
+
+            //            root["session_id"] = session_id];
             Json::StreamWriterBuilder writer;
             std::string body = Json::writeString(writer, root);
 
             // 构造 HTTP POST 请求
             std::string final_target = m_target + "/" + m_session_id;
-            LOG_INFO("[LLMRequest] Sending request to {}:{} {}", m_host, m_port, final_target);
+
+            LOG_INFO("[LLMRequest] Sending request to {}:{} {} {} {}", m_host, m_port, final_target, call_method, role);
 
             http::request<http::string_body> req {http::verb::post, final_target, 11};
             req.set(http::field::host, m_host);
@@ -140,7 +147,7 @@ public:
 private:
     std::string m_host;
     std::string m_port;
-    std::string m_target = "/api/llm_request";
+    std::string m_target;
     std::string m_session_id;
 };
 

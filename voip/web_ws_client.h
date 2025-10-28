@@ -102,16 +102,9 @@ public:
             LOG_INFO("recv json format: {}", root.toStyledString());
             const std::string request_type = root["request_type"].asString();
 
-            if (request_type == "auth") {
-                std::string session_id = root["session_id"].asString();
-                std::string access_token = root["access_token"].asString();
-                LOG_INFO("session_id: {}, access_token: {}", session_id, access_token);
-                g_agent_ws_client->get_session_id(session_id, access_token);
-            }
-
             // 经过 1 后才能 0
             // 账号校验
-            else if (request_type == "check") {
+            if (request_type == "check") {
                 LOG_INFO("check accounts type");
                 // accounts
                 if (!root.isMember("accounts") || !root["accounts"].isArray()) {
@@ -233,6 +226,18 @@ public:
                 }
                 else {
                     LOG_ERROR("error call_type");
+                }
+            }
+            else if (request_type == "auth") {
+                std::string session_id = root["session_id"].asString();
+                std::string access_token = root["access_token"].asString();
+                if (m_call_method == "agent") {
+                    g_agent_ws_client->get_session_id(m_call_method, session_id, access_token);
+                    LOG_INFO("call_method: {},session_id: {}, access_token: {}", m_call_method, session_id, access_token);
+                }
+                else if (m_call_method == "manual") {
+                    g_agent_ws_client->get_session_id(m_call_method, session_id, access_token);
+                    LOG_INFO("call_method: {},session_id: {}, access_token: {}", m_call_method, session_id, access_token);
                 }
             }
             else {

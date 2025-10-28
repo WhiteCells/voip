@@ -136,9 +136,11 @@ public:
         LOG_INFO("success send asr end config");
     }
 
-    void sendBinary(const std::string &data)
+    void sendBinary(const std::string &data, const std::string &role)
     {
         // LOG_INFO("Sending {} bytes of PCM data", data.size());
+        m_role = role;
+        //        LOG_INFO("sendBinary {}", m_role);
         if (m_ws && m_ws->is_open()) {
             // 设置为二进制模式
             m_ws->binary(true);
@@ -150,7 +152,7 @@ public:
                         LOG_ERROR("Agent Ws Client Send Binary Failed {}", ec.message());
                     }
                     else {
-                        // LOG_INFO("Successfully sent PCM data");
+                        //                        LOG_INFO("Successfully sent PCM data from {}", self->m_role);
                     }
                 });
         }
@@ -170,36 +172,46 @@ public:
 
     void start_llm_style()
     {
-        m_llm_start_time = std::chrono::steady_clock::now();
-        end_timeout_check();
-        start_timeout_check(m_llm_start_time);
+        if (m_call_method == "manual") { // 话术提醒
+            m_llm_start_time = std::chrono::steady_clock::now();
+            end_timeout_check();
+            start_timeout_check(m_llm_start_time);
 
-        std::string response = m_llm_client->sendRequest("请用开场话术开始对话", m_session_id, m_access_token);
+            std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "manual", "mediator", m_session_id, m_access_token);
+        }
 
-        Json::Value llm_style_json;
-        Json::CharReaderBuilder llm_style_builder;
-        std::unique_ptr<Json::CharReader> reader(llm_style_builder.newCharReader());
-        std::string llm_style_errors;
+        else if (m_call_method == "agent") { // 智能机器人
+            m_llm_start_time = std::chrono::steady_clock::now();
+            end_timeout_check();
+            start_timeout_check(m_llm_start_time);
 
-        if (reader->parse(response.c_str(), response.c_str() + response.size(), &llm_style_json, &llm_style_errors)) {
-            if (llm_style_json.isMember("data") && llm_style_json["data"].isObject()) {
-                const auto &data = llm_style_json["data"];
-                if (data.isMember("text") && data["text"].isArray()) {
-                    m_llm_msg_list.clear();
-                    for (const auto &item : data["text"]) {
-                        m_llm_msg_list.push_back(item.asString());
-                    }
-                    LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
+            std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token);
 
-                    if (!m_llm_msg_list.empty()) {
-                        TTSPlayer::getInstance()->produceTTS(m_llm_msg_list);
+            Json::Value llm_style_json;
+            Json::CharReaderBuilder llm_style_builder;
+            std::unique_ptr<Json::CharReader> reader(llm_style_builder.newCharReader());
+            std::string llm_style_errors;
+
+            if (reader->parse(response.c_str(), response.c_str() + response.size(), &llm_style_json, &llm_style_errors)) {
+                if (llm_style_json.isMember("data") && llm_style_json["data"].isObject()) {
+                    const auto &data = llm_style_json["data"];
+                    if (data.isMember("text") && data["text"].isArray()) {
                         m_llm_msg_list.clear();
+                        for (const auto &item : data["text"]) {
+                            m_llm_msg_list.push_back(item.asString());
+                        }
+                        LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
+
+                        if (!m_llm_msg_list.empty()) {
+                            TTSPlayer::getInstance()->produceTTS(m_llm_msg_list);
+                            m_llm_msg_list.clear();
+                        }
                     }
                 }
             }
-        }
-        else {
-            LOG_ERROR("Failed to parse LLM response JSON: {}", llm_style_errors);
+            else {
+                LOG_ERROR("Failed to parse LLM response JSON: {}", llm_style_errors);
+            }
         }
     }
 
@@ -207,15 +219,19 @@ public:
     {
         m_llm_msg_list.clear();
         m_llm_msg_text.clear();
-        TTSPlayer::getInstance()->stop();
-        TTSPlayer::getInstance()->resume();
+        //        TTSPlayer::getInstance()->stop();
+        //        TTSPlayer::getInstance()->resume();
     }
-    void get_session_id(const std::string &session_id,
+    void get_session_id(const std::string &call_method,
+                        const std::string &session_id,
                         const std::string &access_token)
     {
+        m_call_method = call_method;
         m_session_id = session_id;
         m_access_token = access_token;
-        LOG_INFO("get session_id {} access_token {}", m_session_id, m_access_token);
+
+        LOG_INFO("get call_method {} session_id {} access_token {}", m_call_method, m_session_id, m_access_token);
+
         start_llm_style();
     }
 
@@ -325,6 +341,7 @@ private:
             std::string mode = root.get("mode", "").asString();
 
             if (mode == "2pass-offline") {
+                LOG_INFO("2pass-offline mode test:{}", text);
                 process_asr_with_llm(text); // 将ASR结果推入到llm，将得到llm的文本转换为TTS的音频
             }
         }
@@ -337,37 +354,57 @@ private:
 
     void process_asr_with_llm(const std::string &text)
     {
-        TTSPlayer::getInstance()->stop(); // 停止播放
-        m_llm_start_time = std::chrono::steady_clock::now();
-        end_timeout_check();
-        start_timeout_check(m_llm_start_time);
 
         m_llm_msg_text = text;
-        std::string response = m_llm_client->sendRequest(m_llm_msg_text, m_session_id, m_access_token); // 发送ASR结果给LLM
-        LOG_INFO("LLM response: {}", response);
-        if (response.empty()) {
-            do_read();
-            return;
+        LOG_INFO("process_asr_with_llm: {}", text);
+        if (m_call_method == "manual") {
+            LOG_INFO("LLM manual start");
+            m_llm_start_time = std::chrono::steady_clock::now();
+            end_timeout_check();
+            start_timeout_check(m_llm_start_time);
+            if (m_role == "customer") {
+                LOG_INFO("LLM manual_customer start");
+                std::string response = m_llm_client->sendRequest(m_llm_msg_text, "manual", "customer", m_session_id, m_access_token);
+                LOG_INFO("LLM manual_customer response: {}", response);
+            }
+            else if (m_role == "mediator") {
+                LOG_INFO("LLM manual_mediator start");
+                std::string response = m_llm_client->sendRequest(m_llm_msg_text, "manual", "mediator", m_session_id, m_access_token);
+                LOG_INFO("LLM manual_mediator response: {}", response);
+            }
         }
-        Json::Value response_json;
-        Json::CharReaderBuilder response_builder;
-        std::unique_ptr<Json::CharReader> response_reader(response_builder.newCharReader());
-        std::string response_errors;
+        else if (m_call_method == "agent") {
+            TTSPlayer::getInstance()->stop(); // 停止播放
+            m_llm_start_time = std::chrono::steady_clock::now();
+            end_timeout_check();
+            start_timeout_check(m_llm_start_time);
 
-        if (response_reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &response_errors)) {
-            if (response_json.isMember("data") && response_json["data"].isObject()) {
-                const auto &data = response_json["data"];
-                if (data.isMember("text") && data["text"].isArray()) {
-                    m_llm_msg_list.clear();
-                    for (const auto &item : data["text"]) {
-                        m_llm_msg_list.push_back(item.asString());
-                    }
-                    LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
+            std::string response = m_llm_client->sendRequest(m_llm_msg_text, m_call_method, m_role, m_session_id, m_access_token); // 发送ASR结果给LLM
+            LOG_INFO("LLM agent response: {}", response);
+            if (response.empty()) {
+                do_read();
+                return;
+            }
+            Json::Value response_json;
+            Json::CharReaderBuilder response_builder;
+            std::unique_ptr<Json::CharReader> response_reader(response_builder.newCharReader());
+            std::string response_errors;
 
-                    if (!m_llm_msg_list.empty()) {
-                        TTSPlayer::getInstance()->resume();                   // 恢复播放
-                        TTSPlayer::getInstance()->produceTTS(m_llm_msg_list); // 将LLM的文本转换为TTS的音频
+            if (response_reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &response_errors)) {
+                if (response_json.isMember("data") && response_json["data"].isObject()) {
+                    const auto &data = response_json["data"];
+                    if (data.isMember("text") && data["text"].isArray()) {
                         m_llm_msg_list.clear();
+                        for (const auto &item : data["text"]) {
+                            m_llm_msg_list.push_back(item.asString());
+                        }
+                        LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
+
+                        if (!m_llm_msg_list.empty()) {
+                            TTSPlayer::getInstance()->resume();                   // 恢复播放
+                            TTSPlayer::getInstance()->produceTTS(m_llm_msg_list); // 将LLM的文本转换为TTS的音频
+                            m_llm_msg_list.clear();
+                        }
                     }
                 }
             }
@@ -439,6 +476,8 @@ private:
     std::atomic<bool> m_llm_timer_running {false};
     std::string m_session_id;
     std::string m_access_token;
+    std::string m_role;
+    std::string m_call_method;
     WebWsMsgHandler m_ws_msg_handler;
 };
 

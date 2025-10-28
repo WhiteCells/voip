@@ -96,46 +96,6 @@ AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
     LOG_INFO("<<< {}", __func__);
 }
 
-// 向客户推送音频
-// 接收 rtp server 的音频数据
-// void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
-//{
-//    static std::ofstream recv_audio("agent2client.pcm",
-//                                    std::ios::binary | std::ios::out | std::ios::app);
-//    if (!recv_audio.is_open()) {
-//        LOG_ERROR("Failed to open recv.pcm");
-//    }
-//
-//    const int sampleRate = 16000;
-//    const int channels = 1;
-//    const int duration_ms = 20;
-//    const int samplesPerFrame = channels * sampleRate * duration_ms / 1000;
-//    frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
-//    frame.size = samplesPerFrame * sizeof(int16_t);
-//    frame.buf.resize(frame.size);
-//
-//    std::vector<char> pcm;
-//    TTSPlayer::getInstance()->getNextAudio(pcm);
-////    LOG_INFO("TTS agent_Audio Size: {}", pcm.size());
-//
-//    std::vector<uint16_t> pcm_uint16(pcm.size() / sizeof(uint16_t));
-//    memcpy(pcm_uint16.data(), pcm.data(), pcm.size());
-//    m_rtp_recv_buffer.push_back(std::move(pcm_uint16));
-//
-//    std::lock_guard<std::mutex> lock(m_buffer_mtx);
-//    if (!m_rtp_recv_buffer.empty()) {
-//        LOG_INFO("Rtp Recv Buffer size: {}", m_rtp_recv_buffer.size());
-//        std::vector<uint16_t> &pkt = m_rtp_recv_buffer.front();
-//        recv_audio.write(reinterpret_cast<char *>(pkt.data()), pkt.size());
-//        size_t copy_size = (std::min)(pkt.size(), frame.buf.size());
-//        memcpy(frame.buf.data(), pkt.data(), copy_size);
-//        m_rtp_recv_buffer.pop_front();
-//    }
-//    else {
-//        memset(frame.buf.data(), 0, frame.size);
-//    }
-//}
-
 void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
     const int sampleRate = 16000;
@@ -189,7 +149,7 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 {
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
     if (m_confirmed.load() == false) {
-        LOG_WARN("call not confirmed, drop frame");
+        //        LOG_WARN("call not confirmed, drop frame");
         return;
     }
     static std::ofstream send_audio("client2agent.pcm", std::ios::binary | std::ios::out | std::ios::trunc);
@@ -202,7 +162,7 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
 
         if (g_agent_ws_client) {
-            g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size));
+            g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
         }
 
         const int max_packet_size = 1500;
