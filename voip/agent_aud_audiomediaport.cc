@@ -98,7 +98,7 @@ void AgentAudAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 {
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
     if (m_confirmed.load() == false) {
-        //        LOG_WARN("call not confirmed, drop frame");
+        // LOG_WARN("call not confirmed, drop frame");
         return;
     }
     static std::ofstream send_audio("client2agent.pcm",
@@ -116,7 +116,7 @@ void AgentAudAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         const int max_packet_size = 1500;
         std::vector<unsigned char> encoded(max_packet_size);
         int samples_pre_channel = frame.size / sizeof(opus_int16);
-        //        LOG_INFO("samples per channel: {}", samples_pre_channel);
+        // LOG_INFO("samples per channel: {}", samples_pre_channel);
         int encoded_bytes = opus_encode(encoder,
                                         (const opus_int16 *)frame.buf.data(),
                                         samples_pre_channel,
@@ -130,9 +130,9 @@ void AgentAudAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         send_audio.write(reinterpret_cast<char *>(encoded.data()), encoded_bytes);
         // LOG_INFO("SendPacket: {}", std::string(reinterpret_cast<const char*>(frame.buf.data()), frame.size));
         if (status < 0) {
-            //            LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
+            // LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-        //        LOG_INFO("Send customer RTP");
+        // LOG_INFO("Send customer RTP");
     }
 }

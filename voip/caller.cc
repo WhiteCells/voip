@@ -20,12 +20,12 @@ voip::Caller::Caller(voip::VAccount &acc, int call_id)
 #elif ROBOT
     , m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
 #endif
-    , m_audio_media_recorder(std::make_shared<pj::AudioMediaRecorder>())
+// , m_audio_media_recorder(std::make_shared<pj::AudioMediaRecorder>())
 {
-    auto now = std::chrono::system_clock::now();
-    auto now_time = std::chrono::system_clock::to_time_t(now);
-    auto recorder_filename = std::to_string(now_time) + ".wav";
-    m_audio_media_recorder->createRecorder(recorder_filename);
+    // auto now = std::chrono::system_clock::now();
+    // auto now_time = std::chrono::system_clock::to_time_t(now);
+    // auto recorder_filename = std::to_string(now_time) + ".wav";
+    // m_audio_media_recorder->createRecorder(recorder_filename);
 }
 
 voip::Caller::~Caller()

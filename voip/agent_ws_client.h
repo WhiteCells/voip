@@ -51,7 +51,7 @@ public:
 
     void set_server_sender(std::shared_ptr<IWSSender> sender)
     {
-        m_gui_server_sender = sender;
+        // m_gui_server_sender = sender;
     }
 
     void send(const std::string &msg)
@@ -152,7 +152,7 @@ public:
                         LOG_ERROR("Agent Ws Client Send Binary Failed {}", ec.message());
                     }
                     else {
-                        //                        LOG_INFO("Successfully sent PCM data from {}", self->m_role);
+                        // LOG_INFO("Successfully sent PCM data from {}", self->m_role);
                     }
                 });
         }
@@ -177,9 +177,8 @@ public:
             end_timeout_check();
             start_timeout_check(m_llm_start_time);
 
-            std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "manual", "mediator", m_session_id, m_access_token);
+            // std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "manual", "mediator", m_session_id, m_access_token);
         }
-
         else if (m_call_method == "agent") { // 智能机器人
             m_llm_start_time = std::chrono::steady_clock::now();
             end_timeout_check();
@@ -219,8 +218,8 @@ public:
     {
         m_llm_msg_list.clear();
         m_llm_msg_text.clear();
-        //        TTSPlayer::getInstance()->stop();
-        //        TTSPlayer::getInstance()->resume();
+        // TTSPlayer::getInstance()->stop();
+        // TTSPlayer::getInstance()->resume();
     }
     void get_session_id(const std::string &call_method,
                         const std::string &session_id,
@@ -243,7 +242,7 @@ private:
             // resp[""];
             Json::StreamWriterBuilder builder;
             std::string resp_str = Json::writeString(builder, resp);
-            m_gui_server_sender->send(resp_str);
+            // m_gui_server_sender->send(resp_str);
             return;
         }
         beast::get_lowest_layer(*m_ws)
@@ -259,7 +258,7 @@ private:
             // resp[""];
             Json::StreamWriterBuilder builder;
             std::string resp_str = Json::writeString(builder, resp);
-            m_gui_server_sender->send(resp_str);
+            // m_gui_server_sender->send(resp_str);
             return;
         }
         beast::get_lowest_layer(*m_ws).expires_never();
@@ -267,7 +266,6 @@ private:
             req.set(http::field::user_agent, "<ws>");
         }));
         m_host += ":" + std::to_string(endpoint.port());
-        // m_target;
         m_ws->next_layer().async_handshake(ssl::stream_base::client,
                                            beast::bind_front_handler(&AgentWsClient::on_tls_handshake,
                                                                      shared_from_this()));
@@ -280,7 +278,7 @@ private:
             //
             Json::StreamWriterBuilder builder;
             std::string resp_str = Json::writeString(builder, resp);
-            m_gui_server_sender->send(resp_str);
+            // m_gui_server_sender->send(resp_str);
             return;
         }
         m_ws->set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));
@@ -299,12 +297,12 @@ private:
         if (ec) {
             //
             std::string resp_str = Json::writeString(builder, resp);
-            m_gui_server_sender->send(resp_str);
+            // m_gui_server_sender->send(resp_str);
             return;
         }
         //
         std::string resp_str = Json::writeString(builder, resp);
-        m_gui_server_sender->send(resp_str);
+        // m_gui_server_sender->send(resp_str);
 
         do_read();
     }
@@ -322,7 +320,7 @@ private:
             Json::Value resp;
             Json::StreamWriterBuilder builder;
             std::string resp_str = Json::writeString(builder, resp);
-            m_gui_server_sender->send(resp_str);
+            // m_gui_server_sender->send(resp_str);
             return;
         }
 
@@ -341,7 +339,7 @@ private:
             std::string mode = root.get("mode", "").asString();
 
             if (mode == "2pass-offline") {
-                LOG_INFO("2pass-offline mode test:{}", text);
+                LOG_INFO("m_role: {}, mode:2pass-offline mode test: {}", m_role, text);
                 process_asr_with_llm(text); // 将ASR结果推入到llm，将得到llm的文本转换为TTS的音频
             }
         }
@@ -356,7 +354,7 @@ private:
     {
 
         m_llm_msg_text = text;
-        LOG_INFO("process_asr_with_llm: {}", text);
+        LOG_INFO("m_call_method: {}, process_asr_with_llm: {}", m_call_method, text);
         if (m_call_method == "manual") {
             LOG_INFO("LLM manual start");
             m_llm_start_time = std::chrono::steady_clock::now();
@@ -465,7 +463,7 @@ private:
     std::string m_port;
     std::string m_target;
 
-    std::shared_ptr<IWSSender> m_gui_server_sender;
+    // std::shared_ptr<IWSSender> m_gui_server_sender;
     std::shared_ptr<LLMRequest> m_llm_client;
 
     std::string m_llm_msg_text;

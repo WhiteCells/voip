@@ -237,6 +237,7 @@ public:
                 }
                 else if (m_call_method == "manual") {
                     g_agent_ws_client->get_session_id(m_call_method, session_id, access_token);
+                    g_manual_ws_client->get_session_id(m_call_method, session_id, access_token);
                     LOG_INFO("call_method: {},session_id: {}, access_token: {}", m_call_method, session_id, access_token);
                 }
             }

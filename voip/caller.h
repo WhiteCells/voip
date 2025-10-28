@@ -80,7 +80,7 @@ private:
     std::string hangup_direction;
     std::string m_call_method;
     std::string m_different;
-    std::shared_ptr<pj::AudioMediaRecorder> m_audio_media_recorder;
+    // std::shared_ptr<pj::AudioMediaRecorder> m_audio_media_recorder;
 
 #ifdef REMINDER
     std::shared_ptr<AgentAudAudioMediaPort> m_agent_aud_media_port;

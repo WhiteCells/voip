@@ -1,21 +1,5 @@
 {
-    "accounts": [
-        {
-            "id": "1wr3-2s2d-r3r2-dff31",
-            "extUser": "2001",
-            "extPsd": "2001"
-        },
-        {
-            "id": "1wr3-2s2d-r3r2-dff32",
-            "extUser": "2002",
-            "extPsd": "2002"
-        },
-        {
-            "id": "1wr3-2s2d-r3r2-dff33",
-            "extUser": "2003",
-            "extPsd": "2003"
-        }
-    ],
-    "node": "192.168.10.51",
-    "request_type": 1
+    "session_id": "999",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRfaWQiOiIxIn0.S0S4mGENniarf40usC_zWNPkaJ2ZXSdtgHYLwKKJj2o",
+    "request_type": "auth"
 }

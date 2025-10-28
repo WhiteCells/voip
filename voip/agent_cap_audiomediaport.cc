@@ -108,8 +108,7 @@ void AgentCapAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     }
 
     if (frame.size > 0) {
-        //        LOG_INFO("frane size: {}", frame.size);
-        //        LOG_INFO("frane str: {}", std::string(reinterpret_cast<const char *>(frame.buf.data())));
+        // LOG_INFO("frane str: {}", std::string(reinterpret_cast<const char *>(frame.buf.data())));
         if (g_manual_ws_client) {
             g_manual_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "mediator");
         }
@@ -131,6 +130,6 @@ void AgentCapAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
             LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
             return;
         }
-        //        LOG_INFO("Send mediator RTP");
+        // LOG_INFO("Send mediator RTP");
     }
 }

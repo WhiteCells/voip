@@ -33,8 +33,9 @@ int main()
     g_agent_ws_client->start();
     g_manual_ws_client->start();
 
-    auto bridget_agent = std::make_shared<WebAgentBridge>(g_agent_ws_client, web_ws_client);
-    auto bridget_manual = std::make_shared<WebAgentBridge>(g_manual_ws_client, web_ws_client);
+    // auto bridget_agent = std::make_shared<WebAgentBridge>(g_agent_ws_client, web_ws_client);
+    // auto bridget_manual = std::make_shared<WebAgentBridge>(g_manual_ws_client, web_ws_client);
+
     web_ws_client->start_call();
 
     return 0;
