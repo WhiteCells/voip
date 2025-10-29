@@ -172,14 +172,15 @@ public:
 
     void start_llm_style()
     {
-        if (m_call_method == "manual") { // 话术提醒
-            m_llm_start_time = std::chrono::steady_clock::now();
-            end_timeout_check();
-            start_timeout_check(m_llm_start_time);
-
-            // std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "manual", "mediator", m_session_id, m_access_token);
-        }
-        else if (m_call_method == "agent") { // 智能机器人
+//        if (m_call_method == "manual") { // 话术提醒
+//            m_llm_start_time = std::chrono::steady_clock::now();
+//            end_timeout_check();
+//            start_timeout_check(m_llm_start_time);
+//
+//            std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "manual", "mediator", m_session_id, m_access_token);
+//        }
+//        else
+        if (m_call_method == "agent") { // 智能机器人
             m_llm_start_time = std::chrono::steady_clock::now();
             end_timeout_check();
             start_timeout_check(m_llm_start_time);
@@ -357,9 +358,9 @@ private:
         LOG_INFO("m_call_method: {}, process_asr_with_llm: {}", m_call_method, text);
         if (m_call_method == "manual") {
             LOG_INFO("LLM manual start");
-            m_llm_start_time = std::chrono::steady_clock::now();
-            end_timeout_check();
-            start_timeout_check(m_llm_start_time);
+//            m_llm_start_time = std::chrono::steady_clock::now();
+//            end_timeout_check();
+//            start_timeout_check(m_llm_start_time);
             if (m_role == "customer") {
                 LOG_INFO("LLM manual_customer start");
                 std::string response = m_llm_client->sendRequest(m_llm_msg_text, "manual", "customer", m_session_id, m_access_token);
