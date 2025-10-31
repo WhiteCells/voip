@@ -14,12 +14,6 @@
 #include <jrtplib3/rtpudpv4transmitter.h>
 #endif
 #include <pjsua2.hpp>
-#include <thread>
-#include <vector>
-#include <deque>
-#include <mutex>
-#include <atomic>
-#include "tts_request.h"
 
 class AgentRobotAudioMediaPort : public pj::AudioMediaPort
 {
@@ -49,14 +43,6 @@ public:
      * @param frame       The frame.
      */
     virtual void onFrameReceived(pj::MediaFrame &frame) override;
-
-private:
-    static std::mutex m_remote_port_ready;
-    jrtplib::RTPSession m_session;
-    std::thread m_rtp_recv_thread;
-    std::atomic<bool> m_running;
-    std::deque<std::vector<uint16_t>> m_rtp_recv_buffer;
-    std::mutex m_buffer_mtx;
 };
 
 #endif // _AGENT_ROBOT_AUDIOMEDIAPORT_H_

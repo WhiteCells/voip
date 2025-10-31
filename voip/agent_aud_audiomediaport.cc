@@ -17,47 +17,12 @@ AgentAudAudioMediaPort::AgentAudAudioMediaPort()
     fmt.avgBps = 32000;            //
     fmt.maxBps = 32000;            //
     pj::AudioMediaPort::createPort("port", fmt);
-
-    // RTP 会话初始化
-    using namespace jrtplib;
-    RTPSessionParams sessparams;
-    sessparams.SetOwnTimestampUnit(1.0 / 16000.0);
-    sessparams.SetAcceptOwnPackets(true);
-
-    RTPUDPv4TransmissionParams transparams;
-    transparams.SetPortbase(0); // 本地 RTP 端口
-
-    int status = m_session.Create(sessparams, &transparams);
-    if (status < 0) {
-        LOG_ERROR("Failed to create RTP session: {}", RTPGetErrorString(status));
-        m_running = false;
-        return;
-    }
-
-    m_session.SetDefaultPayloadType(1);
-    m_session.SetDefaultMark(false);
-    m_session.SetDefaultTimestampIncrement(320);
-
-    const char *ip_str = reminder_consumer_remote_host.c_str();
-    uint16_t port = static_cast<uint16_t>(std::stoi(reminder_consumer_remote_port));
-    uint32_t ip = inet_addr(ip_str);
-    ip = ntohl(ip);
-    m_session.AddDestination(jrtplib::RTPIPv4Address(ip, port));
-
-    m_running = true;
     LOG_INFO("<<< construct {}", __func__);
 }
 
 AgentAudAudioMediaPort::~AgentAudAudioMediaPort()
 {
     LOG_INFO(">>> {}", __func__);
-    m_running = false;
-    if (m_rtp_recv_thread.joinable()) {
-        m_rtp_recv_thread.join();
-    }
-    const char *reason = "session closed";
-    size_t reason_len = strlen(reason);
-    m_session.BYEDestroy(jrtplib::RTPTime(1.0), reason, reason_len);
     LOG_INFO("<<< {}", __func__);
 }
 
@@ -65,31 +30,6 @@ AgentAudAudioMediaPort::~AgentAudAudioMediaPort()
 // 接收 rtp server 的音频数据
 void AgentAudAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
-    static std::ofstream recv_audio("agent2client.pcm",
-                                    std::ios::binary | std::ios::out | std::ios::app);
-    if (!recv_audio.is_open()) {
-        LOG_ERROR("Failed to open recv.pcm");
-    }
-
-    const int sampleRate = 16000;
-    const int channels = 1;
-    const int duration_ms = 20;
-    const int samplesPerFrame = channels * sampleRate * duration_ms / 1000;
-    frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
-    frame.size = samplesPerFrame * sizeof(int16_t);
-    frame.buf.resize(frame.size);
-
-    std::lock_guard<std::mutex> lock(m_buffer_mtx);
-    if (!m_rtp_recv_buffer.empty()) {
-        std::vector<uint16_t> &pkt = m_rtp_recv_buffer.front();
-        recv_audio.write(reinterpret_cast<char *>(pkt.data()), pkt.size());
-        size_t copy_size = (std::min)(pkt.size(), frame.buf.size());
-        memcpy(frame.buf.data(), pkt.data(), copy_size);
-        m_rtp_recv_buffer.pop_front();
-    }
-    else {
-        memset(frame.buf.data(), 0, frame.size);
-    }
 }
 
 // 接收客户音频
@@ -101,38 +41,15 @@ void AgentAudAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         // LOG_WARN("call not confirmed, drop frame");
         return;
     }
-    static std::ofstream send_audio("client2agent.pcm",
+    static std::ofstream send_audio("agent_aud_recv.pcm",
                                     std::ios::binary | std::ios::out | std::ios::trunc);
     if (!send_audio.is_open()) {
-        LOG_ERROR("Failed to open client2agent.pcm");
+        LOG_ERROR("Failed to open agent_aud_recv.pcm");
     }
 
     if (frame.size > 0) {
-
         if (g_agent_ws_client) {
             g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
         }
-
-        const int max_packet_size = 1500;
-        std::vector<unsigned char> encoded(max_packet_size);
-        int samples_pre_channel = frame.size / sizeof(opus_int16);
-        // LOG_INFO("samples per channel: {}", samples_pre_channel);
-        int encoded_bytes = opus_encode(encoder,
-                                        (const opus_int16 *)frame.buf.data(),
-                                        samples_pre_channel,
-                                        encoded.data(),
-                                        max_packet_size);
-        if (encoded_bytes < 0) {
-            LOG_ERROR("Opus encode failed: {}", opus_strerror(encoded_bytes));
-            return;
-        }
-        int status = m_session.SendPacket(encoded.data(), encoded_bytes);
-        send_audio.write(reinterpret_cast<char *>(encoded.data()), encoded_bytes);
-        // LOG_INFO("SendPacket: {}", std::string(reinterpret_cast<const char*>(frame.buf.data()), frame.size));
-        if (status < 0) {
-            // LOG_INFO("RTP send failed: {}", jrtplib::RTPGetErrorString(status));
-            return;
-        }
-        // LOG_INFO("Send customer RTP");
     }
 }

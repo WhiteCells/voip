@@ -2,20 +2,14 @@
 #define _VCALL_H_
 
 #include <pjsua2/media.hpp>
-#ifdef REMINDER
 #include "agent_aud_audiomediaport.h"
 #include "agent_cap_audiomediaport.h"
 #include "agent_robot_audiomediaport.h"
-#elif ROBOT
-#include "agent_robot_audiomediaport.h"
-#endif
 #include "coordinator.h"
 #include <pjsua2.hpp>
 #include <string>
 #include <memory>
 #include <ctime>
-
-class CallerQueue;
 
 class IWSSender;
 
@@ -82,13 +76,9 @@ private:
     std::string m_different;
     // std::shared_ptr<pj::AudioMediaRecorder> m_audio_media_recorder;
 
-#ifdef REMINDER
     std::shared_ptr<AgentAudAudioMediaPort> m_agent_aud_media_port;
     std::shared_ptr<AgentCapAudioMediaPort> m_agent_cap_media_port;
     std::shared_ptr<AgentRobotAudioMediaPort> m_agent_robot_media_port;
-#elif ROBOT
-    std::shared_ptr<AgentRobotAudioMediaPort> m_agent_robot_media_port;
-#endif
 };
 
 } // namespace voip

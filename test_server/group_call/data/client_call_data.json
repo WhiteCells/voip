@@ -2,8 +2,8 @@
 	"accounts" : 
 	[
 		{
-			"extPsd" : "1012",
-			"extUser" : "1012",
+			"extPsd" : "100001",
+			"extUser" : "100001",
 			"id" : "1967767468188422145"
 		},
 		{
@@ -27,13 +27,13 @@
 			"id" : "1967767468196810754"
 		}
 	],
-	"call_method" : "manual",
+	"call_method" : "agent",
 	"call_type" : "single",
 	"different" : "myself",
 	"node" : "192.168.10.51",
 	"phones" : 
 	[
-		"1001"
+		"100002"
 	],
 	"request_type" : "dialplan",
 	"task_id" : "1971819156410998786"

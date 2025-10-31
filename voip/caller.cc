@@ -1,7 +1,6 @@
 #include "caller.h"
 #include "vaccount.h"
 #include "request.hpp"
-#include "caller_queue.h"
 #include "logger.h"
 #include "request.hpp"
 #include "global.h"
@@ -13,19 +12,7 @@
 voip::Caller::Caller(voip::VAccount &acc, int call_id)
     : pj::Call(acc, call_id)
     , acc_(acc)
-#ifdef REMINDER
-//    , m_agent_aud_media_port(std::make_shared<AgentAudAudioMediaPort>())
-//    , m_agent_cap_media_port(std::make_shared<AgentCapAudioMediaPort>())
-//    , m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
-#elif ROBOT
-    , m_agent_robot_media_port(std::make_shared<AgentRobotAudioMediaPort>())
-#endif
-// , m_audio_media_recorder(std::make_shared<pj::AudioMediaRecorder>())
 {
-    // auto now = std::chrono::system_clock::now();
-    // auto now_time = std::chrono::system_clock::to_time_t(now);
-    // auto recorder_filename = std::to_string(now_time) + ".wav";
-    // m_audio_media_recorder->createRecorder(recorder_filename);
 }
 
 voip::Caller::~Caller()
@@ -80,7 +67,6 @@ void voip::Caller::group_call(const std::string &phone,
 
         LOG_WARN("call {} wait winner time out", m_phone);
         m_call_status = "no_answered";
-        hangup_();
         LOG_INFO("Caller::call phone {} call_status {} call_type {}", m_phone, m_call_status, call_type);
         voip::pushCallState(m_phone,
                             m_call_status,
@@ -135,7 +121,6 @@ void voip::Caller::single_call(const std::string &phone,
 
         LOG_WARN("call {} wait winner time out", m_phone);
         m_call_status = "no_answered";
-        hangup_();
         voip::pushCallState(m_phone,
                             m_call_status,
                             call_type,
@@ -145,13 +130,6 @@ void voip::Caller::single_call(const std::string &phone,
         return;
     }
     m_coordinator->waitForSingleCallFinished();
-}
-
-void voip::Caller::hangup_()
-{
-    pj::CallOpParam prm;
-    prm.statusCode = PJSIP_SC_OK;
-    //    pj::Call::hangup(prm);
 }
 
 void voip::Caller::onCallTsxState(pj::OnCallTsxStateParam &prm)

@@ -5,11 +5,11 @@
 AccountCheck::AccountCheck(const std::string &id,
                            const std::string &user,
                            const std::string &pass,
-                           const std::string &host) :
-    m_id(id),
-    m_user(user),
-    m_pass(pass),
-    m_host(host)
+                           const std::string &host)
+    : m_id(id)
+    , m_user(user)
+    , m_pass(pass)
+    , m_host(host)
 {
     LOG_INFO("AccountCheck");
     m_auth_cred_info = pj::AuthCredInfo("digest", "*",

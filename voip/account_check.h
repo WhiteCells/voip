@@ -5,8 +5,6 @@
 #include <memory>
 #include <string>
 
-class AccountCheckManager;
-
 class AccountCheck :
     public std::enable_shared_from_this<AccountCheck>,
     public pj::Account

@@ -8,6 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/voip/.env COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/crt/agent-session-server.crt ${CMAKE_BINARY_DIR}/voip/agent-session-server.crt COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/crt/agent-session-server_prod.crt ${CMAKE_BINARY_DIR}/voip/agent-session-server_prod.crt COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/crt/asr-server.crt ${CMAKE_BINARY_DIR}/voip/asr-server.crt COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/crt/backend-server.crt ${CMAKE_BINARY_DIR}/voip/backend-server.crt COPYONLY)
 

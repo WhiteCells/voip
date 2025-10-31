@@ -1,22 +1,22 @@
 #ifndef LLM_REQUEST_H
 #define LLM_REQUEST_H
 
+#include "global.h"
+#include "logger.h"
+#include <boost/asio/ssl.hpp>
 #include <boost/asio/ssl/error.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/core/stream_traits.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/ssl/ssl_stream.hpp>
-#include <boost/beast/version.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/core/stream_traits.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/ssl.hpp>
+#include <boost/beast/ssl/ssl_stream.hpp>
+#include <boost/beast/version.hpp>
 #include <json/json.h>
 #include <string>
 #include <chrono>
-#include <boost/asio/ssl.hpp>
-#include <boost/beast/ssl.hpp>
-#include "global.h"
-#include "logger.h"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -29,7 +29,11 @@ class LLMRequest
 {
 public:
     explicit LLMRequest(std::string host, std::string port, std::string target)
-        : m_host(std::move(host)), m_port(std::move(port)), m_target(std::move(target)) {}
+        : m_host(std::move(host))
+        , m_port(std::move(port))
+        , m_target(std::move(target))
+    {
+    }
 
     // 发送请求（带超时与异常处理）
     std::string sendRequest(const std::string &user_text, const std::string &call_method, const std::string &role, const std::string &session_id, const std::string &access_token, const std::string &status = "true", int timeout_seconds = 5)
@@ -137,11 +141,6 @@ public:
             LOG_INFO("[LLMRequest] Unknown exception caught");
             return "";
         }
-    }
-
-    void setTarget(const std::string &target)
-    {
-        m_target = target;
     }
 
 private:

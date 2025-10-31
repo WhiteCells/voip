@@ -5,7 +5,6 @@
 #include <mutex>
 #include <string>
 #include <condition_variable>
-#include <atomic>
 
 /**
  * @brief 拨号计划队列
@@ -25,13 +24,9 @@ public:
     bool empty() const;
 
 private:
-    void fetchDialPlan();
-
-private:
     std::queue<std::pair<int, std::string>> m_que;
     mutable std::mutex m_que_mtx;
     std::condition_variable m_que_cv;
-    std::atomic_bool m_fetching;
 };
 
 #endif // _DIALPLAN_QUE_H_

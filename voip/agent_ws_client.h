@@ -5,18 +5,23 @@
 #include "logger.h"
 #include "io_context_pool.h"
 #include "ws_interface.h"
+#include "llm_request.h"
+#include "tts_request.h"
+
+#include <boost/asio/any_io_executor.hpp>
+#include <boost/asio/bind_executor.hpp>
+#include <boost/beast/core/error.hpp>
 #include <json/json.h>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+
 #include <memory>
 #include <functional>
 #include <vector>
 #include <chrono>
 #include <thread>
-#include "llm_request.h"
-#include "tts_request.h"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -38,7 +43,7 @@ public:
         , m_llm_client(std::make_shared<LLMRequest>(agent_session_remote_host, agent_session_remote_port, agent_session_remote_target))
     {
     }
-    explicit AgentWsClient() = default;
+
     ~AgentWsClient()
     {
         stop();
@@ -75,12 +80,14 @@ public:
     void start()
     {
         auto &ioc = IOContextPool::getInstance()->getIOContext();
-        m_resolver = std::make_unique<tcp::resolver>(net::make_strand(ioc));
+        m_strand.emplace(net::make_strand(ioc));
+        m_resolver = std::make_unique<tcp::resolver>(*m_strand);
+
         ssl::context ssl_ctx(ssl::context::tls_client);
         ssl_ctx.set_verify_mode(ssl::verify_peer);
         ssl_ctx.load_verify_file(asr_server_verify_file);
-        // ssl_ctx.set_verify_mode(ssl::verify_none); // 禁用SSL证书验证
-        m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(net::make_strand(ioc), ssl_ctx);
+        m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(*m_strand, ssl_ctx);
+
         m_resolver->async_resolve(m_host, m_port,
                                   beast::bind_front_handler(&AgentWsClient::on_resolver,
                                                             shared_from_this()));
@@ -88,18 +95,20 @@ public:
 
     void stop()
     {
-        if (m_ws->is_open()) {
-            beast::error_code ec;
-            m_ws->close(websocket::close_code::normal, ec);
-            if (ec) {
-                LOG_ERROR("Agent Ws Client Close Failed: {}", ec.message());
+        net::dispatch(*m_strand, [self = shared_from_this()]() {
+            if (self->m_ws && self->m_ws->is_open()) {
+                beast::error_code ec;
+                self->m_ws->close(websocket::close_code::normal, ec);
+                if (ec) {
+                    LOG_ERROR("Close failed: {}", ec.message());
+                }
+                else {
+                    LOG_INFO("WebSocket closed cleanly");
+                }
             }
-            else {
-                LOG_INFO("Agent Ws Client Close Successfully");
-            }
-            m_ws.reset();
-        }
-        m_resolver->cancel();
+            self->m_send_queue.clear();
+            self->m_writing = false;
+        });
     }
 
     void start_config_send()
@@ -138,49 +147,55 @@ public:
 
     void sendBinary(const std::string &data, const std::string &role)
     {
-        // LOG_INFO("Sending {} bytes of PCM data", data.size());
-        m_role = role;
-        //        LOG_INFO("sendBinary {}", m_role);
-        if (m_ws && m_ws->is_open()) {
-            // 设置为二进制模式
-            m_ws->binary(true);
-            // 异步发送二进制数据
-            m_ws->async_write(
-                asio::buffer(data),
-                [self = shared_from_this()](beast::error_code ec, std::size_t) {
-                    if (ec) {
-                        LOG_ERROR("Agent Ws Client Send Binary Failed {}", ec.message());
-                    }
-                    else {
-                        // LOG_INFO("Successfully sent PCM data from {}", self->m_role);
-                    }
-                });
+        if (!m_ws || !m_ws->is_open()) {
+            LOG_WARN("WebSocket not open, cannot send binary data");
+            return;
         }
-        else {
-            LOG_WARN("WebSocket connection is not open, cannot send binary data");
-        }
+
+        net::dispatch(*m_strand, [self = shared_from_this(), data, role]() {
+            self->m_role = role;
+            self->m_send_queue.push_back(data);
+            if (!self->m_writing) {
+                self->do_write();
+            }
+        });
     }
 
-    std::vector<std::string> getLLMMessageList()
+    void do_write()
     {
-        LOG_INFO("Get LLM Message msg_List {}", m_llm_msg_list.size());
-        std::vector<std::string> temp_list = m_llm_msg_list;
-        m_llm_msg_list.clear();
-        LOG_INFO("Get LLM Message List {}", temp_list.size());
-        return temp_list;
+        if (m_send_queue.empty() || !m_ws || !m_ws->is_open()) {
+            m_writing = false;
+            return;
+        }
+
+        m_writing = true;
+        std::string msg = std::move(m_send_queue.front());
+        m_send_queue.pop_front();
+
+        m_ws->binary(true);
+        m_ws->async_write(
+            net::buffer(msg),
+            net::bind_executor(
+                *m_strand,
+                [self = shared_from_this()](beast::error_code ec, std::size_t) {
+                    if (ec) {
+                        LOG_ERROR("Send Binary Failed: {}", ec.message());
+                        self->m_send_queue.clear();
+                        self->m_writing = false;
+                        return;
+                    }
+                    if (!self->m_send_queue.empty()) {
+                        self->do_write();
+                    }
+                    else {
+                        self->m_writing = false;
+                    }
+                }));
     }
 
     void start_llm_style()
     {
-//        if (m_call_method == "manual") { // 话术提醒
-//            m_llm_start_time = std::chrono::steady_clock::now();
-//            end_timeout_check();
-//            start_timeout_check(m_llm_start_time);
-//
-//            std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "manual", "mediator", m_session_id, m_access_token);
-//        }
-//        else
-        if (m_call_method == "agent") { // 智能机器人
+        if (m_call_method == "agent") {
             m_llm_start_time = std::chrono::steady_clock::now();
             end_timeout_check();
             start_timeout_check(m_llm_start_time);
@@ -219,9 +234,10 @@ public:
     {
         m_llm_msg_list.clear();
         m_llm_msg_text.clear();
-        // TTSPlayer::getInstance()->stop();
-        // TTSPlayer::getInstance()->resume();
+        TTSPlayer::getInstance()->stop();
+        TTSPlayer::getInstance()->resume();
     }
+
     void get_session_id(const std::string &call_method,
                         const std::string &session_id,
                         const std::string &access_token)
@@ -239,11 +255,7 @@ private:
     void on_resolver(beast::error_code ec, tcp::resolver::results_type results)
     {
         if (ec) {
-            Json::Value resp;
-            // resp[""];
-            Json::StreamWriterBuilder builder;
-            std::string resp_str = Json::writeString(builder, resp);
-            // m_gui_server_sender->send(resp_str);
+            LOG_ERROR("resolver error: {}", ec.message());
             return;
         }
         beast::get_lowest_layer(*m_ws)
@@ -255,11 +267,7 @@ private:
     void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type endpoint)
     {
         if (ec) {
-            Json::Value resp;
-            // resp[""];
-            Json::StreamWriterBuilder builder;
-            std::string resp_str = Json::writeString(builder, resp);
-            // m_gui_server_sender->send(resp_str);
+            LOG_ERROR("connect error: {}", ec.message());
             return;
         }
         beast::get_lowest_layer(*m_ws).expires_never();
@@ -275,11 +283,7 @@ private:
     void on_tls_handshake(beast::error_code ec)
     {
         if (ec) {
-            Json::Value resp;
-            //
-            Json::StreamWriterBuilder builder;
-            std::string resp_str = Json::writeString(builder, resp);
-            // m_gui_server_sender->send(resp_str);
+            LOG_ERROR("tls handshake error: {}", ec.message());
             return;
         }
         m_ws->set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));
@@ -296,37 +300,33 @@ private:
         Json::Value resp;
         Json::StreamWriterBuilder builder;
         if (ec) {
-            //
-            std::string resp_str = Json::writeString(builder, resp);
-            // m_gui_server_sender->send(resp_str);
+            LOG_ERROR("ws handshake error: {}", ec.message());
             return;
         }
-        //
-        std::string resp_str = Json::writeString(builder, resp);
-        // m_gui_server_sender->send(resp_str);
-
         do_read();
     }
 
     void do_read()
     {
         m_ws->async_read(m_buffer,
-                         beast::bind_front_handler(&AgentWsClient::on_read,
-                                                   shared_from_this()));
+                         net::bind_executor(
+                             *m_strand,
+                             beast::bind_front_handler(&AgentWsClient::on_read, shared_from_this())));
     }
 
-    void on_read(beast::error_code ec, std::size_t)
+    void on_read(beast::error_code ec, std::size_t bytes_transferred)
     {
+        if (ec == websocket::error::closed) {
+            LOG_WARN("WebSocket closed by server");
+            return;
+        }
         if (ec) {
-            Json::Value resp;
-            Json::StreamWriterBuilder builder;
-            std::string resp_str = Json::writeString(builder, resp);
-            // m_gui_server_sender->send(resp_str);
+            LOG_ERROR("Read error: {}", ec.message());
             return;
         }
 
         std::string msg = beast::buffers_to_string(m_buffer.data());
-        m_buffer.consume(m_buffer.size());
+        m_buffer.consume(bytes_transferred);
         LOG_INFO("recv Agent Ws Client {}", msg);
 
         Json::Value root;
@@ -341,7 +341,7 @@ private:
 
             if (mode == "2pass-offline") {
                 LOG_INFO("m_role: {}, mode:2pass-offline mode test: {}", m_role, text);
-                process_asr_with_llm(text); // 将ASR结果推入到llm，将得到llm的文本转换为TTS的音频
+                process_asr_with_llm(text);
             }
         }
         else {
@@ -358,9 +358,6 @@ private:
         LOG_INFO("m_call_method: {}, process_asr_with_llm: {}", m_call_method, text);
         if (m_call_method == "manual") {
             LOG_INFO("LLM manual start");
-//            m_llm_start_time = std::chrono::steady_clock::now();
-//            end_timeout_check();
-//            start_timeout_check(m_llm_start_time);
             if (m_role == "customer") {
                 LOG_INFO("LLM manual_customer start");
                 std::string response = m_llm_client->sendRequest(m_llm_msg_text, "manual", "customer", m_session_id, m_access_token);
@@ -478,6 +475,9 @@ private:
     std::string m_role;
     std::string m_call_method;
     WebWsMsgHandler m_ws_msg_handler;
+    std::optional<net::strand<net::io_context::executor_type>> m_strand;
+    std::deque<std::string> m_send_queue;
+    bool m_writing {false};
 };
 
 #endif // _AGENT_WS_CLIENT_H_

@@ -8,10 +8,6 @@
 #include <memory>
 #include <condition_variable>
 
-namespace voip {
-class VAccount;
-}
-
 /**
  * @brief 呼叫者队列
  * 线程安全
@@ -19,7 +15,6 @@ class VAccount;
 class CallerQueue
 {
     using CallerSPtr = std::shared_ptr<voip::Caller>;
-    using AccountUPtr = std::unique_ptr<voip::VAccount>;
 
 public:
     CallerQueue();
@@ -33,9 +28,6 @@ public:
 
     std::size_t size() const;
     bool empty() const;
-
-private:
-    void fetchCaller();
 
 private:
     std::queue<CallerSPtr> m_que;

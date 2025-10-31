@@ -60,16 +60,10 @@ void loadINICfg(const std::string &filename)
     }
 
     try {
+        client_id = cfg.at("CLIENT_ID");
         backend_host = cfg.at("BACKEND_HOST");
         backend_port = cfg.at("BACKEND_PORT");
-        client_id = cfg.at("CLIENT_ID");
         backend_verify_file = cfg.at("BACKEND_VERIFY_FILE");
-        reminder_consumer_remote_host = cfg.at("REMINDER_CONSUMER_REMOTE_HOST");
-        reminder_consumer_remote_port = cfg.at("REMINDER_CONSUMER_REMOTE_PORT");
-        reminder_mediator_remote_host = cfg.at("REMINDER_MEDIATOR_REMOTE_HOST");
-        reminder_mediator_remote_port = cfg.at("REMINDER_MEDIATOR_REMOTE_PORT");
-        robot_remote_host = cfg.at("ROBOT_REMOTE_HOST");
-        robot_remote_port = cfg.at("ROBOT_REMOTE_PORT");
         asr_server_remote_host = cfg.at("ASR_SERVER_REMOTE_HOST");
         asr_server_remote_port = cfg.at("ASR_SERVER_REMOTE_PORT");
         asr_server_verify_file = cfg.at("ASR_SERVER_VERIFY_FILE");
