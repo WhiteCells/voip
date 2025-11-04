@@ -133,14 +133,18 @@ std::vector<char> TTSPlayer::requestTTS(const std::string &text)
 void TTSPlayer::produceTTS(const std::vector<std::string> &texts)
 {
     for (auto &text : texts) {
-        if (stop_flag_)
+        if (stop_flag_) {
+            LOG_INFO("[TTS] 停止TTS");
             break;
+        }
 
         try {
             auto pcm = requestTTS(text);
             //            auto pcm = read_pcm("pcm_2025_10_14_10_30_09.pcm");
-            if (stop_flag_)
+            if (stop_flag_) {
+                LOG_INFO("[TTS] 丢弃TTS");
                 break;
+            }
 
             if (pcm.empty()) {
                 LOG_WARN("[TTS] PCM is empty，maybe timeout，terminal TTS create");

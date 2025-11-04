@@ -4,7 +4,11 @@
 #include <fstream>
 #include "agent_ws_client.h"
 
+//std::vector<int16_t> AgentRobotAudioMediaPort::tts_buf = std::vector<int16_t>();
+//std::size_t AgentRobotAudioMediaPort::tts_pos = 0;
+
 AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
+    : tts_pos(0)
 {
     LOG_INFO(">>> construct {}", __func__);
     pj::MediaFormatAudio fmt;      //
@@ -23,6 +27,9 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
 AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 {
     LOG_INFO(">>> {}", __func__);
+    tts_buf.clear();
+    tts_pos = 0;
+    g_agent_ws_client->clear_llm_msg_list();
     LOG_INFO("<<< {}", __func__);
 }
 
@@ -38,10 +45,11 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     frame.size = bytesPerFrame;
     frame.buf.resize(frame.size);
 
-    static std::vector<int16_t> tts_buf;
-    static size_t tts_pos = 0;
+    // static std::vector<int16_t> tts_buf;
+    // static size_t tts_pos = 0;
 
     if (TTSPlayer::getInstance()->isStopped()) { // TTS 停止播放
+//        LOG_INFO("TTSPlayer stop");
         tts_buf.clear();
         tts_pos = 0;
     }

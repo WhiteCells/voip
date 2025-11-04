@@ -218,6 +218,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 
             if (g_agent_ws_client && g_manual_ws_client) {
                 g_agent_ws_client->start_config_send(); //   发送asr启动配置
+                TTSPlayer::getInstance()->resume();
                 if (m_call_method == "manual") {
                     g_manual_ws_client->start_config_send();
                 }

@@ -43,6 +43,10 @@ public:
      * @param frame       The frame.
      */
     virtual void onFrameReceived(pj::MediaFrame &frame) override;
+
+private:
+    std::vector<int16_t> tts_buf;
+    std::size_t tts_pos;
 };
 
 #endif // _AGENT_ROBOT_AUDIOMEDIAPORT_H_
