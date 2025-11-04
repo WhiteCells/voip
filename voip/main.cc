@@ -12,10 +12,10 @@ int main()
     Logger::init();
     LOG_INFO("client start");
 
-    TTSPlayer::init("192.168.2.3", "51006", "/cosyvoice2");
-
     // config
     loadINICfg();
+
+    TTSPlayer::init(tts_server_remote_host, tts_server_remote_port, tts_server_remote_target);
 
     // endpoint
     startEndpointLib(5060);

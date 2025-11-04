@@ -41,6 +41,12 @@ std::string agent_session_remote_target;
 
 std::string agent_session_verify_file;
 
+std::string tts_server_remote_host;
+
+std::string tts_server_remote_port;
+
+std::string tts_server_remote_target;
+
 cfg_map cfg;
 
 std::string local_hangup = "customer";

@@ -63,6 +63,12 @@ extern std::string agent_session_remote_target;
 
 extern std::string agent_session_verify_file;
 
+extern std::string tts_server_remote_host;
+
+extern std::string tts_server_remote_port;
+
+extern std::string tts_server_remote_target;
+
 extern cfg_map cfg;
 
 extern std::string local_hangup;

@@ -71,6 +71,9 @@ void loadINICfg(const std::string &filename)
         agent_session_remote_port = cfg.at("AGENT_SESSION_REMOTE_PORT");
         agent_session_remote_target = cfg.at("AGENT_SESSION_REMOTE_TARGET");
         agent_session_verify_file = cfg.at("AGENT_SESSION_VERIFY_FILE");
+        tts_server_remote_host = cfg.at("TTS_SERVER_REMOTE_HOST");
+        tts_server_remote_port = cfg.at("TTS_SERVER_REMOTE_PORT");
+        tts_server_remote_target = cfg.at("TTS_SERVER_REMOTE_TARGET");
     }
     catch (const std::exception &e) {
         LOG_CRITICAL("load ini file failed, lack key");
