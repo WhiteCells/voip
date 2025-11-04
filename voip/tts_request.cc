@@ -139,6 +139,9 @@ void TTSPlayer::produceTTS(const std::vector<std::string> &texts)
         try {
             auto pcm = requestTTS(text);
             //            auto pcm = read_pcm("pcm_2025_10_14_10_30_09.pcm");
+            if (stop_flag_)
+                break;
+
             if (pcm.empty()) {
                 LOG_WARN("[TTS] PCM is empty，maybe timeout，terminal TTS create");
                 break; // 超时直接退出
