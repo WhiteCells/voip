@@ -61,15 +61,20 @@ public:
 
     void send(const std::string &msg)
     {
-        m_ws->text(true);
-        m_ws->async_write(asio::buffer(msg),
-                          [self = shared_from_this()](beast::error_code ec, std::size_t) {
-                              if (ec) {
-                                  LOG_ERROR("Agent Ws Client Send Failed {}", ec.message());
-                                  return;
-                              }
-                          });
+        if (!m_ws || !m_ws->is_open()) {
+            LOG_WARN("WebSocket not open, cannot send text message");
+            return;
+        }
+
+        net::dispatch(*m_strand, [self = shared_from_this(), msg]() {
+            // 标记为文本模式
+            self->m_send_queue.push_back("T:" + msg);
+            if (!self->m_writing) {
+                self->do_write();
+            }
+        });
     }
+
 
     void restart()
     {
@@ -152,9 +157,9 @@ public:
             return;
         }
 
-        net::dispatch(*m_strand, [self = shared_from_this(), data, role]() {
-            self->m_role = role;
-            self->m_send_queue.push_back(data);
+        net::dispatch(*m_strand, [self = shared_from_this(), data]() {
+            // 标记为二进制模式
+            self->m_send_queue.push_back("B:" + data);
             if (!self->m_writing) {
                 self->do_write();
             }
@@ -172,25 +177,27 @@ public:
         std::string msg = std::move(m_send_queue.front());
         m_send_queue.pop_front();
 
-        m_ws->binary(true);
+        bool is_binary = (msg.size() >= 2 && msg[0] == 'B' && msg[1] == ':');
+        std::string real_data = msg.substr(2);
+
+        if (is_binary) m_ws->binary(true);
+        else m_ws->text(true);
+
         m_ws->async_write(
-            net::buffer(msg),
+            net::buffer(real_data),
             net::bind_executor(
                 *m_strand,
                 [self = shared_from_this()](beast::error_code ec, std::size_t) {
                     if (ec) {
-                        LOG_ERROR("Send Binary Failed: {}", ec.message());
+                        LOG_ERROR("Send Failed: {}", ec.message());
                         self->m_send_queue.clear();
                         self->m_writing = false;
                         return;
                     }
-                    if (!self->m_send_queue.empty()) {
-                        self->do_write();
-                    }
-                    else {
-                        self->m_writing = false;
-                    }
-                }));
+                    self->do_write();
+                }
+                )
+        );
     }
 
     void start_llm_style()
@@ -236,6 +243,7 @@ public:
         m_llm_msg_text.clear();
         TTSPlayer::getInstance()->stop();
         TTSPlayer::getInstance()->resume();
+        LOG_INFO("clear llm msg list");
     }
 
     void get_session_id(const std::string &call_method,
