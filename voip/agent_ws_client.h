@@ -89,7 +89,8 @@ public:
         m_resolver = std::make_unique<tcp::resolver>(*m_strand);
 
         ssl::context ssl_ctx(ssl::context::tls_client);
-        ssl_ctx.set_verify_mode(ssl::verify_peer);
+        // ssl_ctx.set_verify_mode(ssl::verify_peer);
+        ssl_ctx.set_verify_mode(ssl::verify_none);
         ssl_ctx.load_verify_file(asr_server_verify_file);
         m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(*m_strand, ssl_ctx);
 

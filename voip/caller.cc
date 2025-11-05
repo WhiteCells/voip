@@ -218,7 +218,6 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 
             if (g_agent_ws_client && g_manual_ws_client) {
                 g_agent_ws_client->start_config_send(); //   发送asr启动配置
-                TTSPlayer::getInstance()->resume();
                 if (m_call_method == "manual") {
                     g_manual_ws_client->start_config_send();
                 }
@@ -256,13 +255,19 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             }
             LOG_INFO(">>>phone {},hangup_direction {}", m_phone, hangup_direction);
 
-            std::string tmp_phone1 = m_phone;
-            std::string hangup_direction1 = hangup_direction;
+            std::string phone = m_phone;
+            std::string type = call_type;
+            std::string direction = hangup_direction;
+            std::string method = m_call_method;
+            std::string diff = m_different;
+
+//            std::string tmp_phone1 = m_phone;
+//            std::string hangup_direction1 = hangup_direction;
 
             if (m_sender) {
                 Json::Value status_msg;
                 status_msg["id"] = g_task_id;
-                status_msg["phone"] = tmp_phone1;
+                status_msg["phone"] = phone;
                 status_msg["status"] = "DISCONNECTED";
 
                 Json::StreamWriterBuilder builder;
@@ -274,6 +279,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             if (m_call_status != "no_answered") {
                 m_call_status = "hangup";
             }
+            std::string status= m_call_status;
 
             if (g_agent_ws_client && g_manual_ws_client) {
 
@@ -291,15 +297,15 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 
             LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}", std::to_string(m_dialplan_id), m_phone, m_call_status, call_type, hangup_direction);
 
-            std::string tmp_phone = tmp_phone1;
-            std::string tmp_hangup_direction = hangup_direction1;
+//            std::string tmp_phone = tmp_phone1;
+//            std::string tmp_hangup_direction = hangup_direction1;
 
-            voip::pushCallState(tmp_phone,
-                                m_call_status,
-                                call_type,
-                                tmp_hangup_direction,
-                                m_call_method,
-                                m_different);
+            voip::pushCallState(phone,
+                                status,
+                                type,
+                                direction,
+                                method,
+                                diff);
             break;
         }
         default:
