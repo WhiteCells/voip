@@ -14,6 +14,7 @@
 #include <jrtplib3/rtpudpv4transmitter.h>
 #endif
 #include <pjsua2.hpp>
+#include <atomic>
 
 class AgentRobotAudioMediaPort : public pj::AudioMediaPort
 {
@@ -47,6 +48,9 @@ public:
 private:
     std::vector<int16_t> tts_buf;
     std::size_t tts_pos;
+    std::atomic<bool> m_end_flag = false;
+    bool m_start_flag = false;
+    unsigned m_end_delay_seconds;
 };
 
 #endif // _AGENT_ROBOT_AUDIOMEDIAPORT_H_

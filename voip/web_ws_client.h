@@ -6,6 +6,7 @@
 #include "io_context_pool.h"
 #include "coordinator.h"
 #include "thread_pool.h"
+#include "tts_request.h"
 #include "vaccount.h"
 #include "account_check.h"
 #include "account_check_manager.h"
@@ -300,6 +301,7 @@ public:
     void start_call()
     {
         while (m_running) {
+            TTSPlayer::endendend_flag.store(false);
             m_worker_num = m_dialplan_que->size();
             // LOG_INFO("m_worker_num {}", m_worker_num);
             m_batch_remain = m_dialplan_que->size();

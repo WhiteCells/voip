@@ -5,6 +5,7 @@
 #include "logger.h"
 #include "global.h"
 #include <boost/asio.hpp>
+#include <json/value.h>
 #ifdef VOIP_SSL
 #include <boost/asio/ssl.hpp>
 #include <boost/beast/ssl.hpp>
@@ -180,6 +181,88 @@ inline Json::Value httpSSLRequest(const std::string &host,
 
     return resp;
 }
+
+inline Json::Value httpSSLRequest2(const std::string &host,
+                                   const std::string &port,
+                                   const std::string &target,
+                                   http::verb method,
+                                   const std::map<std::string, std::string> &params = {},
+                                   const std::string &body = "")
+{
+    auto &ioc = IOContextPool::getInstance()->getIOContext();
+
+    // ssl
+    ssl::context ctx(ssl::context::sslv23_client);
+    ctx.set_verify_mode(ssl::verify_peer);           // 启用证书验证
+    ctx.load_verify_file(agent_session_verify_file); // CA
+
+    // resolve
+    tcp::resolver resolver(ioc);
+    auto const results = resolver.resolve(host, port);
+
+    // ssl stream
+    beast::ssl_stream<beast::tcp_stream> stream(ioc, ctx);
+
+    // SNI
+    if (!SSL_set_tlsext_host_name(stream.native_handle(), host.c_str())) {
+        beast::error_code ec {static_cast<int>(::ERR_get_error()), asio::error::get_ssl_category()};
+        throw beast::system_error {ec};
+    }
+
+    // tcp connect
+    beast::get_lowest_layer(stream).connect(results);
+
+    // tls handshake
+    stream.handshake(ssl::stream_base::client);
+
+    // query
+    std::string query_string;
+    for (const auto &[key, value] : params) {
+        query_string += (query_string.empty() ? "?" : "&") + key + "=" + value;
+    }
+    std::string full_target = target + query_string;
+
+    // request
+    http::request<http::string_body> req {method, full_target, 11};
+    req.set(http::field::host, host);
+    req.set(http::field::user_agent, "voip");
+
+    if (!body.empty() && (method == http::verb::post || method == http::verb::put)) {
+        req.body() = body;
+        req.set(http::field::content_type, "application/Json");
+        req.content_length(body.size());
+    }
+
+    // write
+    http::write(stream, req);
+
+    // read
+    beast::flat_buffer buffer;
+    http::response<http::string_body> res;
+    http::read(stream, buffer, res);
+
+    // parse Json
+    Json::Value resp;
+    std::string errs;
+    std::istringstream iss(res.body());
+    Json::CharReaderBuilder reader;
+    if (!Json::parseFromStream(reader, iss, &resp, &errs)) {
+        return Json::Value {};
+    }
+
+    // close
+    beast::error_code ec;
+    stream.shutdown(ec);
+    if (ec == asio::error::eof) {
+        ec.assign(0, ec.category()); // 忽略 EOF
+    }
+    if (ec && ec != beast::errc::not_connected) {
+        throw beast::system_error {ec};
+    }
+
+    return resp;
+}
+
 #endif
 
 inline void pushAccountsRegState(const std::vector<AccountsRegState> &accounts_reg_state)
@@ -261,6 +344,56 @@ inline void pushGroupCallFinished(bool is_push)
                                 http::verb::post, params);
 #endif
         LOG_INFO("push group call finished");
+    }
+    catch (const std::exception &e) {
+        LOG_WARN("Exception: {}", e.what());
+    }
+}
+
+// todo
+inline void pushTTSStart(std::string session_id,
+                         std::string tts_text,
+                         std::uint64_t start_time,
+                         float play_cast,
+                         std::uint64_t req_cast)
+{
+    const std::string target_url = "/session/tts/start/" + session_id;
+    try {
+        Json::Value body_json;
+        body_json["tts_text"] = tts_text;
+        body_json["start_time"] = start_time;
+        body_json["play_cast"] = play_cast;
+        body_json["req_cast"] = req_cast;
+        Json::StreamWriterBuilder writer;
+        writer["indentation"] = "";
+        std::string body = Json::writeString(writer, body_json);
+        LOG_INFO("push tts start body: {}", body);
+        auto resp = httpSSLRequest2(agent_session_remote_host,
+                                    agent_session_remote_port,
+                                    target_url, http::verb::post,
+                                    {}, body);
+    }
+    catch (const std::exception &e) {
+        LOG_WARN("Exception: {}", e.what());
+    }
+}
+
+// todo
+inline void pushTTSStop(std::string session_id,
+                        std::uint64_t stop_time)
+{
+    const std::string target_url = "/session/tts/stop/" + session_id;
+    try {
+        Json::Value body_json;
+        body_json["stop_time"] = stop_time;
+        Json::StreamWriterBuilder writer;
+        writer["indentation"] = "";
+        std::string body = Json::writeString(writer, body_json);
+        LOG_INFO("push tts stop body: {}", body);
+        auto resp = httpSSLRequest2(agent_session_remote_host,
+                                    agent_session_remote_port,
+                                    target_url, http::verb::post,
+                                    {}, body);
     }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());

@@ -4,11 +4,13 @@
 #include <fstream>
 #include "agent_ws_client.h"
 
-//std::vector<int16_t> AgentRobotAudioMediaPort::tts_buf = std::vector<int16_t>();
-//std::size_t AgentRobotAudioMediaPort::tts_pos = 0;
+// std::vector<int16_t> AgentRobotAudioMediaPort::tts_buf = std::vector<int16_t>();
+// std::size_t AgentRobotAudioMediaPort::tts_pos = 0;
 
 AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     : tts_pos(0)
+    , m_end_flag(false)
+    , m_start_flag(false)
 {
     LOG_INFO(">>> construct {}", __func__);
     pj::MediaFormatAudio fmt;      //
@@ -45,11 +47,7 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     frame.size = bytesPerFrame;
     frame.buf.resize(frame.size);
 
-    // static std::vector<int16_t> tts_buf;
-    // static size_t tts_pos = 0;
-
-    if (TTSPlayer::getInstance()->isStopped()) { // TTS 停止播放
-//        LOG_INFO("TTSPlayer stop");
+    if (TTSPlayer::getInstance()->isStopped()) {
         tts_buf.clear();
         tts_pos = 0;
     }
@@ -58,13 +56,23 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     if (tts_pos >= tts_buf.size()) {
         std::vector<char> pcm;
         if (TTSPlayer::getInstance()->getNextAudio(pcm) && !pcm.empty()) {
-            size_t samples = pcm.size() / sizeof(int16_t);
-            tts_buf.resize(samples);
-            memcpy(tts_buf.data(), pcm.data(), pcm.size());
-            tts_pos = 0;
+            if (pcm.size() == 4 && std::memcmp(pcm.data(), "END", 3) == 0) {
+                std::string msg(pcm.begin() + 3, pcm.end());
+                unsigned char sleep_time = static_cast<unsigned char>(pcm[3]);
+                LOG_INFO("END flag detected, msg: {}, sleep_time = {}", msg, sleep_time);
+                m_end_flag = true;
+                m_end_delay_seconds = sleep_time;
+                pcm.clear();
+            }
+            if (!pcm.empty()) {
+                size_t samples = pcm.size() / sizeof(int16_t);
+                tts_buf.resize(samples);
+                memcpy(tts_buf.data(), pcm.data(), pcm.size());
+                tts_pos = 0;
+            }
         }
         else {
-            memset(frame.buf.data(), 0, frame.size); // 无音频，静音输出
+            memset(frame.buf.data(), 0, frame.size);
             return;
         }
     }
@@ -80,6 +88,11 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
         memset(frame.buf.data() + copy_samples * sizeof(int16_t), 0,
                (samplesPerFrame - copy_samples) * sizeof(int16_t));
     }
+
+    if (m_end_flag) {
+        LOG_INFO("to hangup");
+        endpoint.hangupAllCalls();
+    }
 }
 
 // 接收客户音频
@@ -91,6 +104,11 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         // LOG_WARN("call not confirmed, drop frame");
         return;
     }
+
+    if (m_end_flag) {
+        return;
+    }
+
     static std::ofstream send_audio("client2agent.pcm",
                                     std::ios::binary | std::ios::out | std::ios::trunc);
     if (!send_audio.is_open()) {

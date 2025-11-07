@@ -75,7 +75,6 @@ public:
         });
     }
 
-
     void restart()
     {
         stop();
@@ -181,8 +180,10 @@ public:
         bool is_binary = (msg.size() >= 2 && msg[0] == 'B' && msg[1] == ':');
         std::string real_data = msg.substr(2);
 
-        if (is_binary) m_ws->binary(true);
-        else m_ws->text(true);
+        if (is_binary)
+            m_ws->binary(true);
+        else
+            m_ws->text(true);
 
         m_ws->async_write(
             net::buffer(real_data),
@@ -196,9 +197,7 @@ public:
                         return;
                     }
                     self->do_write();
-                }
-                )
-        );
+                }));
     }
 
     void start_llm_style()
@@ -209,6 +208,7 @@ public:
             start_timeout_check(m_llm_start_time);
 
             std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token);
+            LOG_INFO("prolog llm response: {}", response);
 
             Json::Value llm_style_json;
             Json::CharReaderBuilder llm_style_builder;
@@ -226,7 +226,8 @@ public:
                         LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
 
                         if (!m_llm_msg_list.empty()) {
-                            TTSPlayer::getInstance()->produceTTS(m_llm_msg_list);
+                            TTSPlayer::getInstance()->resume(); // 恢复播放
+                            TTSPlayer::getInstance()->produceTTS(m_llm_msg_list, m_session_id);
                             m_llm_msg_list.clear();
                         }
                     }
@@ -243,7 +244,7 @@ public:
         m_llm_msg_list.clear();
         m_llm_msg_text.clear();
         TTSPlayer::getInstance()->stop();
-//        TTSPlayer::getInstance()->resume();
+        //        TTSPlayer::getInstance()->resume();
         LOG_INFO("clear llm msg list");
     }
 
@@ -406,8 +407,8 @@ private:
                         LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
 
                         if (!m_llm_msg_list.empty()) {
-                            TTSPlayer::getInstance()->resume();                   // 恢复播放
-                            TTSPlayer::getInstance()->produceTTS(m_llm_msg_list); // 将LLM的文本转换为TTS的音频
+                            TTSPlayer::getInstance()->resume();                                 // 恢复播放
+                            TTSPlayer::getInstance()->produceTTS(m_llm_msg_list, m_session_id); // 将LLM的文本转换为TTS的音频
                             m_llm_msg_list.clear();
                         }
                     }

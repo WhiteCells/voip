@@ -1,4 +1,5 @@
 #include "caller.h"
+#include "tts_request.h"
 #include "vaccount.h"
 #include "request.hpp"
 #include "logger.h"
@@ -12,6 +13,7 @@
 voip::Caller::Caller(voip::VAccount &acc, int call_id)
     : pj::Call(acc, call_id)
     , acc_(acc)
+    , m_call_status("no_answered")
 {
 }
 
@@ -199,6 +201,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             break;
         }
         case PJSIP_INV_STATE_CONFIRMED: {
+            m_call_status = "hangup";
             LOG_INFO(">>> call: {}, phone: {} confirmed", ci.id, m_phone);
             m_confirmed = true;
             LOG_INFO("set m_confirmed = true");
@@ -217,6 +220,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             }
 
             if (g_agent_ws_client && g_manual_ws_client) {
+                TTSPlayer::getInstance()->resume();
                 g_agent_ws_client->start_config_send(); //   发送asr启动配置
                 if (m_call_method == "manual") {
                     g_manual_ws_client->start_config_send();
@@ -260,9 +264,10 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             std::string direction = hangup_direction;
             std::string method = m_call_method;
             std::string diff = m_different;
+            std::string call_status = m_call_status;
 
-//            std::string tmp_phone1 = m_phone;
-//            std::string hangup_direction1 = hangup_direction;
+            //            std::string tmp_phone1 = m_phone;
+            //            std::string hangup_direction1 = hangup_direction;
 
             if (m_sender) {
                 Json::Value status_msg;
@@ -276,10 +281,9 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 m_sender->send(msg);
             }
 
-            if (m_call_status != "no_answered") {
-                m_call_status = "hangup";
+            if (call_status != "no_answered") {
+                call_status = "hangup";
             }
-            std::string status= m_call_status;
 
             if (g_agent_ws_client && g_manual_ws_client) {
 
@@ -295,13 +299,13 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 LOG_INFO("m_agent_ws_client is null");
             }
 
-            LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}", std::to_string(m_dialplan_id), m_phone, m_call_status, call_type, hangup_direction);
+            LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}", std::to_string(m_dialplan_id), m_phone, call_status, call_type, hangup_direction);
 
-//            std::string tmp_phone = tmp_phone1;
-//            std::string tmp_hangup_direction = hangup_direction1;
+            //            std::string tmp_phone = tmp_phone1;
+            //            std::string tmp_hangup_direction = hangup_direction1;
 
             voip::pushCallState(phone,
-                                status,
+                                call_status,
                                 type,
                                 direction,
                                 method,

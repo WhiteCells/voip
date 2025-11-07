@@ -1,5 +1,7 @@
 #include "tts_request.h"
+#include "global.h"
 #include "logger.h"
+#include "request.hpp"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -18,6 +20,8 @@ namespace http = boost::beast::http;
 
 std::shared_ptr<TTSPlayer> TTSPlayer::instance_ = nullptr;
 std::string TTSPlayer::host_, TTSPlayer::port_, TTSPlayer::target_;
+
+std::atomic<bool> TTSPlayer::endendend_flag {false};
 
 // --- 工具函数：读取PCM文件 ---
 static std::vector<char> read_pcm(const std::string &filename)
@@ -129,18 +133,73 @@ std::vector<char> TTSPlayer::requestTTS(const std::string &text)
     return pcm_data;
 }
 
-// --- 生产TTS音频 ---
-void TTSPlayer::produceTTS(const std::vector<std::string> &texts)
+inline std::int64_t get_current_timestamp_seconds()
 {
-    for (auto &text : texts) {
+    return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+inline std::int64_t get_current_timestamp_milliseconds()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+static float count_pcm_time(std::size_t pcm_len, unsigned int sample_rate,
+                            unsigned int bits_per_sample, unsigned int num_channels)
+{
+    return static_cast<float>(pcm_len) /
+           (sample_rate * num_channels * (bits_per_sample / 8.0f));
+}
+
+// --- 生产TTS音频 ---
+void TTSPlayer::produceTTS(std::vector<std::string> &texts, std::string session_id)
+{
+    m_session_id = session_id;
+
+    std::uint64_t total_req_cast = 0;
+    float total_play_cast = 0.0f;
+    std::string tts_text = {};
+
+    for (const auto &t : texts) {
+        LOG_INFO("produce TTS text: {}", t);
+    }
+
+    LOG_INFO("produce TTSPlay::endendend_flag: {}", TTSPlayer::endendend_flag.load());
+    if (!texts.empty() && texts[0].rfind("ENDENDEND:", 0) == 0) {
+        TTSPlayer::endendend_flag.store(true);
+        // 去除 ENDENDEND:
+        const size_t prefix_len = std::strlen("ENDENDEND:");
+        std::string new_text = texts[0].substr(prefix_len);
+        texts[0] = new_text;
+    }
+    LOG_INFO("produce TTSPlay::endendend_flag: {}", TTSPlayer::endendend_flag.load());
+
+    auto start_time = get_current_timestamp_milliseconds();
+
+    for (const std::string &text : texts) {
         if (stop_flag_) {
             LOG_INFO("[TTS] 停止TTS");
             break;
         }
 
         try {
+            LOG_INFO("request TTS");
+
+            // start req time
+            auto req_start_time = get_current_timestamp_milliseconds();
+            // request
             auto pcm = requestTTS(text);
-            //            auto pcm = read_pcm("pcm_2025_10_14_10_30_09.pcm");
+            // end req time
+            auto req_end_time = get_current_timestamp_milliseconds();
+            // cal req time
+            auto req_time = static_cast<float>(req_end_time - req_start_time);
+            // cal play time
+            auto play_time = count_pcm_time(pcm.size(), 16000, 16, 1);
+
+            total_play_cast += play_time;
+            total_req_cast += req_time;
+            tts_text += text;
+
+            // auto pcm = read_pcm("pcm_2025_10_14_10_30_09.pcm");
             if (stop_flag_) {
                 LOG_INFO("[TTS] 丢弃TTS");
                 break;
@@ -154,27 +213,34 @@ void TTSPlayer::produceTTS(const std::vector<std::string> &texts)
             {
                 std::lock_guard<std::mutex> lock(mtx_);
                 audio_queue_.push(std::move(pcm));
+                LOG_DEBUG("[TTS] 音频队列大小: {} ", audio_queue_.size());
             }
-            LOG_DEBUG("[TTS] 音频队列大小: {} ", audio_queue_.size());
         }
         catch (const std::exception &e) {
             LOG_ERROR("[TTS] 生成失败: {}", e.what());
         }
     }
 
-    // 推入空标志表示结束
-    {
+    // 插入特殊标志
+    if (TTSPlayer::endendend_flag.load()) {
         std::lock_guard<std::mutex> lock(mtx_);
-        audio_queue_.push({});
+        char sleep_time = static_cast<char>('0' + (int)total_play_cast);
+        LOG_INFO("sleep time: {}", sleep_time);
+        std::vector<char> END_FLAG {'E', 'N', 'D', sleep_time};
+        audio_queue_.push(END_FLAG);
     }
+
+    voip::pushTTSStart(m_session_id, tts_text, start_time, total_play_cast, total_req_cast);
+    LOG_INFO("push tts start, m_session_id: {}, tts_text: {}, start_time: {}, total_play_cast: {}, total_req_cast: {}", m_session_id, tts_text, start_time, total_play_cast, total_req_cast);
 }
 
 // --- 消费音频数据 ---
 bool TTSPlayer::getNextAudio(std::vector<char> &pcm)
 {
     std::lock_guard<std::mutex> lock(mtx_);
-    if (audio_queue_.empty())
+    if (audio_queue_.empty()) {
         return false;
+    }
 
     pcm = std::move(audio_queue_.front());
     audio_queue_.pop();
@@ -185,11 +251,22 @@ bool TTSPlayer::getNextAudio(std::vector<char> &pcm)
 void TTSPlayer::stop()
 {
     stop_flag_ = true;
+    if (TTSPlayer::endendend_flag.load()) {
+        LOG_INFO("no need to stop");
+        return;
+    }
     {
         std::lock_guard<std::mutex> lock(mtx_);
+        if (!audio_queue_.empty()) {
+            auto stop_time = get_current_timestamp_milliseconds();
+            voip::pushTTSStop(m_session_id, stop_time);
+            LOG_INFO("push tts stop request, m_session_id: {}, stop_time: {}", m_session_id, stop_time);
+            return;
+        }
         while (!audio_queue_.empty()) {
             audio_queue_.pop();
         }
+        // push stop timestamp
         LOG_INFO("[TTS] stop produce WAV and clear text_list");
     }
 }

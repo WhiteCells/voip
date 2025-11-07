@@ -42,7 +42,7 @@ public:
     }
 
     // 同步调用，依次请求 TTS 并推入队列
-    void produceTTS(const std::vector<std::string> &texts);
+    void produceTTS(std::vector<std::string> &texts, std::string session_id);
 
     // 安全地从队列取一条音频数据（阻塞等待）
     bool getNextAudio(std::vector<char> &pcm);
@@ -57,11 +57,15 @@ public:
         return stop_flag_.load();
     }
 
+    static std::atomic<bool> endendend_flag;
+
 private:
     static std::string host_, port_, target_;
     std::queue<std::vector<char>> audio_queue_;
     std::mutex mtx_;
     std::atomic<bool> stop_flag_ = false;
+    std::string m_session_id;
+    // bool m_hangup_flag = false;
 };
 
 #endif // _TTS_ASYNC_PLAYER_H_
