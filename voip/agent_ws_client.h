@@ -152,6 +152,7 @@ public:
 
     void sendBinary(const std::string &data, const std::string &role)
     {
+        m_role = role;
         if (!m_ws || !m_ws->is_open()) {
             LOG_WARN("WebSocket not open, cannot send binary data");
             return;
