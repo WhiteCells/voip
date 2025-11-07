@@ -91,7 +91,7 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 
     if (m_end_flag) {
         LOG_INFO("to hangup");
-        endpoint.hangupAllCalls();
+        // endpoint.hangupAllCalls();
     }
 }
 

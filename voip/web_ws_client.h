@@ -410,6 +410,7 @@ private:
             m_server_sender->send(resp_str);
             return;
         }
+        LOG_INFO("on_resolver");
         beast::get_lowest_layer(*m_ws)
             .async_connect(results,
                            beast::bind_front_handler(&WebWsClient::on_connect,
@@ -427,6 +428,7 @@ private:
             m_server_sender->send(resp_str);
             return;
         }
+        LOG_INFO("on_connect");
         beast::get_lowest_layer(*m_ws).expires_never();
         m_ws->set_option(websocket::stream_base::decorator([](websocket::request_type &req) {
             req.set(http::field::user_agent, "<ws>");
@@ -457,6 +459,7 @@ private:
             m_server_sender->send(resp_str);
             return;
         }
+        LOG_INFO("on_tls_handshake");
         m_ws->set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));
         m_ws->set_option(websocket::stream_base::decorator([](websocket::request_type &req) {
             req.set(http::field::user_agent, "voip-client");
@@ -477,6 +480,7 @@ private:
             m_server_sender->send(resp_str);
             return;
         }
+        LOG_INFO("on_ws_handshake");
         resp["backend_status"] = "connected";
         std::string resp_str = Json::writeString(builder, resp);
         m_server_sender->send(resp_str);
