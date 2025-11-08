@@ -15,12 +15,15 @@
 #endif
 #include <pjsua2.hpp>
 #include <atomic>
+#include <memory>
 
 class AgentRobotAudioMediaPort : public pj::AudioMediaPort
 {
 public:
     AgentRobotAudioMediaPort();
     ~AgentRobotAudioMediaPort();
+
+    static void startEndFlagMonitor(std::weak_ptr<AgentRobotAudioMediaPort> weakSelf);
 
     /*
      * Callbacks
@@ -48,9 +51,8 @@ public:
 private:
     std::vector<int16_t> tts_buf;
     std::size_t tts_pos;
-    std::atomic<bool> m_end_flag = false;
-    bool m_start_flag = false;
-    unsigned m_end_delay_seconds;
+    std::atomic<bool> m_end_flag;
+    std::atomic<bool> m_called_hangup;
 };
 
 #endif // _AGENT_ROBOT_AUDIOMEDIAPORT_H_

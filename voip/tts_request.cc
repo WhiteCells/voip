@@ -1,7 +1,9 @@
 #include "tts_request.h"
 #include "global.h"
+#include "io_context_pool.h"
 #include "logger.h"
 #include "request.hpp"
+#include <boost/asio/io_context.hpp>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -46,91 +48,65 @@ TTSPlayer::~TTSPlayer()
     stop();
 }
 
-std::vector<char> TTSPlayer::requestTTS(const std::string &text)
+std::vector<char> TTSPlayer::requestTTS(std::string text)
 {
-    boost::asio::io_context ioc;
+    asio::io_context &ioc = IOContextPool::getInstance()->getIOContext();
     tcp::resolver resolver(ioc);
     tcp::socket socket(ioc);
     boost::system::error_code ec;
 
-    // 解析域名
-    auto const results = resolver.resolve(host_, port_, ec);
-    if (ec) {
-        throw std::runtime_error("TTS 解析失败: " + ec.message());
-    }
+    auto results = resolver.resolve(host_, port_, ec);
+    if (ec)
+        throw std::runtime_error("resolve failed: " + ec.message());
+    boost::asio::connect(socket, results, ec);
+    if (ec)
+        throw std::runtime_error("connect failed: " + ec.message());
 
-    // 连接服务器
-    boost::asio::connect(socket, results.begin(), results.end(), ec);
-    if (ec) {
-        throw std::runtime_error("TTS 连接失败: " + ec.message());
-    }
-
-    // 构造 JSON 请求体
     Json::Value root;
     root["text"] = text;
     Json::StreamWriterBuilder writer;
     std::string body = Json::writeString(writer, root);
 
-    // 构造 HTTP POST 请求
     http::request<http::string_body> req {http::verb::post, target_, 11};
-    req.set(http::field::host, host_);
-    req.set(http::field::user_agent, "Boost.Beast-TTSClient");
     req.set(http::field::content_type, "application/json");
     req.body() = body;
     req.prepare_payload();
 
-    // 发送请求
+    // 写请求
     http::write(socket, req, ec);
-    if (ec) {
-        throw std::runtime_error("TTS 请求发送失败: " + ec.message());
-    }
+    if (ec)
+        throw std::runtime_error("write failed: " + ec.message());
 
-    // --- 设置超时定时器 ---
-    boost::asio::steady_timer timer(ioc);
-    bool timeout = false;
-
-    timer.expires_after(std::chrono::seconds(3)); // 设置超时时间为3秒
-    timer.async_wait([&](const boost::system::error_code &e) {
-        if (!e) {
-            timeout = true;
-            socket.cancel(); // 强制中断 read()
-        }
-    });
-
-    // 异步接收响应
     boost::beast::flat_buffer buffer;
     http::response<http::vector_body<char>> res;
 
-    http::async_read(socket, buffer, res,
-                     [&](const boost::system::error_code &e, std::size_t) {
-                         ec = e;
-                         timer.cancel(); // 成功读完就取消定时器
-                     });
+    // 超时控制
+    std::atomic<bool> done {false};
+    std::thread timeout_thread([&]() {
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        if (!done.load()) {
+            LOG_WARN("TTS read timeout, cancelling socket");
+            socket.cancel();
+        }
+    });
 
-    // 运行事件循环
-    ioc.run();
+    // 同步读取响应
+    http::read(socket, buffer, res, ec);
+    done = true;
+    timeout_thread.join();
 
-    // 关闭连接
-    socket.shutdown(tcp::socket::shutdown_both, ec);
-
-    if (timeout) {
-        LOG_WARN("[TTS] requestTTS 超时，未收到PCM数据");
-        return {}; // 返回空数据
+    if (ec == boost::asio::error::operation_aborted) {
+        LOG_WARN("TTS timeout");
+        return {};
     }
-
-    if (ec && ec != boost::asio::error::operation_aborted) {
-        throw std::runtime_error("TTS 响应读取失败: " + ec.message());
+    if (ec) {
+        throw std::runtime_error("read failed: " + ec.message());
     }
-
     if (res.result() != http::status::ok) {
-        throw std::runtime_error("TTS 请求失败: " + std::to_string(res.result_int()));
+        throw std::runtime_error("bad status: " + std::to_string(res.result_int()));
     }
 
-    auto pcm_data = res.body();
-    if (pcm_data.size() % 2 != 0)
-        pcm_data.pop_back();
-
-    return pcm_data;
+    return res.body();
 }
 
 inline std::int64_t get_current_timestamp_seconds()
@@ -151,7 +127,7 @@ static float count_pcm_time(std::size_t pcm_len, unsigned int sample_rate,
 }
 
 // --- 生产TTS音频 ---
-void TTSPlayer::produceTTS(std::vector<std::string> &texts, std::string session_id)
+void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_id)
 {
     m_session_id = session_id;
 
@@ -187,7 +163,11 @@ void TTSPlayer::produceTTS(std::vector<std::string> &texts, std::string session_
             // start req time
             auto req_start_time = get_current_timestamp_milliseconds();
             // request
+            std::string backup = text;
             auto pcm = requestTTS(text);
+            if (text != backup) {
+                LOG_ERROR("!!! text changed after requestTTS !!!");
+            }
             // end req time
             auto req_end_time = get_current_timestamp_milliseconds();
             // cal req time
@@ -224,9 +204,7 @@ void TTSPlayer::produceTTS(std::vector<std::string> &texts, std::string session_
     // 插入特殊标志
     if (TTSPlayer::endendend_flag.load()) {
         std::lock_guard<std::mutex> lock(mtx_);
-        char sleep_time = static_cast<char>('0' + (int)total_play_cast);
-        LOG_INFO("sleep time: {}", sleep_time);
-        std::vector<char> END_FLAG {'E', 'N', 'D', sleep_time};
+        std::vector<char> END_FLAG {'E', 'N', 'D'};
         audio_queue_.push(END_FLAG);
     }
 
@@ -247,6 +225,15 @@ bool TTSPlayer::getNextAudio(std::vector<char> &pcm)
     return !pcm.empty();
 }
 
+void TTSPlayer::clear()
+{
+    std::lock_guard<std::mutex> lock(mtx_);
+    LOG_INFO("TTSPlayer::clear");
+    while (!audio_queue_.empty()) {
+        audio_queue_.pop();
+    }
+}
+
 // --- 停止TTS ---
 void TTSPlayer::stop()
 {
@@ -257,12 +244,12 @@ void TTSPlayer::stop()
     }
     {
         std::lock_guard<std::mutex> lock(mtx_);
-        if (!audio_queue_.empty()) {
-            auto stop_time = get_current_timestamp_milliseconds();
-            voip::pushTTSStop(m_session_id, stop_time);
-            LOG_INFO("push tts stop request, m_session_id: {}, stop_time: {}", m_session_id, stop_time);
-            return;
-        }
+        // if (!audio_queue_.empty()) {
+        auto stop_time = get_current_timestamp_milliseconds();
+        voip::pushTTSStop(m_session_id, stop_time);
+        LOG_INFO("push tts stop request, m_session_id: {}, stop_time: {}", m_session_id, stop_time);
+        // return;
+        // }
         while (!audio_queue_.empty()) {
             audio_queue_.pop();
         }

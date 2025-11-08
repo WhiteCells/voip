@@ -330,12 +330,12 @@ inline void pushCallState(const std::string &phone,
     }
 }
 
-inline void pushGroupCallFinished(bool is_push)
+inline void pushGroupCallFinished()
 {
     const auto target_url = genUrl(URL_GROUP_CALL_STATE, g_gui_cfg.gui_client_id);
     try {
         std::map<std::string, std::string> params;
-        params["is_push"] = is_push ? "true" : "false";
+        params["is_push"] = "true";
 #ifdef VOIP_SSL
         auto resp = httpSSLRequest(backend_host, backend_port, target_url,
                                    http::verb::post, params);

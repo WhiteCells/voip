@@ -1,4 +1,5 @@
 #include "caller.h"
+#include "agent_robot_audiomediaport.h"
 #include "tts_request.h"
 #include "vaccount.h"
 #include "request.hpp"
@@ -348,6 +349,7 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
             }
             else if (m_call_method == "agent") {
                 m_agent_robot_media_port = std::make_shared<AgentRobotAudioMediaPort>();
+                AgentRobotAudioMediaPort::startEndFlagMonitor(m_agent_robot_media_port);
                 aud_med->startTransmit(*m_agent_robot_media_port);
                 m_agent_robot_media_port->startTransmit(*aud_med);
             }
@@ -357,7 +359,4 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
 #endif
         }
     }
-
-    // aud_med->startTransmit(*m_audio_media_recorder);
-    //    m_agent_robot_media_port->startTransmit(*m_audio_media_recorder);
 }

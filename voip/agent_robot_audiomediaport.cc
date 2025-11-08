@@ -3,14 +3,12 @@
 #include "logger.h"
 #include <fstream>
 #include "agent_ws_client.h"
-
-// std::vector<int16_t> AgentRobotAudioMediaPort::tts_buf = std::vector<int16_t>();
-// std::size_t AgentRobotAudioMediaPort::tts_pos = 0;
+#include "tts_request.h"
 
 AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     : tts_pos(0)
     , m_end_flag(false)
-    , m_start_flag(false)
+    , m_called_hangup(false)
 {
     LOG_INFO(">>> construct {}", __func__);
     pj::MediaFormatAudio fmt;      //
@@ -56,12 +54,8 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     if (tts_pos >= tts_buf.size()) {
         std::vector<char> pcm;
         if (TTSPlayer::getInstance()->getNextAudio(pcm) && !pcm.empty()) {
-            if (pcm.size() == 4 && std::memcmp(pcm.data(), "END", 3) == 0) {
-                std::string msg(pcm.begin() + 3, pcm.end());
-                unsigned char sleep_time = static_cast<unsigned char>(pcm[3]);
-                LOG_INFO("END flag detected, msg: {}, sleep_time = {}", msg, sleep_time);
+            if (pcm == std::vector<char> {'E', 'N', 'D'}) {
                 m_end_flag = true;
-                m_end_delay_seconds = sleep_time;
                 pcm.clear();
             }
             if (!pcm.empty()) {
@@ -89,10 +83,37 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
                (samplesPerFrame - copy_samples) * sizeof(int16_t));
     }
 
-    if (m_end_flag) {
-        LOG_INFO("to hangup");
-        // endpoint.hangupAllCalls();
-    }
+    // if (m_end_flag && !m_called_hangup) {
+    //     LOG_INFO("to hangup");
+    //     m_called_hangup = true;
+    // }
+}
+
+void AgentRobotAudioMediaPort::startEndFlagMonitor(std::weak_ptr<AgentRobotAudioMediaPort> weakSelf)
+{
+    std::thread([weakSelf]() {
+        endpoint.libRegisterThread("Worker");
+        LOG_INFO("[Monitor] Start monitoring m_end_flag...");
+        while (true) {
+            auto self = weakSelf.lock();
+            if (!self) {
+                LOG_WARN("[Monitor] AgentRobotAudioMediaPort destroyed, stop monitoring.");
+                break;
+            }
+            if (self->m_end_flag.load()) {
+                if (!self->m_called_hangup.load()) {
+                    LOG_INFO("[Monitor] m_end_flag detected, hanging up call...");
+                    self->m_called_hangup.store(true);
+                    self->m_end_flag.store(false);
+                    TTSPlayer::getInstance()->clear();
+                    endpoint.hangupAllCalls();
+                }
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
+        LOG_INFO("[Monitor] Monitor thread exited.");
+    }).detach(); // 后台运行
 }
 
 // 接收客户音频

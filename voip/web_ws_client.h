@@ -359,7 +359,7 @@ public:
             AccountCheckManager::getInstance()->clear();
             m_acc_vec.clear();
             std::this_thread::sleep_for(std::chrono::seconds(2));
-            voip::pushGroupCallFinished(true);
+            voip::pushGroupCallFinished();
         }
     }
 
@@ -402,6 +402,7 @@ private:
     void on_resolver(beast::error_code ec, tcp::resolver::results_type results)
     {
         if (ec) {
+            LOG_ERROR("on_resolver error: {}", ec.message());
             Json::Value resp;
             resp["backend_status"] = "error";
 
@@ -420,6 +421,7 @@ private:
     void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type endpoint)
     {
         if (ec) {
+            LOG_ERROR("on_connect error: {}", ec.message());
             Json::Value resp;
             resp["backend_status"] = "error";
 
@@ -451,6 +453,7 @@ private:
     void on_tls_handshake(beast::error_code ec)
     {
         if (ec) {
+            LOG_ERROR("on_tls_handshake error: {}", ec.message());
             Json::Value resp;
             resp["backend_status"] = "error";
 
@@ -475,6 +478,7 @@ private:
         Json::Value resp;
         Json::StreamWriterBuilder builder;
         if (ec) {
+            LOG_ERROR("on_ws_handshake error: {}", ec.message());
             resp["backend_status"] = "error";
             std::string resp_str = Json::writeString(builder, resp);
             m_server_sender->send(resp_str);

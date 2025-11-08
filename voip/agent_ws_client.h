@@ -245,7 +245,6 @@ public:
         m_llm_msg_list.clear();
         m_llm_msg_text.clear();
         TTSPlayer::getInstance()->stop();
-        //        TTSPlayer::getInstance()->resume();
         LOG_INFO("clear llm msg list");
     }
 

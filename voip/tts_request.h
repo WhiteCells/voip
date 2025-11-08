@@ -19,7 +19,7 @@ private:
     static std::shared_ptr<TTSPlayer> instance_;
 
 public:
-    std::vector<char> requestTTS(const std::string &text);
+    std::vector<char> requestTTS(std::string text);
 
     TTSPlayer() = default;
     ~TTSPlayer();
@@ -42,10 +42,12 @@ public:
     }
 
     // 同步调用，依次请求 TTS 并推入队列
-    void produceTTS(std::vector<std::string> &texts, std::string session_id);
+    void produceTTS(std::vector<std::string> texts, std::string session_id);
 
     // 安全地从队列取一条音频数据（阻塞等待）
     bool getNextAudio(std::vector<char> &pcm);
+
+    void clear();
 
     // 停止生产或消费
     void stop();
