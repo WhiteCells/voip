@@ -107,6 +107,7 @@ void AgentRobotAudioMediaPort::startEndFlagMonitor(std::weak_ptr<AgentRobotAudio
                     self->m_end_flag.store(false);
                     TTSPlayer::getInstance()->clear();
                     endpoint.hangupAllCalls();
+                    TTSPlayer::getInstance()->stop();
                 }
                 break;
             }
