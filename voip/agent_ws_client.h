@@ -46,7 +46,8 @@ public:
 
     ~AgentWsClient()
     {
-        stop();
+//        stop();
+//        LOG_INFO("~AgentWsClient");
     }
 
     void set_web_ws_sender(WebWsMsgHandler handler)
@@ -83,6 +84,7 @@ public:
 
     void start()
     {
+        LOG_INFO("AgentWsClient start");
         auto &ioc = IOContextPool::getInstance()->getIOContext();
         m_strand.emplace(net::make_strand(ioc));
         m_resolver = std::make_unique<tcp::resolver>(*m_strand);
@@ -161,6 +163,7 @@ public:
         net::dispatch(*m_strand, [self = shared_from_this(), data]() {
             // 标记为二进制模式
             self->m_send_queue.push_back("B:" + data);
+            // LOG_INFO("Send queue size: {}", self->m_send_queue.size());
             if (!self->m_writing) {
                 self->do_write();
             }
@@ -228,7 +231,7 @@ public:
 
                         if (!m_llm_msg_list.empty()) {
                             TTSPlayer::getInstance()->resume(); // 恢复播放
-                            TTSPlayer::getInstance()->produceTTS(m_llm_msg_list, m_session_id);
+                            TTSPlayer::getInstance()->produceTTSAsync(m_llm_msg_list, m_session_id);
                             m_llm_msg_list.clear();
                         }
                     }
@@ -408,7 +411,7 @@ private:
 
                         if (!m_llm_msg_list.empty()) {
                             TTSPlayer::getInstance()->resume();                                 // 恢复播放
-                            TTSPlayer::getInstance()->produceTTS(m_llm_msg_list, m_session_id); // 将LLM的文本转换为TTS的音频
+                            TTSPlayer::getInstance()->produceTTSAsync(m_llm_msg_list, m_session_id); // 将LLM的文本转换为TTS的音频
                             m_llm_msg_list.clear();
                         }
                     }

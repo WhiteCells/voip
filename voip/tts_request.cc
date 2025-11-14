@@ -126,6 +126,18 @@ static float count_pcm_time(std::size_t pcm_len, unsigned int sample_rate,
            (sample_rate * num_channels * (bits_per_sample / 8.0f));
 }
 
+void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string session_id)
+{
+    if (!g_tts_thread_pool) {
+        LOG_ERROR("TTS thread pool not initialized");
+        return;
+    }
+
+    g_tts_thread_pool->addTask([texts = std::move(texts), session_id]() {
+        TTSPlayer::getInstance()->produceTTS(texts, session_id);
+    });
+}
+
 // --- 生产TTS音频 ---
 void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_id)
 {

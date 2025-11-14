@@ -42,6 +42,26 @@ private:
     std::atomic_bool m_running;
 };
 
+class TTSThreadPool
+{
+    using Task = std::function<void()>;
+
+public:
+    explicit TTSThreadPool(std::size_t size = 2); // 创建2个线程用于TTS
+    ~TTSThreadPool();
+
+    void addTask(Task task);
+
+private:
+    void worker();
+
+    std::vector<std::thread> m_threads;
+    std::queue<Task> m_tasks_que;
+    std::mutex m_tasks_que_mtx;
+    std::condition_variable m_tasks_que_cond;
+    std::atomic_bool m_running;
+};
+
 template <typename Func, typename... Args>
 inline auto ThreadPool::addTask(Func &&func, Args &&...args)
     -> std::future<std::invoke_result_t<Func, Args...>>

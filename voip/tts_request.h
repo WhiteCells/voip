@@ -43,7 +43,7 @@ public:
 
     // 同步调用，依次请求 TTS 并推入队列
     void produceTTS(std::vector<std::string> texts, std::string session_id);
-
+    void produceTTSAsync(std::vector<std::string> texts, std::string session_id);
     // 安全地从队列取一条音频数据（阻塞等待）
     bool getNextAudio(std::vector<char> &pcm);
 

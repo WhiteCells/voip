@@ -12,6 +12,7 @@
 #include <string>
 #include <atomic>
 #include <memory>
+#include "thread_pool.h"
 
 class AgentWsClient;
 /**
@@ -76,6 +77,8 @@ extern std::string local_hangup;
 extern std::shared_ptr<AgentWsClient> g_agent_ws_client;
 
 extern std::shared_ptr<AgentWsClient> g_manual_ws_client;
+
+extern std::unique_ptr<TTSThreadPool> g_tts_thread_pool;
 
 // url
 #define URL_NOTIFY            "notify"            // 客户端通知

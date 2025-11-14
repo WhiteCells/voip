@@ -15,6 +15,8 @@ int main()
     // config
     loadINICfg();
 
+    g_tts_thread_pool = std::make_unique<TTSThreadPool>(2);
+
     TTSPlayer::init(tts_server_remote_host, tts_server_remote_port, tts_server_remote_target);
 
     // endpoint
