@@ -48,6 +48,7 @@ void voip::Caller::group_call(const std::string &phone,
     }
     catch (const pj::Error &err) {
         LOG_ERROR("pj::Error: {} {}", err.reason, err.info());
+        return;
     }
 
     // 超时之前等待 winner

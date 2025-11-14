@@ -57,8 +57,6 @@ public:
                      const std::string &call_method,
                      const std::string &different);
 
-    void hangup_();
-
 private:
     int m_dialplan_id;
     std::time_t now_time;

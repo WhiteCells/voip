@@ -82,32 +82,24 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
         memset(frame.buf.data() + copy_samples * sizeof(int16_t), 0,
                (samplesPerFrame - copy_samples) * sizeof(int16_t));
     }
-
-    // if (m_end_flag && !m_called_hangup) {
-    //     LOG_INFO("to hangup");
-    //     m_called_hangup = true;
-    // }
 }
 
-void AgentRobotAudioMediaPort::startEndFlagMonitor(std::weak_ptr<AgentRobotAudioMediaPort> weakSelf)
+void AgentRobotAudioMediaPort::startEndFlagMonitor(std::shared_ptr<AgentRobotAudioMediaPort> self)
 {
-    std::thread([weakSelf]() {
+    std::thread([self]() {
         endpoint.libRegisterThread("Worker");
         LOG_INFO("[Monitor] Start monitoring m_end_flag...");
         while (true) {
-            auto self = weakSelf.lock();
-            if (!self) {
-                LOG_WARN("[Monitor] AgentRobotAudioMediaPort destroyed, stop monitoring.");
-                break;
-            }
             if (self->m_end_flag.load()) {
                 if (!self->m_called_hangup.load()) {
                     LOG_INFO("[Monitor] m_end_flag detected, hanging up call...");
                     self->m_called_hangup.store(true);
                     self->m_end_flag.store(false);
                     TTSPlayer::getInstance()->clear();
-                    endpoint.hangupAllCalls();
+                    TTSPlayer::endendend_flag.store(true);
                     TTSPlayer::getInstance()->stop();
+                    endpoint.hangupAllCalls();
+                    LOG_INFO("monitor hangup over");
                 }
                 break;
             }

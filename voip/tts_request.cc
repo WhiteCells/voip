@@ -126,7 +126,7 @@ static float count_pcm_time(std::size_t pcm_len, unsigned int sample_rate,
            (sample_rate * num_channels * (bits_per_sample / 8.0f));
 }
 
-void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string session_id)
+void TTSPlayer::produceTTSAsync(std::vector<std::string> &texts, std::string session_id)
 {
     if (!g_tts_thread_pool) {
         LOG_ERROR("TTS thread pool not initialized");
@@ -256,17 +256,16 @@ void TTSPlayer::stop()
     }
     {
         std::lock_guard<std::mutex> lock(mtx_);
-        // if (!audio_queue_.empty()) {
+        {
+            // clear pcm audio pcm
+            LOG_INFO("clear pcm audio queue");
+            while (!audio_queue_.empty()) {
+                audio_queue_.pop();
+            }
+        }
         auto stop_time = get_current_timestamp_milliseconds();
         voip::pushTTSStop(m_session_id, stop_time);
         LOG_INFO("push tts stop request, m_session_id: {}, stop_time: {}", m_session_id, stop_time);
-        // return;
-        // }
-        while (!audio_queue_.empty()) {
-            audio_queue_.pop();
-        }
-        // push stop timestamp
-        LOG_INFO("[TTS] stop produce WAV and clear text_list");
     }
 }
 

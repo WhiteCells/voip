@@ -209,7 +209,7 @@ public:
         if (m_call_method == "agent") {
             m_llm_start_time = std::chrono::steady_clock::now();
             end_timeout_check();
-            start_timeout_check(m_llm_start_time);
+            // start_timeout_check(m_llm_start_time);
 
             std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token);
             LOG_INFO("prolog llm response: {}", response);
@@ -277,7 +277,7 @@ private:
                                                      shared_from_this()));
     }
 
-    void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type endpoint)
+    void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type ep)
     {
         if (ec) {
             LOG_ERROR("connect error: {}", ec.message());
@@ -287,7 +287,7 @@ private:
         m_ws->set_option(websocket::stream_base::decorator([](websocket::request_type &req) {
             req.set(http::field::user_agent, "<ws>");
         }));
-        m_host += ":" + std::to_string(endpoint.port());
+        m_host += ":" + std::to_string(ep.port());
         m_ws->next_layer().async_handshake(ssl::stream_base::client,
                                            beast::bind_front_handler(&AgentWsClient::on_tls_handshake,
                                                                      shared_from_this()));
@@ -386,7 +386,7 @@ private:
             TTSPlayer::getInstance()->stop(); // 停止播放
             m_llm_start_time = std::chrono::steady_clock::now();
             end_timeout_check();
-            start_timeout_check(m_llm_start_time);
+            // start_timeout_check(m_llm_start_time);
 
             std::string response = m_llm_client->sendRequest(m_llm_msg_text, m_call_method, m_role, m_session_id, m_access_token); // 发送ASR结果给LLM
             LOG_INFO("LLM agent response: {}", response);
