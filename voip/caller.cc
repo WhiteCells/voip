@@ -206,6 +206,8 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             m_call_status = "hangup";
             LOG_INFO(">>> call: {}, phone: {} confirmed", ci.id, m_phone);
             m_confirmed = true;
+            auto p = pj::OnCallMediaStateParam {};
+            onCallMediaState(p);
             LOG_INFO("set m_confirmed = true");
             // 当前线程如果已经接通了，通知其他线程挂断电话
             m_coordinator->notifyCallConfirmed(shared_from_this());
@@ -326,38 +328,41 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
     pj::CallInfo ci = getInfo();
     LOG_INFO("call: {} Media State Changed: {}, media size: {}", ci.id, ci.stateText, ci.media.size());
 
-    pj::AudioMedia *aud_med;
+    if (m_confirmed) {
+        LOG_INFO("confirmed to transmit aud med");
+        pj::AudioMedia *aud_med;
 
-    pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
-    auto cap_dev_med = mgr.getCaptureDevMedia();
-    auto play_dev_med = mgr.getPlaybackDevMedia();
+        pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
+        auto cap_dev_med = mgr.getCaptureDevMedia();
+        auto play_dev_med = mgr.getPlaybackDevMedia();
 
-    for (unsigned i = 0; i < ci.media.size(); ++i) {
-        if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
-            LOG_INFO("used media index: {}", i);
-            aud_med = (pj::AudioMedia *)getMedia(i);
+        for (unsigned i = 0; i < ci.media.size(); ++i) {
+            if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
+                LOG_INFO("used media index: {}", i);
+                aud_med = (pj::AudioMedia *)getMedia(i);
 
 #ifdef REMINDER
-            if (m_call_method == "manual") {
-                m_agent_aud_media_port = std::make_shared<AgentAudAudioMediaPort>();
-                m_agent_cap_media_port = std::make_shared<AgentCapAudioMediaPort>();
-                // interact with ai
-                aud_med->startTransmit(*m_agent_aud_media_port);
-                cap_dev_med.startTransmit(*m_agent_cap_media_port);
-                // interact with local audio device
-                aud_med->startTransmit(play_dev_med);
-                cap_dev_med.startTransmit(*aud_med);
-            }
-            else if (m_call_method == "agent") {
-                m_agent_robot_media_port = std::make_shared<AgentRobotAudioMediaPort>();
-                AgentRobotAudioMediaPort::startEndFlagMonitor(m_agent_robot_media_port);
+                if (m_call_method == "manual") {
+                    m_agent_aud_media_port = std::make_shared<AgentAudAudioMediaPort>();
+                    m_agent_cap_media_port = std::make_shared<AgentCapAudioMediaPort>();
+                    // interact with ai
+                    aud_med->startTransmit(*m_agent_aud_media_port);
+                    cap_dev_med.startTransmit(*m_agent_cap_media_port);
+                    // interact with local audio device
+                    aud_med->startTransmit(play_dev_med);
+                    cap_dev_med.startTransmit(*aud_med);
+                }
+                else if (m_call_method == "agent") {
+                    m_agent_robot_media_port = std::make_shared<AgentRobotAudioMediaPort>();
+                    AgentRobotAudioMediaPort::startEndFlagMonitor(m_agent_robot_media_port);
+                    aud_med->startTransmit(*m_agent_robot_media_port);
+                    m_agent_robot_media_port->startTransmit(*aud_med);
+                }
+#elif ROBOT
                 aud_med->startTransmit(*m_agent_robot_media_port);
                 m_agent_robot_media_port->startTransmit(*aud_med);
-            }
-#elif ROBOT
-            aud_med->startTransmit(*m_agent_robot_media_port);
-            m_agent_robot_media_port->startTransmit(*aud_med);
 #endif
+            }
         }
     }
 }
