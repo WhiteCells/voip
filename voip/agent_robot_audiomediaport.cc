@@ -8,7 +8,6 @@
 AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     : tts_pos(0)
     , m_end_flag(false)
-    , m_called_hangup(false)
 {
     LOG_INFO(">>> construct {}", __func__);
     pj::MediaFormatAudio fmt;      //
@@ -91,16 +90,13 @@ void AgentRobotAudioMediaPort::startEndFlagMonitor(std::shared_ptr<AgentRobotAud
         LOG_INFO("[Monitor] Start monitoring m_end_flag...");
         while (true) {
             if (self->m_end_flag.load()) {
-                if (!self->m_called_hangup.load()) {
-                    LOG_INFO("[Monitor] m_end_flag detected, hanging up call...");
-                    self->m_called_hangup.store(true);
-                    self->m_end_flag.store(false);
-                    TTSPlayer::getInstance()->clear();
-                    TTSPlayer::endendend_flag.store(true);
-                    TTSPlayer::getInstance()->stop();
-                    endpoint.hangupAllCalls();
-                    LOG_INFO("monitor hangup over");
-                }
+                LOG_INFO("[Monitor] m_end_flag detected, hanging up call...");
+                self->m_end_flag.store(false);
+                TTSPlayer::getInstance()->clear();
+                TTSPlayer::endendend_flag.store(true);
+                TTSPlayer::getInstance()->stop();
+                endpoint.hangupAllCalls();
+                LOG_INFO("monitor hangup over");
                 break;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(200));

@@ -41,15 +41,13 @@ public:
         target_ = target;
     }
 
-    // 同步调用，依次请求 TTS 并推入队列
+    void requestTTS2(const std::string &text, const std::string &session_id);
     void produceTTS(std::vector<std::string> texts, std::string session_id);
-    void produceTTSAsync(std::vector<std::string> &texts, std::string session_id);
-    // 安全地从队列取一条音频数据（阻塞等待）
+    void produceTTSAsync(std::vector<std::string> texts, std::string session_id);
     bool getNextAudio(std::vector<char> &pcm);
 
     void clear();
 
-    // 停止生产或消费
     void stop();
 
     void resume();

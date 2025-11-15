@@ -4,6 +4,7 @@
 #include "logger.h"
 #include "request.hpp"
 #include <boost/asio/io_context.hpp>
+#include <exception>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -126,7 +127,7 @@ static float count_pcm_time(std::size_t pcm_len, unsigned int sample_rate,
            (sample_rate * num_channels * (bits_per_sample / 8.0f));
 }
 
-void TTSPlayer::produceTTSAsync(std::vector<std::string> &texts, std::string session_id)
+void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string session_id)
 {
     if (!g_tts_thread_pool) {
         LOG_ERROR("TTS thread pool not initialized");
@@ -136,6 +137,24 @@ void TTSPlayer::produceTTSAsync(std::vector<std::string> &texts, std::string ses
     g_tts_thread_pool->addTask([texts = std::move(texts), session_id]() {
         TTSPlayer::getInstance()->produceTTS(texts, session_id);
     });
+}
+
+void TTSPlayer::requestTTS2(const std::string &text, const std::string &session_id)
+{
+    m_session_id = session_id;
+    float total_play_cast = 0.0f;
+    std::string tts_text = {};
+
+    auto start_time = get_current_timestamp_milliseconds();
+    try {
+        auto req_start_time = get_current_timestamp_milliseconds();
+        auto pcm = requestTTS(text);
+        auto req_end_time = get_current_timestamp_milliseconds();
+        auto req_time = static_cast<float>(req_end_time - req_start_time);
+        auto play_time = count_pcm_time(pcm.size(), 16000, 16, 1);
+    }
+    catch (const std::exception &e) {
+    }
 }
 
 // --- 生产TTS音频 ---

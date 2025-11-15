@@ -325,6 +325,14 @@ inline void pushCallState(const std::string &phone,
                                 http::verb::post, {}, body);
 #endif
     }
+    catch (const boost::system::system_error &e) {
+        if (e.code() == asio::error::eof || e.code() == asio::ssl::error::stream_truncated) {
+            LOG_INFO("Server closed connection prematurely");
+        }
+        else {
+            LOG_ERROR("SSL error: {}", e.what());
+        }
+    }
     catch (const std::exception &e) {
         LOG_WARN("Exception: {}", e.what());
     }

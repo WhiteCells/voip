@@ -69,7 +69,7 @@ void voip::Caller::group_call(const std::string &phone,
             m_sender->send(msg);
         }
 
-        LOG_WARN("call {} wait winner time out", m_phone);
+        LOG_INFO("call {} wait winner time out", m_phone);
         m_call_status = "no_answered";
         LOG_INFO("Caller::call phone {} call_status {} call_type {}", m_phone, m_call_status, call_type);
         voip::pushCallState(m_phone,
@@ -108,6 +108,7 @@ void voip::Caller::single_call(const std::string &phone,
     }
     catch (const pj::Error &err) {
         LOG_ERROR("pj::Error: {} {}", err.reason, err.info());
+        return;
     }
     if (!m_coordinator->waitForSingleCallConfirmed(std::chrono::seconds(10))) {
 
@@ -136,11 +137,6 @@ void voip::Caller::single_call(const std::string &phone,
     m_coordinator->waitForSingleCallFinished();
 }
 
-void voip::Caller::onCallTsxState(pj::OnCallTsxStateParam &prm)
-{
-    PJ_UNUSED_ARG(prm);
-}
-
 void voip::Caller::onCallState(pj::OnCallStateParam &prm)
 {
     PJ_UNUSED_ARG(prm);
@@ -149,7 +145,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
     LOG_INFO("call id: {} phone: {} state: {} code:{}",
              ci.id, m_phone, ci.stateText, (int)ci.lastStatusCode);
     if (ci.lastStatusCode == 404) {
-        LOG_INFO("call last status code: {}", (int)ci.lastStatusCode);
+        LOG_ERROR("call last status code: {}", (int)ci.lastStatusCode);
         return;
     }
     if (!ci.lastReason.empty()) {
@@ -300,7 +296,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 }
             }
             else {
-                LOG_INFO("m_agent_ws_client is null");
+                LOG_ERROR("m_agent_ws_client is null");
             }
 
             LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}", std::to_string(m_dialplan_id), m_phone, call_status, call_type, hangup_direction);

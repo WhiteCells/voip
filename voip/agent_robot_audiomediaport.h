@@ -52,7 +52,6 @@ private:
     std::vector<int16_t> tts_buf;
     std::size_t tts_pos;
     std::atomic<bool> m_end_flag;
-    std::atomic<bool> m_called_hangup;
 };
 
 #endif // _AGENT_ROBOT_AUDIOMEDIAPORT_H_

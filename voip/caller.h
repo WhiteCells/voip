@@ -1,7 +1,5 @@
-#ifndef _VCALL_H_
-#define _VCALL_H_
+#pragma once
 
-#include <pjsua2/media.hpp>
 #include "agent_aud_audiomediaport.h"
 #include "agent_cap_audiomediaport.h"
 #include "agent_robot_audiomediaport.h"
@@ -29,9 +27,6 @@ public:
     Caller(const Caller &) = delete;
     Caller &operator=(const Caller &) = delete;
     ~Caller();
-
-    // 状态吗改变
-    virtual void onCallTsxState(pj::OnCallTsxStateParam &prm) override;
 
     // 呼叫状态改变
     virtual void onCallState(pj::OnCallStateParam &prm) override;
@@ -80,5 +75,3 @@ private:
 };
 
 } // namespace voip
-
-#endif // _VCALL_H_

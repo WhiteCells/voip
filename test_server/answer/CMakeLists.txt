@@ -1,43 +1,16 @@
+cmake_minimum_required(VERSION 3.10)
+
+project(answer)
+
 set(SRC 
-    global.cc
-    async_timer.cc
-    dialplan_queue.cc
-    caller_queue.cc
-    caller.cc
-    vaccount.cc
-    request.hpp
-    io_context_pool.cc
-    ini.cc
-    singleton.hpp
-    thread_pool.cc
-    logger.cc
-    coordinator.cc
-    account_check.cc
-    account_check_manager.cc
-    agent_aud_audiomediaport.cc
-    agent_cap_audiomediaport.cc
-    agent_robot_audiomediaport.cc
-    tts_request.cc
-    web_ws_client.cc
-    agent_ws_client.cc
+    call.hpp
+    account.hpp
     main.cc
 )
 
 add_executable(${PROJECT_NAME} ${SRC})
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${Boost_INCLUDE_DIRS}
-)
-
-target_link_directories(${PROJECT_NAME} PRIVATE
-    ../third_party/src/lib_json
-)
-
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    spdlog::spdlog_header_only
-    libjsoncpp.a
-    /usr/local/lib/libjrtp.so
-    ${Boost_LIBRARIES}
     pjsua2-x86_64-pc-linux-gnu 
     pjsua-x86_64-pc-linux-gnu 
     pjsip-ua-x86_64-pc-linux-gnu 
