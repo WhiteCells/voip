@@ -23,7 +23,7 @@ public:
     AgentRobotAudioMediaPort();
     ~AgentRobotAudioMediaPort();
 
-    static void startEndFlagMonitor(std::shared_ptr<AgentRobotAudioMediaPort> weakSelf);
+    static void startEndFlagMonitor(std::weak_ptr<AgentRobotAudioMediaPort> weakSelf);
 
     /*
      * Callbacks

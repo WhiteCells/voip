@@ -83,12 +83,18 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     }
 }
 
-void AgentRobotAudioMediaPort::startEndFlagMonitor(std::shared_ptr<AgentRobotAudioMediaPort> self)
+void AgentRobotAudioMediaPort::startEndFlagMonitor(std::weak_ptr<AgentRobotAudioMediaPort> weakSelf)
 {
-    std::thread([self]() {
+    std::thread([weakSelf]() {
         endpoint.libRegisterThread("Worker");
         LOG_INFO("[Monitor] Start monitoring m_end_flag...");
+
         while (true) {
+            auto self = weakSelf.lock();
+            if (!self) {
+                LOG_WARN("[Monitor] weakSelf expired, exiting monitor thread.");
+                break;
+            }
             if (self->m_end_flag.load()) {
                 LOG_INFO("[Monitor] m_end_flag detected, hanging up call...");
                 self->m_end_flag.store(false);
@@ -102,7 +108,7 @@ void AgentRobotAudioMediaPort::startEndFlagMonitor(std::shared_ptr<AgentRobotAud
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
         LOG_INFO("[Monitor] Monitor thread exited.");
-    }).detach(); // 后台运行
+    }).detach();
 }
 
 // 接收客户音频
