@@ -8,8 +8,9 @@ ThreadPool::~ThreadPool()
     stop();
 }
 
-ThreadPool::ThreadPool(std::size_t size)
+ThreadPool::ThreadPool(std::size_t size, bool is_sip)
     : m_running(true)
+    , m_is_sip(is_sip)
 {
     for (std::size_t i = 0; i < size; ++i) {
         m_threads.emplace_back([this]() {
@@ -20,7 +21,9 @@ ThreadPool::ThreadPool(std::size_t size)
 
 void ThreadPool::worker()
 {
-    endpoint.libRegisterThread("Worker");
+    if (m_is_sip) {
+        endpoint.libRegisterThread("Worker");
+    }
     while (m_running) {
         Task task;
         {
@@ -70,7 +73,7 @@ TTSThreadPool::~TTSThreadPool()
     m_running = false;
     m_tasks_que_cond.notify_all();
 
-    for (auto& thread : m_threads) {
+    for (auto &thread : m_threads) {
         if (thread.joinable()) {
             thread.join();
         }
@@ -112,8 +115,7 @@ void TTSThreadPool::worker()
         try {
             task();
         }
-        catch (const std::exception& e) {
+        catch (const std::exception &e) {
         }
     }
 }
-

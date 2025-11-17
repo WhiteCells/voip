@@ -6,6 +6,9 @@
 #include "account_check.h"
 #include "account_check_manager.h"
 #include "request.hpp"
+#include "agent/asr_ws_client.h"
+#include "global.h"
+#include "agent/msg.h"
 
 WebWsClient::WebWsClient()
     : m_thread_pool(5)
@@ -175,6 +178,11 @@ WebWsClient::WebWsClient()
                 g_manual_ws_client->get_session_id(m_call_method, session_id, access_token);
                 LOG_INFO("call_method: {},session_id: {}, access_token: {}", m_call_method, session_id, access_token);
             }
+
+            ASRWsClient::s_session_id = session_id;
+            ASRWsClient::s_access_token = access_token;
+            ASRWsClient::s_call_method = m_call_method;
+            g_event_bus.publish(PrologTextMsg {"请开始开场白"});
         }
         else {
             LOG_ERROR("error request_type");

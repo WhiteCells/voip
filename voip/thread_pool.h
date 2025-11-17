@@ -16,7 +16,7 @@ class ThreadPool
     using Task = std::function<void()>;
 
 public:
-    explicit ThreadPool(std::size_t size = std::thread::hardware_concurrency());
+    ThreadPool(std::size_t size = std::thread::hardware_concurrency(), bool is_sip = true);
     ThreadPool(const ThreadPool &) = delete;
     ThreadPool &operator=(const ThreadPool &) = delete;
     ~ThreadPool();
@@ -40,6 +40,7 @@ private:
     std::mutex m_tasks_que_mtx;
     std::condition_variable m_tasks_que_cond;
     std::atomic_bool m_running;
+    bool m_is_sip;
 };
 
 class TTSThreadPool

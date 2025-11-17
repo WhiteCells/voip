@@ -7,6 +7,7 @@
 #include "llm_request.h"
 #include <boost/asio/any_io_executor.hpp>
 #include <boost/asio/bind_executor.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <boost/beast/core/error.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast.hpp>
@@ -23,7 +24,7 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 namespace websocket = beast::websocket;
 namespace net = boost::asio;
-namespace ssl = boost::asio::ssl;
+namespace ssl = net::ssl;
 using tcp = net::ip::tcp;
 
 class AgentWsClient :
@@ -114,6 +115,7 @@ private:
     std::optional<net::strand<net::io_context::executor_type>> m_strand;
     std::deque<std::string> m_send_queue;
     bool m_writing {false};
+    std::unique_ptr<net::thread_pool> m_thread_pool;
 };
 
 #endif // _AGENT_WS_CLIENT_H_

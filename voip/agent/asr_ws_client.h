@@ -3,12 +3,15 @@
 #include "../io_context_pool.h"
 #include "../global.h"
 #include "../logger.h"
+#include "../event/event.h"
+#include "msg.h"
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/ssl.hpp>
+#include <json/json.h>
 #include <memory>
 #include <string>
 #include <deque>
@@ -28,7 +31,7 @@ public:
     using MessageHandler = std::function<void(std::string)>;
     using OpenHandler = std::function<void()>;
 
-    ASRWsClient()
+    ASRWsClient(EventBus &e)
         : host_(asr_server_remote_host)
         , port_(asr_server_remote_port)
         , target_("/")
@@ -39,10 +42,11 @@ public:
         , stopping_(false)
         , writing_(false)
         , connected_(false)
+        , event_bus_(e)
     {
         LOG_INFO(">>> ASRWsClient()");
         ssl_ctx_.set_default_verify_paths();
-        ssl_ctx_.set_verify_mode(ssl::verify_peer);
+        ssl_ctx_.set_verify_mode(ssl::verify_none);
         LOG_INFO("<<< ASRWsClient()");
     }
 
@@ -53,8 +57,15 @@ public:
         LOG_INFO("<<< ~ASRWsClient()");
     }
 
-    void set_on_open(OpenHandler cb) { on_open_ = std::move(cb); }
-    void set_on_message(MessageHandler cb) { on_message_ = std::move(cb); }
+    void set_on_open(OpenHandler cb)
+    {
+        on_open_ = std::move(cb);
+    }
+
+    void set_on_message(MessageHandler cb)
+    {
+        on_message_ = std::move(cb);
+    }
 
     void start()
     {
@@ -81,7 +92,7 @@ public:
         }
     }
 
-    void send(std::string msg)
+    void send(const std::string &msg)
     {
         // LOG_INFO("send to asr: {}", msg);
         bool is_conn = connected_.load(std::memory_order_acquire);
@@ -104,6 +115,47 @@ public:
                            self->write_next();
                        }
                    });
+    }
+
+    void send(const std::string &msg, const std::string &role)
+    {
+        role_ = role;
+        send(msg);
+    }
+
+    void send_start_config()
+    {
+        Json::Value config;
+        config["mode"] = "2pass";
+        config["wav_name"] = "record";
+        config["wav_format"] = "pcm";
+        config["audio_fs"] = 16000.0;
+        config["is_speaking"] = true;
+        config["itn"] = true;
+        config["svs_itn"] = true;
+
+        Json::Value chunk_size(Json::arrayValue);
+        chunk_size.append(5);
+        chunk_size.append(10);
+        chunk_size.append(5);
+        config["chunk_size"] = chunk_size;
+
+        Json::StreamWriterBuilder builder;
+        std::string config_str = Json::writeString(builder, config);
+
+        send(config_str);
+        LOG_INFO("send asr start config");
+    }
+
+    void send_stop_config()
+    {
+        Json::Value config;
+        config["is_speaking"] = "false";
+
+        Json::StreamWriterBuilder builder;
+        std::string config_str = Json::writeString(builder, config);
+        send(config_str);
+        LOG_INFO("send asr end config");
     }
 
 private:
@@ -226,6 +278,25 @@ private:
 
         std::string msg = beast::buffers_to_string(buffer_.data());
         buffer_.consume(buffer_.size());
+        LOG_INFO("recv asr ws client: {}", msg);
+
+        Json::Value root;
+        Json::CharReaderBuilder builder;
+        std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+        std::string errors;
+
+        if (reader->parse(msg.c_str(), msg.c_str() + msg.size(), &root, &errors)) {
+            std::string is_final = root.get("is_final", "").asString();
+            std::string text = root.get("text", "").asString();
+            std::string mode = root.get("mode", "").asString();
+            if (mode == "2pass-offline") {
+                LOG_INFO("m_role: {}, mode:2pass-offline mode test: {}", role_, text);
+                event_bus_.publish<ASRTextMsg>(ASRTextMsg {msg, role_});
+            }
+        }
+        else {
+            LOG_ERROR("failed to parse asr ws client JSON: {}", errors);
+        }
 
         if (on_message_) {
             try {
@@ -304,6 +375,11 @@ private:
         });
     }
 
+public:
+    static std::string s_call_method;
+    static std::string s_session_id;
+    static std::string s_access_token;
+
 private:
     std::string host_;
     std::string port_;
@@ -325,4 +401,7 @@ private:
     std::atomic<bool> stopping_;
     std::atomic<bool> writing_;
     std::atomic<bool> connected_;
+    EventBus &event_bus_;
+
+    std::string role_;
 };

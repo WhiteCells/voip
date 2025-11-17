@@ -1,6 +1,7 @@
 #ifndef _AGENT_ROBOT_AUDIOMEDIAPORT_H_
 #define _AGENT_ROBOT_AUDIOMEDIAPORT_H_
 
+#include "agent/asr_ws_client.h"
 #ifdef _WIN32
 #include <rtpsession.h>
 #include <rtppacket.h>
@@ -23,7 +24,7 @@ public:
     AgentRobotAudioMediaPort();
     ~AgentRobotAudioMediaPort();
 
-    static void startEndFlagMonitor(std::weak_ptr<AgentRobotAudioMediaPort> weakSelf);
+    static void startEndFlagMonitor(std::weak_ptr<AgentRobotAudioMediaPort> weak_self);
 
     /*
      * Callbacks
@@ -52,6 +53,10 @@ private:
     std::vector<int16_t> tts_buf;
     std::size_t tts_pos;
     std::atomic<bool> m_end_flag;
+    std::shared_ptr<ASRWsClient> m_asr_ws_client;
+
+    std::atomic<bool> m_llm_hangup {false};
+    bool last_pcm;
 };
 
 #endif // _AGENT_ROBOT_AUDIOMEDIAPORT_H_

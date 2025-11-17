@@ -8,6 +8,7 @@ AgentWsClient::AgentWsClient(const std::string &host, const std::string &port)
     , m_target("/")
     , m_llm_client(std::make_shared<LLMRequest>(agent_session_remote_host, agent_session_remote_port, agent_session_remote_target))
 {
+    m_thread_pool = std::make_unique<boost::asio::thread_pool>(2);
 }
 
 AgentWsClient::~AgentWsClient()
@@ -127,7 +128,7 @@ void AgentWsClient::sendBinary(const std::string &data, const std::string &role)
     net::dispatch(*m_strand, [self = shared_from_this(), data]() {
         // 标记为二进制模式
         self->m_send_queue.push_back("B:" + data);
-        // LOG_INFO("Send queue size: {}", self->m_send_queue.size());
+        LOG_INFO("Send queue size: {}", self->m_send_queue.size());
         if (!self->m_writing) {
             self->do_write();
         }
@@ -175,35 +176,37 @@ void AgentWsClient::start_llm_style()
         end_timeout_check();
         // start_timeout_check(m_llm_start_time);
 
-        std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token);
-        LOG_INFO("prolog llm response: {}", response);
+        asio::post(*m_thread_pool, [self = shared_from_this()]() {
+            std::string response = self->m_llm_client->sendRequest("请用开场话术开始对话", "agent", "mediator", self->m_session_id, self->m_access_token);
+            LOG_INFO("prolog llm response: {}", response);
 
-        Json::Value llm_style_json;
-        Json::CharReaderBuilder llm_style_builder;
-        std::unique_ptr<Json::CharReader> reader(llm_style_builder.newCharReader());
-        std::string llm_style_errors;
+            Json::Value llm_style_json;
+            Json::CharReaderBuilder llm_style_builder;
+            std::unique_ptr<Json::CharReader> reader(llm_style_builder.newCharReader());
+            std::string llm_style_errors;
 
-        if (reader->parse(response.c_str(), response.c_str() + response.size(), &llm_style_json, &llm_style_errors)) {
-            if (llm_style_json.isMember("data") && llm_style_json["data"].isObject()) {
-                const auto &data = llm_style_json["data"];
-                if (data.isMember("text") && data["text"].isArray()) {
-                    m_llm_msg_list.clear();
-                    for (const auto &item : data["text"]) {
-                        m_llm_msg_list.push_back(item.asString());
-                    }
-                    LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
+            if (reader->parse(response.c_str(), response.c_str() + response.size(), &llm_style_json, &llm_style_errors)) {
+                if (llm_style_json.isMember("data") && llm_style_json["data"].isObject()) {
+                    const auto &data = llm_style_json["data"];
+                    if (data.isMember("text") && data["text"].isArray()) {
+                        self->m_llm_msg_list.clear();
+                        for (const auto &item : data["text"]) {
+                            self->m_llm_msg_list.push_back(item.asString());
+                        }
+                        LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", self->m_llm_msg_list.size());
 
-                    if (!m_llm_msg_list.empty()) {
-                        TTSPlayer::getInstance()->resume(); // 恢复播放
-                        TTSPlayer::getInstance()->produceTTSAsync(m_llm_msg_list, m_session_id);
-                        m_llm_msg_list.clear();
+                        if (!self->m_llm_msg_list.empty()) {
+                            TTSPlayer::getInstance()->resume(); // 恢复播放
+                            TTSPlayer::getInstance()->produceTTS(self->m_llm_msg_list, self->m_session_id);
+                            self->m_llm_msg_list.clear();
+                        }
                     }
                 }
             }
-        }
-        else {
-            LOG_ERROR("Failed to parse LLM response JSON: {}", llm_style_errors);
-        }
+            else {
+                LOG_ERROR("Failed to parse LLM response JSON: {}", llm_style_errors);
+            }
+        });
     }
 }
 
@@ -351,35 +354,39 @@ void AgentWsClient::process_asr_with_llm(const std::string &text)
         end_timeout_check();
         // start_timeout_check(m_llm_start_time);
 
-        std::string response = m_llm_client->sendRequest(m_llm_msg_text, m_call_method, m_role, m_session_id, m_access_token); // 发送ASR结果给LLM
-        LOG_INFO("LLM agent response: {}", response);
-        if (response.empty()) {
-            do_read();
-            return;
-        }
-        Json::Value response_json;
-        Json::CharReaderBuilder response_builder;
-        std::unique_ptr<Json::CharReader> response_reader(response_builder.newCharReader());
-        std::string response_errors;
+        asio::post(*m_thread_pool, [self = shared_from_this(), text]() {
+            std::string response = self->m_llm_client->sendRequest(self->m_llm_msg_text, self->m_call_method, self->m_role,
+                                                                   self->m_session_id,
+                                                                   self->m_access_token); // 发送ASR结果给LLM
+            LOG_INFO("LLM agent response: {}", response);
+            if (response.empty()) {
+                self->do_read();
+                return;
+            }
+            Json::Value response_json;
+            Json::CharReaderBuilder response_builder;
+            std::unique_ptr<Json::CharReader> response_reader(response_builder.newCharReader());
+            std::string response_errors;
 
-        if (response_reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &response_errors)) {
-            if (response_json.isMember("data") && response_json["data"].isObject()) {
-                const auto &data = response_json["data"];
-                if (data.isMember("text") && data["text"].isArray()) {
-                    m_llm_msg_list.clear();
-                    for (const auto &item : data["text"]) {
-                        m_llm_msg_list.push_back(item.asString());
-                    }
-                    LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
+            if (response_reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &response_errors)) {
+                if (response_json.isMember("data") && response_json["data"].isObject()) {
+                    const auto &data = response_json["data"];
+                    if (data.isMember("text") && data["text"].isArray()) {
+                        self->m_llm_msg_list.clear();
+                        for (const auto &item : data["text"]) {
+                            self->m_llm_msg_list.push_back(item.asString());
+                        }
+                        LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", self->m_llm_msg_list.size());
 
-                    if (!m_llm_msg_list.empty()) {
-                        TTSPlayer::getInstance()->resume();                                      // 恢复播放
-                        TTSPlayer::getInstance()->produceTTSAsync(m_llm_msg_list, m_session_id); // 将LLM的文本转换为TTS的音频
-                        m_llm_msg_list.clear();
+                        if (!self->m_llm_msg_list.empty()) {
+                            TTSPlayer::getInstance()->resume();                                             // 恢复播放
+                            TTSPlayer::getInstance()->produceTTS(self->m_llm_msg_list, self->m_session_id); // 将LLM的文本转换为TTS的音频
+                            self->m_llm_msg_list.clear();
+                        }
                     }
                 }
             }
-        }
+        });
     }
 }
 

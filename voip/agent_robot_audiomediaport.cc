@@ -1,13 +1,19 @@
 #include "agent_robot_audiomediaport.h"
+#include "agent/llm_http_client.h"
 #include "global.h"
 #include "logger.h"
 #include <fstream>
 #include "agent_ws_client.h"
+#include "agent/tts_http_client.h"
 #include "tts_request.h"
+#include "event/event.h"
+#include "agent/msg.h"
 
 AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     : tts_pos(0)
     , m_end_flag(false)
+    , m_asr_ws_client(std::make_shared<ASRWsClient>(g_event_bus))
+    , last_pcm(true)
 {
     LOG_INFO(">>> construct {}", __func__);
     pj::MediaFormatAudio fmt;      //
@@ -20,12 +26,21 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     fmt.avgBps = 32000;            //
     fmt.maxBps = 32000;            //
     pj::AudioMediaPort::createPort("port", fmt);
+
+    g_event_bus.subscribe<LLMHangupMsg>([&](const LLMHangupMsg &) {
+        m_llm_hangup.store(true);
+    });
+
+    m_asr_ws_client->start();
+    m_asr_ws_client->send_start_config();
+
     LOG_INFO("<<< construct {}", __func__);
 }
 
 AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 {
     LOG_INFO(">>> {}", __func__);
+    m_asr_ws_client->send_stop_config();
     tts_buf.clear();
     tts_pos = 0;
     g_agent_ws_client->clear_llm_msg_list();
@@ -44,25 +59,29 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     frame.size = bytesPerFrame;
     frame.buf.resize(frame.size);
 
+    if (m_llm_hangup.load()) {
+        if (last_pcm) {
+            last_pcm = false;
+            auto pcm = TTSHTTPClient::m_que->try_pop();
+            if (pcm.empty()) {
+                memset(frame.buf.data(), 0, frame.size);
+                return;
+            }
+        }
+    }
+
     if (TTSPlayer::getInstance()->isStopped()) {
         tts_buf.clear();
         tts_pos = 0;
     }
 
-    // 如果当前缓存不够，尝试拉取新的 TTS 音频
     if (tts_pos >= tts_buf.size()) {
-        std::vector<char> pcm;
-        if (TTSPlayer::getInstance()->getNextAudio(pcm) && !pcm.empty()) {
-            if (pcm == std::vector<char> {'E', 'N', 'D'}) {
-                m_end_flag = true;
-                pcm.clear();
-            }
-            if (!pcm.empty()) {
-                size_t samples = pcm.size() / sizeof(int16_t);
-                tts_buf.resize(samples);
-                memcpy(tts_buf.data(), pcm.data(), pcm.size());
-                tts_pos = 0;
-            }
+        auto pcm = TTSHTTPClient::m_que->try_pop();
+        if (!pcm.empty()) {
+            size_t samples = pcm.size() / sizeof(int16_t);
+            tts_buf.resize(samples);
+            memcpy(tts_buf.data(), pcm.data(), pcm.size());
+            tts_pos = 0;
         }
         else {
             memset(frame.buf.data(), 0, frame.size);
@@ -70,37 +89,31 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
         }
     }
 
-    // 从缓冲中取 20ms 数据
     size_t remain = tts_buf.size() - tts_pos;
     size_t copy_samples = (std::min)((size_t)samplesPerFrame, remain);
     memcpy(frame.buf.data(), tts_buf.data() + tts_pos, copy_samples * sizeof(int16_t));
     tts_pos += copy_samples;
 
-    // 如果不满一帧，补零
     if (copy_samples < samplesPerFrame) {
         memset(frame.buf.data() + copy_samples * sizeof(int16_t), 0,
                (samplesPerFrame - copy_samples) * sizeof(int16_t));
     }
 }
 
-void AgentRobotAudioMediaPort::startEndFlagMonitor(std::weak_ptr<AgentRobotAudioMediaPort> weakSelf)
+void AgentRobotAudioMediaPort::startEndFlagMonitor(std::weak_ptr<AgentRobotAudioMediaPort> weak_self)
 {
-    std::thread([weakSelf]() {
+    std::thread([weak_self]() {
         endpoint.libRegisterThread("Worker");
         LOG_INFO("[Monitor] Start monitoring m_end_flag...");
 
         while (true) {
-            auto self = weakSelf.lock();
+            auto self = weak_self.lock();
             if (!self) {
                 LOG_WARN("[Monitor] weakSelf expired, exiting monitor thread.");
                 break;
             }
-            if (self->m_end_flag.load()) {
-                LOG_INFO("[Monitor] m_end_flag detected, hanging up call...");
-                self->m_end_flag.store(false);
-                TTSPlayer::getInstance()->clear();
-                TTSPlayer::endendend_flag.store(true);
-                TTSPlayer::getInstance()->stop();
+            if (self->m_llm_hangup.load()) {
+                LOG_INFO("[Monitor] m_llm_hangup detected, hanging up call...");
                 endpoint.hangupAllCalls();
                 LOG_INFO("monitor hangup over");
                 break;
@@ -133,8 +146,10 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 
     if (frame.size > 0) {
         send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
-        if (g_agent_ws_client) {
-            g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
-        }
+        auto pcm = std::string(reinterpret_cast<const char *>(frame.buf.data()));
+        m_asr_ws_client->send(pcm, "customer");
+        // if (g_agent_ws_client) {
+        //     g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
+        // }
     }
 }
