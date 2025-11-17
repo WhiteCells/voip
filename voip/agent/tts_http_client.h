@@ -2,9 +2,9 @@
 
 #include "../event/event.h"
 #include "../io_context_pool.h"
+#include "../logger.h"
 #include "msg.h"
 #include "pcm_queue.h"
-#include "../logger.h"
 #include <boost/beast.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/system/detail/error_category.hpp>
@@ -15,8 +15,6 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 using tcp = net::ip::tcp;
 
-// 输入: 调解员对话文本（分段后）
-// 输出: pcm 音频数据
 class TTSHTTPClient
 {
 public:
@@ -30,16 +28,17 @@ public:
         , m_target(target)
     {
         m_event_bus.subscribe<LLMTextMsg>([&](const LLMTextMsg &msg) {
-            m_que->clear();
+            // m_que->clear();
             auto pcm = request(msg.text);
             m_que->push(pcm);
         });
         m_event_bus.subscribe<LLMEndMsg>([&](const LLMEndMsg &msg) {
-            m_que->clear();
+            // m_que->clear();
             auto pcm = request(msg.text);
             m_que->push(pcm);
             m_event_bus.publish(LLMHangupMsg {});
         });
+        //
     }
     ~TTSHTTPClient() = default;
 

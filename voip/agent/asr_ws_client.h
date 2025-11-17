@@ -290,7 +290,7 @@ private:
             std::string text = root.get("text", "").asString();
             std::string mode = root.get("mode", "").asString();
             if (mode == "2pass-offline") {
-                LOG_INFO("m_role: {}, mode:2pass-offline mode test: {}", role_, text);
+                LOG_INFO("m_role: {}, mode:2pass-offline mode text: {}", role_, text);
                 event_bus_.publish<ASRTextMsg>(ASRTextMsg {msg, role_});
             }
         }

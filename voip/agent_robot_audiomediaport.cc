@@ -1,9 +1,7 @@
 #include "agent_robot_audiomediaport.h"
-#include "agent/llm_http_client.h"
 #include "global.h"
 #include "logger.h"
 #include <fstream>
-#include "agent_ws_client.h"
 #include "agent/tts_http_client.h"
 #include "tts_request.h"
 #include "event/event.h"
@@ -43,7 +41,6 @@ AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
     m_asr_ws_client->send_stop_config();
     tts_buf.clear();
     tts_pos = 0;
-    g_agent_ws_client->clear_llm_msg_list();
     LOG_INFO("<<< {}", __func__);
 }
 
@@ -134,7 +131,7 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         return;
     }
 
-    if (m_end_flag) {
+    if (m_llm_hangup.load()) {
         return;
     }
 
@@ -148,8 +145,5 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
         auto pcm = std::string(reinterpret_cast<const char *>(frame.buf.data()));
         m_asr_ws_client->send(pcm, "customer");
-        // if (g_agent_ws_client) {
-        //     g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
-        // }
     }
 }
