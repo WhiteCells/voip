@@ -61,6 +61,8 @@ public:
                         const std::string &session_id,
                         const std::string &access_token);
 
+    void process_buffer_if_timeout();
+
 private:
     void on_resolver(beast::error_code ec, tcp::resolver::results_type results);
 
@@ -114,6 +116,11 @@ private:
     std::optional<net::strand<net::io_context::executor_type>> m_strand;
     std::deque<std::string> m_send_queue;
     bool m_writing {false};
+
+    std::string text_buffer_;  // 累积文本
+    std::chrono::steady_clock::time_point last_text_time_; // 上一次收到文本时间
+    std::mutex text_mutex_;
+    std::atomic<bool> timer_running_{false};
 };
 
 #endif // _AGENT_WS_CLIENT_H_

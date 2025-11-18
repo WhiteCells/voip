@@ -173,7 +173,7 @@ void AgentWsClient::start_llm_style()
     if (m_call_method == "agent") {
         m_llm_start_time = std::chrono::steady_clock::now();
         end_timeout_check();
-        // start_timeout_check(m_llm_start_time);
+        start_timeout_check(m_llm_start_time);
 
         std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token);
         LOG_INFO("prolog llm response: {}", response);
@@ -311,13 +311,30 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
     std::string errors;
 
     if (reader->parse(msg.c_str(), msg.c_str() + msg.size(), &root, &errors)) {
-        std::string is_final = root.get("is_final", "").asString();
         std::string text = root.get("text", "").asString();
         std::string mode = root.get("mode", "").asString();
 
         if (mode == "2pass-offline") {
             LOG_INFO("m_role: {}, mode:2pass-offline mode test: {}", m_role, text);
             process_asr_with_llm(text);
+//            if (!text.empty()) {
+//                {
+//                    std::lock_guard<std::mutex> lock(text_mutex_);
+//                    text_buffer_ += text;  // 累积文本
+//                    last_text_time_ = std::chrono::steady_clock::now();
+//                }
+//
+//                // 启动定时器线程，只启动一次
+//                if (!timer_running_) {
+//                    timer_running_ = true;
+//                    std::thread([this]() {
+//                        while (true) {
+//                            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+//                            process_buffer_if_timeout();
+//                        }
+//                    }).detach();
+//                }
+//            }
         }
     }
     else {
@@ -325,6 +342,16 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
     }
 
     do_read();
+}
+
+void AgentWsClient::process_buffer_if_timeout() {
+    std::lock_guard<std::mutex> lock(text_mutex_);
+    auto now = std::chrono::steady_clock::now();
+    if (!text_buffer_.empty() && std::chrono::duration_cast<std::chrono::seconds>(now - last_text_time_).count() > 2) {
+        LOG_INFO("process_buffer_if_timeout: {}", text_buffer_);
+        process_asr_with_llm(text_buffer_);
+        text_buffer_.clear();
+    }
 }
 
 void AgentWsClient::process_asr_with_llm(const std::string &text)
@@ -349,7 +376,7 @@ void AgentWsClient::process_asr_with_llm(const std::string &text)
         TTSPlayer::getInstance()->stop(); // 停止播放
         m_llm_start_time = std::chrono::steady_clock::now();
         end_timeout_check();
-        // start_timeout_check(m_llm_start_time);
+        start_timeout_check(m_llm_start_time);
 
         std::string response = m_llm_client->sendRequest(m_llm_msg_text, m_call_method, m_role, m_session_id, m_access_token); // 发送ASR结果给LLM
         LOG_INFO("LLM agent response: {}", response);

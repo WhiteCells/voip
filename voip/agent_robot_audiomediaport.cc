@@ -47,13 +47,17 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     if (TTSPlayer::getInstance()->isStopped()) {
         tts_buf.clear();
         tts_pos = 0;
+//        memset(frame.buf.data(), 0, frame.size);
+//        return;
     }
 
     // 如果当前缓存不够，尝试拉取新的 TTS 音频
     if (tts_pos >= tts_buf.size()) {
         std::vector<char> pcm;
         if (TTSPlayer::getInstance()->getNextAudio(pcm) && !pcm.empty()) {
+            LOG_INFO("pcm {}", std::string(pcm.data()));
             if (pcm == std::vector<char> {'E', 'N', 'D'}) {
+                LOG_INFO("set m_end_flag to true");
                 m_end_flag = true;
                 pcm.clear();
             }
@@ -96,13 +100,18 @@ void AgentRobotAudioMediaPort::startEndFlagMonitor(std::weak_ptr<AgentRobotAudio
                 break;
             }
             if (self->m_end_flag.load()) {
+//            if (TTSPlayer::endendend_flag.load()) {
                 LOG_INFO("[Monitor] m_end_flag detected, hanging up call...");
+//                std::this_thread::sleep_for(std::chrono::seconds(30));
                 self->m_end_flag.store(false);
-                TTSPlayer::getInstance()->clear();
-                TTSPlayer::endendend_flag.store(true);
+//                TTSPlayer::getInstance()->clear();
                 TTSPlayer::getInstance()->stop();
-                endpoint.hangupAllCalls();
-                LOG_INFO("monitor hangup over");
+
+                if(TTSPlayer::endendend_flag.load()){
+                    endpoint.hangupAllCalls();
+                    LOG_INFO("monitor hangup over");
+                }
+                TTSPlayer::endendend_flag.store(false);
                 break;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -118,6 +127,10 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
     if (m_confirmed.load() == false) {
         // LOG_WARN("call not confirmed, drop frame");
+        return;
+    }
+
+    if (TTSPlayer::endendend_flag.load()) {
         return;
     }
 

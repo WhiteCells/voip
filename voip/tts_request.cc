@@ -3,6 +3,7 @@
 #include "io_context_pool.h"
 #include "logger.h"
 #include "request.hpp"
+#include "tts_request.h"
 #include <boost/asio/io_context.hpp>
 #include <exception>
 #include <iostream>
@@ -25,6 +26,9 @@ std::shared_ptr<TTSPlayer> TTSPlayer::instance_ = nullptr;
 std::string TTSPlayer::host_, TTSPlayer::port_, TTSPlayer::target_;
 
 std::atomic<bool> TTSPlayer::endendend_flag {false};
+
+// initialize generation_
+std::atomic<uint64_t> TTSPlayer::generation_{0};
 
 // --- 工具函数：读取PCM文件 ---
 static std::vector<char> read_pcm(const std::string &filename)
@@ -49,20 +53,98 @@ TTSPlayer::~TTSPlayer()
     stop();
 }
 
-std::vector<char> TTSPlayer::requestTTS(std::string text)
+//std::vector<char> TTSPlayer::requestTTS(std::string text)
+//{
+//    asio::io_context &ioc = IOContextPool::getInstance()->getIOContext();
+//
+//    // create shared socket
+//    auto sock = std::make_shared<tcp::socket>(ioc);
+//    {
+//        std::lock_guard<std::mutex> lock(socket_mtx_);
+//        active_socket_ = sock;
+//    }
+//
+//    tcp::resolver resolver(ioc);
+//    boost::system::error_code ec;
+//
+//    auto results = resolver.resolve(host_, port_, ec);
+//    if (ec)
+//        throw std::runtime_error("resolve failed: " + ec.message());
+//    boost::asio::connect(*sock, results, ec);
+//    if (ec)
+//        throw std::runtime_error("connect failed: " + ec.message());
+//
+//    Json::Value root;
+//    root["text"] = text;
+//    Json::StreamWriterBuilder writer;
+//    std::string body = Json::writeString(writer, root);
+//
+//    http::request<http::string_body> req {http::verb::post, target_, 11};
+//    req.set(http::field::content_type, "application/json");
+//    req.body() = body;
+//    req.prepare_payload();
+//
+//    // 写请求 (use *sock)
+//    http::write(*sock, req, ec);
+//    if (ec)
+//        throw std::runtime_error("write failed: " + ec.message());
+//
+//    boost::beast::flat_buffer buffer;
+//    http::response<http::vector_body<char>> res;
+//
+//    // 超时控制
+//    std::atomic<bool> done {false};
+//    std::thread timeout_thread([&]() {
+//        std::this_thread::sleep_for(std::chrono::seconds(3));
+//        if (!done.load()) {
+//            LOG_WARN("TTS read timeout, cancelling socket");
+//            // cancel this socket (safe)
+//            boost::system::error_code cancel_ec;
+//            try {
+//                sock->cancel(cancel_ec);
+//            } catch (...) {}
+//        }
+//    });
+//
+//    // 同步读取响应 (use *sock)
+//    http::read(*sock, buffer, res, ec);
+//    done = true;
+//    timeout_thread.join();
+//
+//    if (ec == boost::asio::error::operation_aborted) {
+//        LOG_WARN("TTS read cancelled/timeout");
+//        return {};
+//    }
+//    if (ec) {
+//        throw std::runtime_error("read failed: " + ec.message());
+//    }
+//    if (res.result() != http::status::ok) {
+//        throw std::runtime_error("bad status: " + std::to_string(res.result_int()));
+//    }
+//
+//    return res.body();
+//}
+
+std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
 {
     asio::io_context &ioc = IOContextPool::getInstance()->getIOContext();
+
+    auto sock = std::make_shared<tcp::socket>(ioc);
+    {
+        std::lock_guard<std::mutex> lock(socket_mtx_);
+        active_socket_ = sock;
+    }
+
     tcp::resolver resolver(ioc);
-    tcp::socket socket(ioc);
     boost::system::error_code ec;
 
     auto results = resolver.resolve(host_, port_, ec);
-    if (ec)
-        throw std::runtime_error("resolve failed: " + ec.message());
-    boost::asio::connect(socket, results, ec);
-    if (ec)
-        throw std::runtime_error("connect failed: " + ec.message());
+    if (ec) return {};
 
+    boost::asio::connect(*sock, results, ec);
+    if (ec) return {};
+
+    // --- 构建 HTTP body ---
     Json::Value root;
     root["text"] = text;
     Json::StreamWriterBuilder writer;
@@ -73,42 +155,46 @@ std::vector<char> TTSPlayer::requestTTS(std::string text)
     req.body() = body;
     req.prepare_payload();
 
-    // 写请求
-    http::write(socket, req, ec);
-    if (ec)
-        throw std::runtime_error("write failed: " + ec.message());
+    http::write(*sock, req, ec);
+    if (ec) return {};
 
     boost::beast::flat_buffer buffer;
     http::response<http::vector_body<char>> res;
 
-    // 超时控制
+    // --- timeout thread，而不是 cancel() ---
     std::atomic<bool> done {false};
+    std::atomic<bool> timeout_hit {false};
+
     std::thread timeout_thread([&]() {
         std::this_thread::sleep_for(std::chrono::seconds(3));
         if (!done.load()) {
-            LOG_WARN("TTS read timeout, cancelling socket");
-            socket.cancel();
+            timeout_hit = true;
         }
     });
 
-    // 同步读取响应
-    http::read(socket, buffer, res, ec);
+    http::read(*sock, buffer, res, ec);
     done = true;
     timeout_thread.join();
 
-    if (ec == boost::asio::error::operation_aborted) {
-        LOG_WARN("TTS timeout");
+    // --- 如果 timeout，丢弃旧任务 ---
+    if (timeout_hit.load()) {
+        LOG_WARN("[TTS] read timeout, returning empty pcm");
         return {};
     }
-    if (ec) {
-        throw std::runtime_error("read failed: " + ec.message());
+
+    // --- 如果在请求期间 generation 变了，直接丢弃 ---
+    if (my_gen != generation_) {
+        LOG_INFO("[TTS] requestTTS result discarded due to newer generation");
+        return {};
     }
-    if (res.result() != http::status::ok) {
-        throw std::runtime_error("bad status: " + std::to_string(res.result_int()));
+
+    if (ec || res.result() != http::status::ok) {
+        return {};
     }
 
     return res.body();
 }
+
 
 inline std::int64_t get_current_timestamp_seconds()
 {
@@ -127,6 +213,7 @@ static float count_pcm_time(std::size_t pcm_len, unsigned int sample_rate,
            (sample_rate * num_channels * (bits_per_sample / 8.0f));
 }
 
+// produceTTSAsync: 最小化改动，++generation_, cancel old socket, 提交新任务并传 gen
 void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string session_id)
 {
     if (!g_tts_thread_pool) {
@@ -134,33 +221,54 @@ void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string sess
         return;
     }
 
-    g_tts_thread_pool->addTask([texts = std::move(texts), session_id]() {
-        TTSPlayer::getInstance()->produceTTS(texts, session_id);
+//    resume();
+
+    // --- NEW: bump generation and cancel previous active socket ---
+    uint64_t my_gen = ++generation_;
+    {
+        std::lock_guard<std::mutex> lock(socket_mtx_);
+        if (auto s = active_socket_.lock()) {
+            boost::system::error_code ec;
+//            s->cancel(ec);
+            clear();
+            LOG_INFO("[TTS] Canceled previous active TTS socket (ec: {})", ec.message());
+        }
+    }
+
+    g_tts_thread_pool->addTask([texts = std::move(texts), session_id, my_gen]() {
+        TTSPlayer::getInstance()->produceTTS(texts, session_id, my_gen);
     });
 }
 
-void TTSPlayer::requestTTS2(const std::string &text, const std::string &session_id)
-{
-    m_session_id = session_id;
-    float total_play_cast = 0.0f;
-    std::string tts_text = {};
-
-    auto start_time = get_current_timestamp_milliseconds();
-    try {
-        auto req_start_time = get_current_timestamp_milliseconds();
-        auto pcm = requestTTS(text);
-        auto req_end_time = get_current_timestamp_milliseconds();
-        auto req_time = static_cast<float>(req_end_time - req_start_time);
-        auto play_time = count_pcm_time(pcm.size(), 16000, 16, 1);
-    }
-    catch (const std::exception &e) {
-    }
-}
+//void TTSPlayer::requestTTS2(const std::string &text, const std::string &session_id)
+//{
+//    m_session_id = session_id;
+//    float total_play_cast = 0.0f;
+//    std::string tts_text = {};
+//
+//    auto start_time = get_current_timestamp_milliseconds();
+//    try {
+//        auto req_start_time = get_current_timestamp_milliseconds();
+//        auto pcm = requestTTS(text);
+//        auto req_end_time = get_current_timestamp_milliseconds();
+//        auto req_time = static_cast<float>(req_end_time - req_start_time);
+//        auto play_time = count_pcm_time(pcm.size(), 16000, 16, 1);
+//    }
+//    catch (const std::exception &e) {
+//    }
+//}
 
 // --- 生产TTS音频 ---
-void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_id)
+// NOTE: 增加了 gen 参数用于版本检查（最小改动）
+void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_id, uint64_t my_gen)
 {
     m_session_id = session_id;
+
+    // 如果不是当前 generation，直接返回（新任务已经到来）
+    if (my_gen != generation_) {
+        LOG_INFO("[TTS] produceTTS aborted immediately (newer generation exists)");
+        return;
+    }
 
     std::uint64_t total_req_cast = 0;
     float total_play_cast = 0.0f;
@@ -173,6 +281,7 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
     LOG_INFO("produce TTSPlay::endendend_flag: {}", TTSPlayer::endendend_flag.load());
     if (!texts.empty() && texts[0].rfind("ENDENDEND:", 0) == 0) {
         TTSPlayer::endendend_flag.store(true);
+        LOG_INFO("set endendend_flag {}", TTSPlayer::endendend_flag.load());
         // 去除 ENDENDEND:
         const size_t prefix_len = std::strlen("ENDENDEND:");
         std::string new_text = texts[0].substr(prefix_len);
@@ -183,6 +292,12 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
     auto start_time = get_current_timestamp_milliseconds();
 
     for (const std::string &text : texts) {
+        // 每次循环开始前检查 generation 和 stop_flag_
+        if (my_gen != generation_) {
+            LOG_INFO("[TTS] produceTTS aborted mid-way (newer generation)");
+            break;
+        }
+
         if (stop_flag_) {
             LOG_INFO("[TTS] 停止TTS");
             break;
@@ -195,7 +310,13 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
             auto req_start_time = get_current_timestamp_milliseconds();
             // request
             std::string backup = text;
-            auto pcm = requestTTS(text);
+            auto pcm = requestTTS(text,my_gen);
+            // 如果在请求期间被取消，requestTTS 会返回空（或抛出），因此再次检查 generation
+            if (my_gen != generation_) {
+                LOG_INFO("[TTS] produceTTS aborted after requestTTS (newer generation)");
+                break;
+            }
+
             if (text != backup) {
                 LOG_ERROR("!!! text changed after requestTTS !!!");
             }
@@ -217,8 +338,8 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
             }
 
             if (pcm.empty()) {
-                LOG_WARN("[TTS] PCM is empty，maybe timeout，terminal TTS create");
-                break; // 超时直接退出
+                LOG_WARN("[TTS] PCM is empty，maybe timeout or cancelled，terminal TTS create");
+                break; // 超时或被 cancel 直接退出当前任务
             }
 
             {
@@ -233,11 +354,11 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
     }
 
     // 插入特殊标志
-    if (TTSPlayer::endendend_flag.load()) {
-        std::lock_guard<std::mutex> lock(mtx_);
-        std::vector<char> END_FLAG {'E', 'N', 'D'};
-        audio_queue_.push(END_FLAG);
-    }
+//    if (TTSPlayer::endendend_flag.load()) {
+//        std::lock_guard<std::mutex> lock(mtx_);
+//        std::vector<char> END_FLAG {'E', 'N', 'D'};
+//        audio_queue_.push(END_FLAG);
+//    }
 
     voip::pushTTSStart(m_session_id, tts_text, start_time, total_play_cast, total_req_cast);
     LOG_INFO("push tts start, m_session_id: {}, tts_text: {}, start_time: {}, total_play_cast: {}, total_req_cast: {}", m_session_id, tts_text, start_time, total_play_cast, total_req_cast);
@@ -269,6 +390,9 @@ void TTSPlayer::clear()
 void TTSPlayer::stop()
 {
     stop_flag_ = true;
+    // optional: bump generation_ to invalidate running tasks immediately
+    ++generation_;
+
     if (TTSPlayer::endendend_flag.load()) {
         LOG_INFO("no need to stop");
         return;
@@ -285,6 +409,16 @@ void TTSPlayer::stop()
         auto stop_time = get_current_timestamp_milliseconds();
         voip::pushTTSStop(m_session_id, stop_time);
         LOG_INFO("push tts stop request, m_session_id: {}, stop_time: {}", m_session_id, stop_time);
+    }
+
+    // cancel active socket if any
+    {
+        std::lock_guard<std::mutex> lock(socket_mtx_);
+        if (auto s = active_socket_.lock()) {
+            boost::system::error_code ec;
+//            s->cancel(ec);
+            LOG_INFO("[TTS] stop(): canceled active socket (ec: {})", ec.message());
+        }
     }
 }
 

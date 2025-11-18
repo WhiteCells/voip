@@ -9,6 +9,7 @@
 #include "coordinator.h"
 #include "ws_interface.h"
 #include "agent_ws_client.h"
+#include "tts_request.h"
 #include <chrono>
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id)
@@ -199,7 +200,9 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             break;
         }
         case PJSIP_INV_STATE_CONFIRMED: {
-            m_call_status = "hangup";
+            TTSPlayer::endendend_flag.store(false);
+            LOG_INFO("produce TTSPlay::endendend_flag: {}", TTSPlayer::endendend_flag.load());
+
             LOG_INFO(">>> call: {}, phone: {} confirmed", ci.id, m_phone);
             m_confirmed = true;
             auto p = pj::OnCallMediaStateParam {};
@@ -264,10 +267,6 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             std::string direction = hangup_direction;
             std::string method = m_call_method;
             std::string diff = m_different;
-            std::string call_status = m_call_status;
-
-            //            std::string tmp_phone1 = m_phone;
-            //            std::string hangup_direction1 = hangup_direction;
 
             if (m_sender) {
                 Json::Value status_msg;
@@ -279,10 +278,6 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 builder["indentation"] = "";
                 std::string msg = Json::writeString(builder, status_msg);
                 m_sender->send(msg);
-            }
-
-            if (call_status != "no_answered") {
-                call_status = "hangup";
             }
 
             if (g_agent_ws_client && g_manual_ws_client) {
@@ -299,13 +294,10 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 LOG_ERROR("m_agent_ws_client is null");
             }
 
-            LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}", std::to_string(m_dialplan_id), m_phone, call_status, call_type, hangup_direction);
-
-            //            std::string tmp_phone = tmp_phone1;
-            //            std::string tmp_hangup_direction = hangup_direction1;
-
+            LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, call_type: {}, hangup_direction: {}", std::to_string(m_dialplan_id), m_phone, call_type, hangup_direction);
+            TTSPlayer::endendend_flag.store(false);
             voip::pushCallState(phone,
-                                call_status,
+                                "hangup",
                                 type,
                                 direction,
                                 method,

@@ -5,9 +5,17 @@
 #include "gui_ws_server.h"
 #include "tts_request.h"
 #include <assert.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 int main()
 {
+#ifdef _WIN32
+    // 设置控制台为 UTF-8
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
     // logger
     Logger::init();
     LOG_INFO("client start");
