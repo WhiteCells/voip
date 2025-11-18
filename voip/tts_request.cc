@@ -354,11 +354,15 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
     }
 
     // 插入特殊标志
-//    if (TTSPlayer::endendend_flag.load()) {
-//        std::lock_guard<std::mutex> lock(mtx_);
-//        std::vector<char> END_FLAG {'E', 'N', 'D'};
-//        audio_queue_.push(END_FLAG);
-//    }
+    if (TTSPlayer::endendend_flag.load()) {
+        std::lock_guard<std::mutex> lock(mtx_);
+        std::vector<char> END_FLAG {'E', 'N', 'D'};
+        if (!audio_queue_.empty()) {
+            audio_queue_.push(END_FLAG);
+        } else {
+            LOG_ERROR("audio queue is empty");
+        }
+    }
 
     voip::pushTTSStart(m_session_id, tts_text, start_time, total_play_cast, total_req_cast);
     LOG_INFO("push tts start, m_session_id: {}, tts_text: {}, start_time: {}, total_play_cast: {}, total_req_cast: {}", m_session_id, tts_text, start_time, total_play_cast, total_req_cast);
