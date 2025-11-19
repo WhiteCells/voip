@@ -78,7 +78,9 @@ private:
 
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
 
-    void process_asr_with_llm(const std::string &text);
+    void agent_asr_with_llm(const std::string &text);
+
+    void manual_asr_with_llm(const std::string &text);
 
     void start_timeout_check(std::chrono::steady_clock::time_point timeout_time);
 
@@ -102,7 +104,8 @@ private:
     // std::shared_ptr<IWSSender> m_gui_server_sender;
     std::shared_ptr<LLMRequest> m_llm_client;
 
-    std::string m_llm_msg_text;
+    std::string m_llm_manual_text;
+    std::string m_llm_agent_text;
     std::vector<std::string> m_llm_msg_list;
     std::chrono::steady_clock::time_point m_llm_start_time;
     static constexpr int LLM_TIMEOUT_SECONDS = 60;
