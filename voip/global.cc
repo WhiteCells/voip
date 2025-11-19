@@ -71,6 +71,10 @@ void startEndpointLib(unsigned port)
     ep_cfg.logConfig.level = 5;
 
     endpoint.libInit(ep_cfg);
+//    pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
+    auto &aud = endpoint.audDevManager();
+    aud.setInputVolume(200);
+    aud.setOutputVolume(200);
 
     pj::TransportConfig ts_cfg;
     ts_cfg.port = port;

@@ -323,6 +323,8 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
         pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
         auto cap_dev_med = mgr.getCaptureDevMedia();
         auto play_dev_med = mgr.getPlaybackDevMedia();
+        cap_dev_med.adjustRxLevel(2.0);
+        play_dev_med.adjustTxLevel(2.0);
 
         for (unsigned i = 0; i < ci.media.size(); ++i) {
             if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
