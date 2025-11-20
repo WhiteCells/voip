@@ -53,78 +53,6 @@ TTSPlayer::~TTSPlayer()
     stop();
 }
 
-//std::vector<char> TTSPlayer::requestTTS(std::string text)
-//{
-//    asio::io_context &ioc = IOContextPool::getInstance()->getIOContext();
-//
-//    // create shared socket
-//    auto sock = std::make_shared<tcp::socket>(ioc);
-//    {
-//        std::lock_guard<std::mutex> lock(socket_mtx_);
-//        active_socket_ = sock;
-//    }
-//
-//    tcp::resolver resolver(ioc);
-//    boost::system::error_code ec;
-//
-//    auto results = resolver.resolve(host_, port_, ec);
-//    if (ec)
-//        throw std::runtime_error("resolve failed: " + ec.message());
-//    boost::asio::connect(*sock, results, ec);
-//    if (ec)
-//        throw std::runtime_error("connect failed: " + ec.message());
-//
-//    Json::Value root;
-//    root["text"] = text;
-//    Json::StreamWriterBuilder writer;
-//    std::string body = Json::writeString(writer, root);
-//
-//    http::request<http::string_body> req {http::verb::post, target_, 11};
-//    req.set(http::field::content_type, "application/json");
-//    req.body() = body;
-//    req.prepare_payload();
-//
-//    // 写请求 (use *sock)
-//    http::write(*sock, req, ec);
-//    if (ec)
-//        throw std::runtime_error("write failed: " + ec.message());
-//
-//    boost::beast::flat_buffer buffer;
-//    http::response<http::vector_body<char>> res;
-//
-//    // 超时控制
-//    std::atomic<bool> done {false};
-//    std::thread timeout_thread([&]() {
-//        std::this_thread::sleep_for(std::chrono::seconds(3));
-//        if (!done.load()) {
-//            LOG_WARN("TTS read timeout, cancelling socket");
-//            // cancel this socket (safe)
-//            boost::system::error_code cancel_ec;
-//            try {
-//                sock->cancel(cancel_ec);
-//            } catch (...) {}
-//        }
-//    });
-//
-//    // 同步读取响应 (use *sock)
-//    http::read(*sock, buffer, res, ec);
-//    done = true;
-//    timeout_thread.join();
-//
-//    if (ec == boost::asio::error::operation_aborted) {
-//        LOG_WARN("TTS read cancelled/timeout");
-//        return {};
-//    }
-//    if (ec) {
-//        throw std::runtime_error("read failed: " + ec.message());
-//    }
-//    if (res.result() != http::status::ok) {
-//        throw std::runtime_error("bad status: " + std::to_string(res.result_int()));
-//    }
-//
-//    return res.body();
-//}
-
 std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
 {
     asio::io_context &ioc = IOContextPool::getInstance()->getIOContext();
@@ -240,31 +168,11 @@ void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string sess
     });
 }
 
-//void TTSPlayer::requestTTS2(const std::string &text, const std::string &session_id)
-//{
-//    m_session_id = session_id;
-//    float total_play_cast = 0.0f;
-//    std::string tts_text = {};
-//
-//    auto start_time = get_current_timestamp_milliseconds();
-//    try {
-//        auto req_start_time = get_current_timestamp_milliseconds();
-//        auto pcm = requestTTS(text);
-//        auto req_end_time = get_current_timestamp_milliseconds();
-//        auto req_time = static_cast<float>(req_end_time - req_start_time);
-//        auto play_time = count_pcm_time(pcm.size(), 16000, 16, 1);
-//    }
-//    catch (const std::exception &e) {
-//    }
-//}
-
 // --- 生产TTS音频 ---
-// NOTE: 增加了 gen 参数用于版本检查（最小改动）
 void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_id, uint64_t my_gen)
 {
     m_session_id = session_id;
 
-    // 如果不是当前 generation，直接返回（新任务已经到来）
     if (my_gen != generation_) {
         LOG_INFO("[TTS] produceTTS aborted immediately (newer generation exists)");
         return;

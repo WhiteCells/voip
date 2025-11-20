@@ -63,6 +63,8 @@ public:
 
     void process_buffer_if_timeout();
 
+    bool m_is_hangup {false};
+
 private:
     void on_resolver(beast::error_code ec, tcp::resolver::results_type results);
 
@@ -82,7 +84,7 @@ private:
 
     void manual_asr_with_llm(const std::string &text);
 
-    void start_timeout_check(std::chrono::steady_clock::time_point timeout_time);
+    void start_timeout_check(std::chrono::steady_clock::time_point timeout_time, int timeout_seconds);
 
     void end_timeout_check();
 
@@ -119,6 +121,7 @@ private:
     std::optional<net::strand<net::io_context::executor_type>> m_strand;
     std::deque<std::string> m_send_queue;
     bool m_writing {false};
+    bool m_llm_start {false};
 
     std::string text_buffer_;  // 累积文本
     std::chrono::steady_clock::time_point last_text_time_; // 上一次收到文本时间

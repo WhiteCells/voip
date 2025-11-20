@@ -42,8 +42,6 @@ public:
         target_ = target;
     }
 
-    void requestTTS2(const std::string &text, const std::string &session_id);
-
     void produceTTS(std::vector<std::string> texts, std::string session_id, uint64_t gen);
     void produceTTSAsync(std::vector<std::string> texts, std::string session_id);
     bool getNextAudio(std::vector<char> &pcm);
@@ -67,11 +65,9 @@ private:
     std::mutex mtx_;
     std::atomic<bool> stop_flag_ = false;
     std::string m_session_id;
-    // minimal additions:
     static std::atomic<uint64_t> generation_; // task generation/version
     std::mutex socket_mtx_; // protect active_socket_
     std::weak_ptr<boost::asio::ip::tcp::socket> active_socket_;
-    // bool m_hangup_flag = false;
 };
 
 #endif // _TTS_ASYNC_PLAYER_H_

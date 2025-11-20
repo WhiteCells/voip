@@ -103,6 +103,13 @@ void AgentWsClient::start_config_send()
     std::string config_str = Json::writeString(builder, config);
     send(config_str);
     LOG_INFO("success send asr start config");
+
+    if(m_call_method == "agent") {
+        m_llm_start = true;
+        m_llm_start_time = std::chrono::steady_clock::now();
+        end_timeout_check();
+        start_timeout_check(m_llm_start_time, 20);
+    }
 }
 
 void AgentWsClient::end_config_send()
@@ -171,9 +178,10 @@ void AgentWsClient::do_write()
 void AgentWsClient::start_llm_style()
 {
     if (m_call_method == "agent") {
+        m_llm_start = false;
         m_llm_start_time = std::chrono::steady_clock::now();
         end_timeout_check();
-        start_timeout_check(m_llm_start_time);
+        start_timeout_check(m_llm_start_time,60);
 
         std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token);
         LOG_INFO("prolog llm response: {}", response);
@@ -225,7 +233,7 @@ void AgentWsClient::get_session_id(const std::string &call_method,
 
     LOG_INFO("get call_method {} session_id {} access_token {}", m_call_method, m_session_id, m_access_token);
 
-    start_llm_style();
+//    start_llm_style();
 }
 
 void AgentWsClient::on_resolver(beast::error_code ec, tcp::resolver::results_type results)
@@ -321,23 +329,28 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
                 manual_asr_with_llm(text);
             }
             else if (m_call_method == "agent") {
-                TTSPlayer::getInstance()->stop();
-                if (!text.empty()) {
-                    {
-                        std::lock_guard<std::mutex> lock(text_mutex_);
-                        text_buffer_ += text;  // 累积文本
-                        last_text_time_ = std::chrono::steady_clock::now();
-                    }
+                if (m_llm_start) {
+                    start_llm_style();
+                }
+                else {
+                    TTSPlayer::getInstance()->stop();
+                    if (!text.empty()) {
+                        {
+                            std::lock_guard<std::mutex> lock(text_mutex_);
+                            text_buffer_ += text; // 累积文本
+                            last_text_time_ = std::chrono::steady_clock::now();
+                        }
 
-                    // 启动定时器线程，只启动一次
-                    if (!timer_running_) {
-                        timer_running_ = true;
-                        std::thread([this]() {
-                            while (true) {
-                                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                                process_buffer_if_timeout();
-                            }
-                        }).detach();
+                        // 启动定时器线程，只启动一次
+                        if (!timer_running_) {
+                            timer_running_ = true;
+                            std::thread([this]() {
+                                while (true) {
+                                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                                    process_buffer_if_timeout();
+                                }
+                            }).detach();
+                        }
                     }
                 }
             }
@@ -364,7 +377,7 @@ void AgentWsClient::manual_asr_with_llm(const std::string &text)
 {
     m_llm_manual_text = text;
     LOG_INFO("m_call_method: {}, process_asr_with_llm: {}", m_call_method, text);
-    LOG_INFO("LLM manual start");
+//    LOG_INFO("LLM manual start");
     if (m_role == "customer") {
         LOG_INFO("LLM manual_customer start");
         std::string response = m_llm_client->sendRequest(m_llm_manual_text, "manual", "customer", m_session_id, m_access_token);
@@ -382,7 +395,7 @@ void AgentWsClient::agent_asr_with_llm(const std::string &text)
     m_llm_agent_text = text;
     m_llm_start_time = std::chrono::steady_clock::now();
     end_timeout_check();
-    start_timeout_check(m_llm_start_time);
+    start_timeout_check(m_llm_start_time,60);
 
     std::string response = m_llm_client->sendRequest(m_llm_agent_text, m_call_method, m_role, m_session_id, m_access_token); // 发送ASR结果给LLM
     LOG_INFO("LLM agent response: {}", response);
@@ -415,18 +428,18 @@ void AgentWsClient::agent_asr_with_llm(const std::string &text)
     }
 }
 
-void AgentWsClient::start_timeout_check(std::chrono::steady_clock::time_point timeout_time)
+void AgentWsClient::start_timeout_check(std::chrono::steady_clock::time_point timeout_time,int llm_timeout_seconds)
 {
     m_llm_start_time = timeout_time;
     m_llm_timer_running = true;
 
     LOG_INFO("Starting new LLM timeout timer...");
 
-    m_llm_timer_thread = std::thread([self = shared_from_this()]() {
-        LOG_INFO("LLM timeout timer started ({}s)", LLM_TIMEOUT_SECONDS);
+    m_llm_timer_thread = std::thread([self = shared_from_this(),llm_timeout_seconds]() {
+        LOG_INFO("LLM timeout timer started ({}s)", llm_timeout_seconds);
 
         // 等待超时时间或被手动中止
-        auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(LLM_TIMEOUT_SECONDS);
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(llm_timeout_seconds);
         while (self->m_llm_timer_running && std::chrono::steady_clock::now() < deadline) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
@@ -437,9 +450,13 @@ void AgentWsClient::start_timeout_check(std::chrono::steady_clock::time_point ti
         }
 
         // 超时触发
-        LOG_WARN("LLM timeout ({}s) reached, executing hangup_call()", LLM_TIMEOUT_SECONDS);
-        self->clear_llm_msg_list();
-        self->hangup_call();
+        LOG_WARN("LLM timeout ({}s) reached, executing hangup_call()", llm_timeout_seconds);
+        if(!self->m_is_hangup){
+            self->clear_llm_msg_list();
+            self->hangup_call();
+            self->m_is_hangup = false;
+            LOG_INFO("Hangup call and llm_timeout_seconds {}s", llm_timeout_seconds);
+        }
     });
 }
 
@@ -448,8 +465,12 @@ void AgentWsClient::end_timeout_check()
     if (m_llm_timer_running) {
         LOG_INFO("Stopping LLM timeout timer...");
         m_llm_timer_running = false;
-        if (m_llm_timer_thread.joinable()) {
-            m_llm_timer_thread.join();
+        try {
+            if (m_llm_timer_thread.joinable()) {
+                m_llm_timer_thread.join();
+            }
+        } catch (const std::system_error& e) {
+            LOG_ERROR("Error joining LLM timer thread: {}", e.what());
         }
         LOG_INFO("LLM timeout timer stopped.");
     }
