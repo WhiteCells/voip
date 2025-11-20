@@ -2,31 +2,28 @@ cmake_minimum_required(VERSION 3.10)
 
 project(voip LANGUAGES CXX VERSION 1.0)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/voip/.env COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/crt/agent-session-server.crt ${CMAKE_BINARY_DIR}/voip/agent-session-server.crt COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/crt/agent-session-server_prod.crt ${CMAKE_BINARY_DIR}/voip/agent-session-server_prod.crt COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/crt/asr-server.crt ${CMAKE_BINARY_DIR}/voip/asr-server.crt COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/crt/backend-server.crt ${CMAKE_BINARY_DIR}/voip/backend-server.crt COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/voip/Debug/.env COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/crt/agent-session-server.crt ${CMAKE_BINARY_DIR}/voip/Debug/agent-session-server.crt COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/crt/asr-server.crt ${CMAKE_BINARY_DIR}/voip/Debug/asr-server.crt COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/crt/backend-server.crt ${CMAKE_BINARY_DIR}/voip/Debug/backend-server.crt COPYONLY)
 
 option(VOIP_SSL "Enable SSL")
 option(FEATURE "Feature to build: REMINDER or ROBOT" "REMINDER")
 
 set(FEATURE "REMINDER")
 set(VOIP_SSL ON)
+#set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/voip)
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/voip)
+#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/voip)
 
 if(WIN32)
     if (MSVC)
-        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL")
-            add_compile_options(/MDd)
-        else()
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
-            add_compile_options(/MD)
-        endif()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
         add_compile_options(/bigobj)
         add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
     endif()
@@ -54,11 +51,11 @@ if(WIN32)
 
         set(PJPROJECT_DIR        "D:/third_party_libs/pjproject")
         set(PJSIP_INCLUDE_DIRS
-            "${PJPROJECT_DIR}/pjsip/include"
-            "${PJPROJECT_DIR}/pjlib/include"
-            "${PJPROJECT_DIR}/pjlib-util/include"
-            "${PJPROJECT_DIR}/pjmedia/include"
-            "${PJPROJECT_DIR}/pjnath/include"
+                "${PJPROJECT_DIR}/pjsip/include"
+                "${PJPROJECT_DIR}/pjlib/include"
+                "${PJPROJECT_DIR}/pjlib-util/include"
+                "${PJPROJECT_DIR}/pjmedia/include"
+                "${PJPROJECT_DIR}/pjnath/include"
         )
 
         set(PJPROJECT_PJSIP_LIBRARY_DIR      "${PJPROJECT_DIR}/pjsip/lib")
@@ -67,7 +64,7 @@ if(WIN32)
         set(PJPROJECT_PJMEDIA_LIBRARY_DIR    "${PJPROJECT_DIR}/pjmedia/lib")
         set(PJPROJECT_PJNATH_LIBRARY_DIR     "${PJPROJECT_DIR}/pjnath/lib")
         set(PJPROJECT_THIRD_PARTY_LIB_DIR    "${PJPROJECT_DIR}/third_party/lib")
-    else()
+    elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
         set(BOOST_ROOT           "D:/third_party_libs/boost")
         set(BOOST_LIBRARY_DIR    "${BOOST_ROOT}/stage/lib")
 
@@ -98,31 +95,35 @@ if(WIN32)
         set(PJPROJECT_PJMEDIA_LIBRARY_DIR    "${PJPROJECT_DIR}/pjmedia/lib")
         set(PJPROJECT_PJNATH_LIBRARY_DIR     "${PJPROJECT_DIR}/pjnath/lib")
         set(PJPROJECT_THIRD_PARTY_LIB_DIR    "${PJPROJECT_DIR}/third_party/lib")
+    else()
+        message(FATAL_ERROR "Unknown build type: " ${CMAKE_BUILD_TYPE})
     endif()
 
     message(STATUS "Build configuration: " ${CMAKE_BUILD_TYPE})
 
     set(SRC
-        voip/global.cc
-        voip/async_timer.cc
-        voip/dialplan_queue.cc
-        voip/caller_queue.cc
-        voip/caller.cc
-        voip/vaccount.cc
-        voip/request.hpp
-        voip/io_context_pool.cc
-        voip/ini.cc
-        voip/singleton.hpp
-        voip/thread_pool.cc
-        voip/logger.cc
-        voip/coordinator.cc
-        voip/account_check.cc
-        voip/account_check_manager.cc
-        voip/agent_aud_audiomediaport.cc
-        voip/agent_cap_audiomediaport.cc
-        voip/agent_robot_audiomediaport.cc
-        voip/tts_request.cc
-        voip/main.cc
+            voip/global.cc
+            voip/async_timer.cc
+            voip/dialplan_queue.cc
+            voip/caller_queue.cc
+            voip/caller.cc
+            voip/vaccount.cc
+            voip/request.hpp
+            voip/io_context_pool.cc
+            voip/ini.cc
+            voip/singleton.hpp
+            voip/thread_pool.cc
+            voip/logger.cc
+            voip/coordinator.cc
+            voip/account_check.cc
+            voip/account_check_manager.cc
+            voip/agent_aud_audiomediaport.cc
+            voip/agent_cap_audiomediaport.cc
+            voip/agent_robot_audiomediaport.cc
+            voip/tts_request.cc
+            voip/web_ws_client.cc
+            voip/agent_ws_client.cc
+            voip/main.cc
     )
 
     find_package(Boost REQUIRED COMPONENTS system filesystem)
@@ -156,119 +157,114 @@ if(WIN32)
     # 根据配置类型设置不同的库文件
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_link_libraries(${PROJECT_NAME} PRIVATE
-            # Boost
-            ${Boost_LIBRARIES}
+                # Boost
+                ${Boost_LIBRARIES}
 
-            # JsonCpp
-            jsoncpp_static.lib
+                # JsonCpp
+                D:/third_party_libs/jsoncpp/build2/lib/Debug/jsoncpp_static.lib
 
-            # PJSIP - Debug版本
-            pjsip-core-x86_64-x64-vc14-Debug.lib
-            pjsip-simple-x86_64-x64-vc14-Debug.lib
-            pjsip-ua-x86_64-x64-vc14-Debug.lib
-            pjsua-lib-x86_64-x64-vc14-Debug.lib
-            pjsua2-lib-x86_64-x64-vc14-Debug.lib
+                # PJSIP - Debug版本
+                pjsip-core-x86_64-x64-vc14-Debug.lib
+                pjsip-simple-x86_64-x64-vc14-Debug.lib
+                pjsip-ua-x86_64-x64-vc14-Debug.lib
+                pjsua-lib-x86_64-x64-vc14-Debug.lib
+                pjsua2-lib-x86_64-x64-vc14-Debug.lib
 
-            # PJLIB - Debug版本
-            pjlib-x86_64-x64-vc14-Debug.lib
-            pjlib-util-x86_64-x64-vc14-Debug.lib
+                # PJLIB - Debug版本
+                pjlib-x86_64-x64-vc14-Debug.lib
+                pjlib-util-x86_64-x64-vc14-Debug.lib
 
-            # PJMEDIA - Debug版本
-            pjmedia-audiodev-x86_64-x64-vc14-Debug.lib
-            pjmedia-codec-x86_64-x64-vc14-Debug.lib
-            pjmedia-videodev-x86_64-x64-vc14-Debug.lib
-            pjmedia-x86_64-x64-vc14-Debug.lib
+                # PJMEDIA - Debug版本
+                pjmedia-audiodev-x86_64-x64-vc14-Debug.lib
+                pjmedia-codec-x86_64-x64-vc14-Debug.lib
+                pjmedia-videodev-x86_64-x64-vc14-Debug.lib
+                pjmedia-x86_64-x64-vc14-Debug.lib
 
-            # PJNATH - Debug版本
-            pjnath-x86_64-x64-vc14-Debug.lib
+                # PJNATH - Debug版本
+                pjnath-x86_64-x64-vc14-Debug.lib
 
-            # Third party - Debug版本
-            libbaseclasses-x86_64-x64-vc14-Debug.lib
-            libg7221codec-x86_64-x64-vc14-Debug.lib
-            libgsmcodec-x86_64-x64-vc14-Debug.lib
-            libilbccodec-x86_64-x64-vc14-Debug.lib
-            libmilenage-x86_64-x64-vc14-Debug.lib
-            libresample-x86_64-x64-vc14-Debug.lib
-            libspeex-x86_64-x64-vc14-Debug.lib
-            libsrtp-x86_64-x64-vc14-Debug.lib
-            libwebrtc-x86_64-x64-vc14-Debug.lib
-            libyuv-x86_64-x64-vc14-Debug.lib
+                # Third party - Debug版本
+                libbaseclasses-x86_64-x64-vc14-Debug.lib
+                libg7221codec-x86_64-x64-vc14-Debug.lib
+                libgsmcodec-x86_64-x64-vc14-Debug.lib
+                libilbccodec-x86_64-x64-vc14-Debug.lib
+                libmilenage-x86_64-x64-vc14-Debug.lib
+                libresample-x86_64-x64-vc14-Debug.lib
+                libspeex-x86_64-x64-vc14-Debug.lib
+                libsrtp-x86_64-x64-vc14-Debug.lib
+                libwebrtc-x86_64-x64-vc14-Debug.lib
+                libyuv-x86_64-x64-vc14-Debug.lib
 
-            # JRTPLIB - Debug版本
-            jrtplib_d.lib
+                # JRTPLIB - Debug版本
+                jrtplib_d.lib
 
-            D:/third_party_libs/JThread/build2/src/Debug/jthread_d.lib
+                D:/third_party_libs/JThread/build2/src/Debug/jthread_d.lib
 
-            # System
-            ws2_32.lib
+                # System
+                ws2_32.lib
 
-            # openssl - Debug版本
-            D:/third_party_libs/OpenSSL-Win64_/lib/VC/x64/MTd/libcrypto.lib
-            D:/third_party_libs/OpenSSL-Win64_/lib/VC/x64/MTd/libssl.lib
+                # openssl - Debug版本
+                D:/third_party_libs/OpenSSL-Win64_/lib/VC/x64/MTd/libcrypto.lib
+                D:/third_party_libs/OpenSSL-Win64_/lib/VC/x64/MTd/libssl.lib
 
-            opus.lib
+                opus.lib
         )
     else()
         target_link_libraries(${PROJECT_NAME} PRIVATE
-            # Boost
-            ${Boost_LIBRARIES}
+                # Boost
+                ${Boost_LIBRARIES}
 
-            # JsonCpp - Release版本
-            jsoncpp_static.lib
+                # JsonCpp - Release版本
+                D:/third_party_libs/jsoncpp/build/lib/Release/jsoncpp_static.lib
 
-            # PJSIP - Release版本
-            pjsip-core-x86_64-x64-vc14-Release.lib
-            pjsip-simple-x86_64-x64-vc14-Release.lib
-            pjsip-ua-x86_64-x64-vc14-Release.lib
-            pjsua-lib-x86_64-x64-vc14-Release.lib
-            pjsua2-lib-x86_64-x64-vc14-Release.lib
+                # PJSIP - Release版本
+                pjsip-core-x86_64-x64-vc14-Release.lib
+                pjsip-simple-x86_64-x64-vc14-Release.lib
+                pjsip-ua-x86_64-x64-vc14-Release.lib
+                pjsua-lib-x86_64-x64-vc14-Release.lib
+                pjsua2-lib-x86_64-x64-vc14-Release.lib
 
-            # PJLIB - Release版本
-            pjlib-x86_64-x64-vc14-Release.lib
-            pjlib-util-x86_64-x64-vc14-Release.lib
+                # PJLIB - Release版本
+                pjlib-x86_64-x64-vc14-Release.lib
+                pjlib-util-x86_64-x64-vc14-Release.lib
 
-            # PJMEDIA - Release版本
-            pjmedia-audiodev-x86_64-x64-vc14-Release.lib
-            pjmedia-codec-x86_64-x64-vc14-Release.lib
-            pjmedia-videodev-x86_64-x64-vc14-Release.lib
-            pjmedia-x86_64-x64-vc14-Release.lib
+                # PJMEDIA - Release版本
+                pjmedia-audiodev-x86_64-x64-vc14-Release.lib
+                pjmedia-codec-x86_64-x64-vc14-Release.lib
+                pjmedia-videodev-x86_64-x64-vc14-Release.lib
+                pjmedia-x86_64-x64-vc14-Release.lib
 
-            # PJNATH - Release版本
-            pjnath-x86_64-x64-vc14-Release.lib
+                # PJNATH - Release版本
+                pjnath-x86_64-x64-vc14-Release.lib
 
-            # Third party - Release版本
-            libbaseclasses-x86_64-x64-vc14-Release.lib
-            libg7221codec-x86_64-x64-vc14-Release.lib
-            libgsmcodec-x86_64-x64-vc14-Release.lib
-            libilbccodec-x86_64-x64-vc14-Release.lib
-            libmilenage-x86_64-x64-vc14-Release.lib
-            libresample-x86_64-x64-vc14-Release.lib
-            libspeex-x86_64-x64-vc14-Release.lib
-            libsrtp-x86_64-x64-vc14-Release.lib
-            libwebrtc-x86_64-x64-vc14-Release.lib
-            libyuv-x86_64-x64-vc14-Release.lib
+                # Third party - Release版本
+                libbaseclasses-x86_64-x64-vc14-Release.lib
+                libg7221codec-x86_64-x64-vc14-Release.lib
+                libgsmcodec-x86_64-x64-vc14-Release.lib
+                libilbccodec-x86_64-x64-vc14-Release.lib
+                libmilenage-x86_64-x64-vc14-Release.lib
+                libresample-x86_64-x64-vc14-Release.lib
+                libspeex-x86_64-x64-vc14-Release.lib
+                libsrtp-x86_64-x64-vc14-Release.lib
+                libwebrtc-x86_64-x64-vc14-Release.lib
+                libyuv-x86_64-x64-vc14-Release.lib
 
-            # JRTPLIB - Release版本
-            jrtplib.lib
+                # JRTPLIB - Release版本
+                jrtplib.lib
 
-            D:/third_party_libs/JThread/build/src/Release/jthread.lib
+                D:/third_party_libs/JThread/build/src/Release/jthread.lib
 
-            # System
-            ws2_32.lib
+                # System
+                ws2_32.lib
 
-            # openssl - Release版本
-            D:/third_party_libs/OpenSSL-Win64_/lib/VC/x64/MT/libcrypto.lib
-            D:/third_party_libs/OpenSSL-Win64_/lib/VC/x64/MT/libssl.lib
+                # openssl - Release版本
+                D:/third_party_libs/OpenSSL-Win64_/lib/VC/x64/MT/libcrypto.lib
+                D:/third_party_libs/OpenSSL-Win64_/lib/VC/x64/MT/libssl.lib
 
-            opus.lib
+                opus.lib
         )
     endif()
 else()
-    set(JSONCPP_WITH_TESTS  OFF CACHE BOOL "Disable jsoncpp tests" FORCE)
-    set(JSONCPP_WITH_POST_BUILD_UNITTEST OFF CACHE BOOL "Disable jsoncpp unit test" FORCE)
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Disable jsoncpp shared lib" FORCE)
-    set(BUILD_OBJECT_LIBS OFF CACHE BOOL "Disable jsoncpp object lib" FORCE)
-
     add_subdirectory(third_party/spdlog)
     add_subdirectory(third_party/jsoncpp)
     add_subdirectory(voip)
