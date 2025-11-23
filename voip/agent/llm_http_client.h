@@ -2,6 +2,7 @@
 
 #include "../logger.h"
 #include "../event/event.h"
+#include "../global.h"
 #include "asr_ws_client.h"
 #include "msg.h"
 #include <boost/asio/ssl.hpp>

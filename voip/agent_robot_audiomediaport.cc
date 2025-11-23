@@ -1,5 +1,6 @@
 #include "agent_robot_audiomediaport.h"
 #include "global.h"
+#include "io_context_pool.h"
 #include "logger.h"
 #include <fstream>
 #include "agent/tts_http_client.h"
@@ -10,7 +11,6 @@
 AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     : tts_pos(0)
     , m_end_flag(false)
-    , m_asr_ws_client(std::make_shared<ASRWsClient>(g_event_bus))
     , last_pcm(true)
 {
     LOG_INFO(">>> construct {}", __func__);
@@ -29,8 +29,14 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
         m_llm_hangup.store(true);
     });
 
+    auto &ioc = IOContextPool::getInstance()->getIOContext();
+    m_asr_ws_client = std::make_shared<ASRWsClient>(ioc,
+                                                    agent_session_remote_host,
+                                                    agent_session_remote_port,
+                                                    agent_session_remote_target,
+                                                    true);
     m_asr_ws_client->start();
-    m_asr_ws_client->send_start_config();
+    // m_asr_ws_client->send_start_config();
 
     LOG_INFO("<<< construct {}", __func__);
 }
@@ -38,7 +44,7 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
 AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 {
     LOG_INFO(">>> {}", __func__);
-    m_asr_ws_client->send_stop_config();
+    // m_asr_ws_client->send_stop_config();
     tts_buf.clear();
     tts_pos = 0;
     LOG_INFO("<<< {}", __func__);

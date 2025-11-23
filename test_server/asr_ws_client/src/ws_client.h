@@ -24,14 +24,14 @@ namespace websocket = beast::websocket;
 
 using tcp = boost::asio::ip::tcp;
 
-class ASRWsClient : public std::enable_shared_from_this<ASRWsClient>
+class WsClient : public std::enable_shared_from_this<WsClient>
 {
 public:
-    ASRWsClient(asio::io_context &ioc,
-                const std::string &host,
-                const std::string &port,
-                const std::string &path,
-                bool use_ssl = true)
+    WsClient(asio::io_context &ioc,
+             const std::string &host,
+             const std::string &port,
+             const std::string &path,
+             bool use_ssl = true)
         : ioc_(ioc)
         , strand_(asio::make_strand(ioc))
         , resolver_(asio::make_strand(ioc))
@@ -49,7 +49,7 @@ public:
         }
     }
 
-    ~ASRWsClient()
+    ~WsClient()
     {
         try {
             doClose();
@@ -104,7 +104,7 @@ private:
         resolver_.async_resolve(host_, port_,
                                 asio::bind_executor(
                                     strand_,
-                                    std::bind(&ASRWsClient::onResolve, shared_from_this(),
+                                    std::bind(&WsClient::onResolve, shared_from_this(),
                                               std::placeholders::_1, std::placeholders::_2)));
     }
 
@@ -139,13 +139,13 @@ private:
                 results,
                 asio::bind_executor(
                     strand_,
-                    std::bind(&ASRWsClient::onConnectSSL, shared_from_this(), std::placeholders::_1)));
+                    std::bind(&WsClient::onConnectSSL, shared_from_this(), std::placeholders::_1)));
         }
         else {
             ws_plain_.reset(new websocket::stream<beast::tcp_stream>(ioc_));
             // beast::get_lowest_layer(*ws_plain_).expires_after(std::chrono::seconds(30));
             beast::get_lowest_layer(*ws_plain_).expires_never();
-            beast::get_lowest_layer(*ws_plain_).async_connect(results, asio::bind_executor(strand_, std::bind(&ASRWsClient::onConnectPlain, shared_from_this(), std::placeholders::_1)));
+            beast::get_lowest_layer(*ws_plain_).async_connect(results, asio::bind_executor(strand_, std::bind(&WsClient::onConnectPlain, shared_from_this(), std::placeholders::_1)));
         }
     }
 
@@ -167,7 +167,7 @@ private:
         ws_plain_->async_handshake(host_, path_,
                                    asio::bind_executor(
                                        strand_,
-                                       std::bind(&ASRWsClient::onHandshake, shared_from_this(), std::placeholders::_1)));
+                                       std::bind(&WsClient::onHandshake, shared_from_this(), std::placeholders::_1)));
     }
 
     void onConnectSSL(const boost::system::error_code &ec)
@@ -188,7 +188,7 @@ private:
         ws_ssl_->next_layer().async_handshake(ssl::stream_base::client,
                                               asio::bind_executor(
                                                   strand_,
-                                                  std::bind(&ASRWsClient::onSSLHandshake, shared_from_this(), std::placeholders::_1)));
+                                                  std::bind(&WsClient::onSSLHandshake, shared_from_this(), std::placeholders::_1)));
     }
 
     void onSSLHandshake(const boost::system::error_code &ec)
@@ -209,7 +209,7 @@ private:
         ws_ssl_->async_handshake(host_, path_,
                                  asio::bind_executor(
                                      strand_,
-                                     std::bind(&ASRWsClient::onHandshake, shared_from_this(), std::placeholders::_1)));
+                                     std::bind(&WsClient::onHandshake, shared_from_this(), std::placeholders::_1)));
     }
 
     void onHandshake(const boost::system::error_code &ec)
@@ -245,14 +245,14 @@ private:
             ws_ssl_->async_read(buffer_,
                                 asio::bind_executor(
                                     strand_,
-                                    std::bind(&ASRWsClient::onRead, shared_from_this(),
+                                    std::bind(&WsClient::onRead, shared_from_this(),
                                               std::placeholders::_1, std::placeholders::_2)));
         }
         else {
             ws_plain_->async_read(buffer_,
                                   asio::bind_executor(
                                       strand_,
-                                      std::bind(&ASRWsClient::onRead, shared_from_this(),
+                                      std::bind(&WsClient::onRead, shared_from_this(),
                                                 std::placeholders::_1, std::placeholders::_2)));
         }
     }
@@ -318,7 +318,7 @@ private:
             ws_ssl_->async_write(asio::buffer(*buf),
                                  asio::bind_executor(
                                      strand_,
-                                     std::bind(&ASRWsClient::onWrite, shared_from_this(),
+                                     std::bind(&WsClient::onWrite, shared_from_this(),
                                                std::placeholders::_1, std::placeholders::_2, buf)));
         }
         else {
@@ -331,7 +331,7 @@ private:
             ws_plain_->async_write(asio::buffer(*buf),
                                    asio::bind_executor(
                                        strand_,
-                                       std::bind(&ASRWsClient::onWrite, shared_from_this(),
+                                       std::bind(&WsClient::onWrite, shared_from_this(),
                                                  std::placeholders::_1, std::placeholders::_2, buf)));
         }
     }
@@ -450,9 +450,4 @@ private:
 
     std::atomic<bool> running_;
     std::atomic<bool> writing_;
-
-public:
-    static std::string s_call_method;
-    static std::string s_session_id;
-    static std::string s_access_token;
 };
