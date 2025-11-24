@@ -59,6 +59,8 @@ std::unique_ptr<TTSThreadPool> g_tts_thread_pool = nullptr;
 
 int g_timeout_ms;
 
+float g_tts_speed;
+
 void startEndpointLib(unsigned port)
 {
     endpoint.libCreate();

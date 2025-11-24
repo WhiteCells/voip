@@ -85,7 +85,7 @@ std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
     root["voice"] = "speech:kefu001:fb7806eb";
     root["response_format"] = "pcm";
     root["sample_rate"] = 16000;
-    root["speed"] = 1.2;
+    root["speed"] = g_tts_speed;
     Json::StreamWriterBuilder writer;
     std::string body = Json::writeString(writer, root);
 

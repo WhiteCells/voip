@@ -75,6 +75,7 @@ void loadINICfg(const std::string &filename)
         tts_server_remote_port = cfg.at("TTS_SERVER_REMOTE_PORT");
         tts_server_remote_target = cfg.at("TTS_SERVER_REMOTE_TARGET");
         g_timeout_ms = std::stoi(cfg.at("TIMEOUT_MS"));
+        g_tts_speed = std::stof(cfg.at("TTS_SPEED"));
     }
     catch (const std::exception &e) {
         LOG_CRITICAL("load ini file failed, lack key");
