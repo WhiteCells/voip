@@ -48,6 +48,7 @@ void AgentAudAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     }
 
     if (frame.size > 0) {
+        send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
         if (g_agent_ws_client) {
             g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
         }

@@ -48,6 +48,7 @@ void AgentCapAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     }
 
     if (frame.size > 0) {
+        send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
         if (g_manual_ws_client) {
             g_manual_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "mediator");
         }
