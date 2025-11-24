@@ -110,8 +110,7 @@ private:
     void cancelTimeout()
     {
         if (m_timer) {
-            beast::error_code ec;
-            m_timer->cancel(ec);
+            m_timer->cancel();
         }
     }
 
