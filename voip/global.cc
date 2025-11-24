@@ -57,6 +57,8 @@ std::shared_ptr<AgentWsClient> g_manual_ws_client;
 
 std::unique_ptr<TTSThreadPool> g_tts_thread_pool = nullptr;
 
+int g_timeout_ms;
+
 void startEndpointLib(unsigned port)
 {
     endpoint.libCreate();

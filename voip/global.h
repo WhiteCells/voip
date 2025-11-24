@@ -80,6 +80,8 @@ extern std::shared_ptr<AgentWsClient> g_manual_ws_client;
 
 extern std::unique_ptr<TTSThreadPool> g_tts_thread_pool;
 
+extern int g_timeout_ms;
+
 // url
 #define URL_NOTIFY            "notify"            // 客户端通知
 #define URL_HEARTBEAT         "heartbeat"         // 客户端心跳

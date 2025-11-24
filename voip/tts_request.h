@@ -59,6 +59,8 @@ public:
 
     static std::atomic<bool> endendend_flag;
 
+//    std::atomic<bool> tts_ok_flag_ {false};
+
 private:
     static std::string host_, port_, target_;
     std::queue<std::vector<char>> audio_queue_;

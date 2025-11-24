@@ -88,6 +88,10 @@ private:
 
     void end_timeout_check();
 
+    void tts_create(std::string response);
+
+    void on_agent_llm_response(const std::string& response);
+
     static void hangup_call()
     {
         endpoint.libRegisterThread("Worker");
@@ -104,7 +108,7 @@ private:
     std::string m_target;
 
     // std::shared_ptr<IWSSender> m_gui_server_sender;
-    std::shared_ptr<LLMRequest> m_llm_client;
+    std::shared_ptr<LLMRequestAsync> m_llm_client;
 
     std::string m_llm_manual_text;
     std::string m_llm_agent_text;
@@ -122,6 +126,7 @@ private:
     std::deque<std::string> m_send_queue;
     bool m_writing {false};
     bool m_llm_start {false};
+//    std::atomic<bool> llm_ok_flag_ {false};
 
     std::string text_buffer_;  // 累积文本
     std::chrono::steady_clock::time_point last_text_time_; // 上一次收到文本时间

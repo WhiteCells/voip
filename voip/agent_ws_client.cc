@@ -6,8 +6,16 @@ AgentWsClient::AgentWsClient(const std::string &host, const std::string &port)
     : m_host(host)
     , m_port(port)
     , m_target("/")
-    , m_llm_client(std::make_shared<LLMRequest>(agent_session_remote_host, agent_session_remote_port, agent_session_remote_target))
 {
+    auto &ioc = IOContextPool::getInstance()->getIOContext();
+
+    m_llm_client = std::make_shared<LLMRequestAsync>(
+        ioc,
+        agent_session_remote_host,
+        agent_session_remote_port,
+        agent_session_remote_target
+    );
+
 }
 
 AgentWsClient::~AgentWsClient()
@@ -183,35 +191,9 @@ void AgentWsClient::start_llm_style()
         end_timeout_check();
         start_timeout_check(m_llm_start_time,60);
 
-        std::string response = m_llm_client->sendRequest("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token);
-        LOG_INFO("prolog llm response: {}", response);
-
-        Json::Value llm_style_json;
-        Json::CharReaderBuilder llm_style_builder;
-        std::unique_ptr<Json::CharReader> reader(llm_style_builder.newCharReader());
-        std::string llm_style_errors;
-
-        if (reader->parse(response.c_str(), response.c_str() + response.size(), &llm_style_json, &llm_style_errors)) {
-            if (llm_style_json.isMember("data") && llm_style_json["data"].isObject()) {
-                const auto &data = llm_style_json["data"];
-                if (data.isMember("text") && data["text"].isArray()) {
-                    m_llm_msg_list.clear();
-                    for (const auto &item : data["text"]) {
-                        m_llm_msg_list.push_back(item.asString());
-                    }
-                    LOG_INFO("LLM response data pushed to m_llm_msg_list, size: {}", m_llm_msg_list.size());
-
-                    if (!m_llm_msg_list.empty()) {
-                        TTSPlayer::getInstance()->resume(); // 恢复播放
-                        TTSPlayer::getInstance()->produceTTSAsync(m_llm_msg_list, m_session_id);
-                        m_llm_msg_list.clear();
-                    }
-                }
-            }
-        }
-        else {
-            LOG_ERROR("Failed to parse LLM response JSON: {}", llm_style_errors);
-        }
+        m_llm_client->asyncSend("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token,[self = shared_from_this()](const std::string& response) {
+            self->tts_create(response);
+        });
     }
 }
 
@@ -338,8 +320,18 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
                         {
                             std::lock_guard<std::mutex> lock(text_mutex_);
                             text_buffer_ += text; // 累积文本
+//                            if(llm_ok_flag_ && TTSPlayer::getInstance()->tts_ok_flag_.load()){
+//                                text_buffer_.clear();
+//                                llm_ok_flag_ = false;
+//                                TTSPlayer::getInstance()->tts_ok_flag_.store(false);
+//                            }
+//                            else{
+//                                text_buffer_ += text;
+//                            }
+
                             last_text_time_ = std::chrono::steady_clock::now();
                         }
+//                        agent_asr_with_llm(text_buffer_);
 
                         // 启动定时器线程，只启动一次
                         if (!timer_running_) {
@@ -366,7 +358,7 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
 void AgentWsClient::process_buffer_if_timeout() {
     std::lock_guard<std::mutex> lock(text_mutex_);
     auto now = std::chrono::steady_clock::now();
-    if (!text_buffer_.empty() && std::chrono::duration_cast<std::chrono::seconds>(now - last_text_time_).count() > 1) {
+    if (!text_buffer_.empty() && std::chrono::duration_cast<std::chrono::milliseconds>(now - last_text_time_).count() > g_timeout_ms) {
         LOG_INFO("process_buffer_if_timeout: {}", text_buffer_);
         agent_asr_with_llm(text_buffer_);
         text_buffer_.clear();
@@ -380,13 +372,15 @@ void AgentWsClient::manual_asr_with_llm(const std::string &text)
 //    LOG_INFO("LLM manual start");
     if (m_role == "customer") {
         LOG_INFO("LLM manual_customer start");
-        std::string response = m_llm_client->sendRequest(m_llm_manual_text, "manual", "customer", m_session_id, m_access_token);
-        LOG_INFO("LLM manual_customer response: {}", response);
+        m_llm_client->asyncSend(m_llm_manual_text, "manual", "customer", m_session_id, m_access_token,[self = shared_from_this()](const std::string& response) {
+            LOG_INFO("LLM manual_customer response: {}", response);
+        });
     }
     else if (m_role == "mediator") {
         LOG_INFO("LLM manual_mediator start");
-        std::string response = m_llm_client->sendRequest(m_llm_manual_text, "manual", "mediator", m_session_id, m_access_token);
-        LOG_INFO("LLM manual_mediator response: {}", response);
+        m_llm_client->asyncSend(m_llm_manual_text, "manual", "mediator", m_session_id, m_access_token,[self = shared_from_this()](const std::string& response) {
+            LOG_INFO("LLM manual_mediator response: {}", response);
+        });
     }
 }
 
@@ -396,13 +390,29 @@ void AgentWsClient::agent_asr_with_llm(const std::string &text)
     m_llm_start_time = std::chrono::steady_clock::now();
     end_timeout_check();
     start_timeout_check(m_llm_start_time,60);
+    m_llm_client->asyncSend(m_llm_agent_text, m_call_method, m_role, m_session_id, m_access_token,[self = shared_from_this()](const std::string& response) {
+        self->on_agent_llm_response(response);
+    });
+}
 
-    std::string response = m_llm_client->sendRequest(m_llm_agent_text, m_call_method, m_role, m_session_id, m_access_token); // 发送ASR结果给LLM
+void AgentWsClient::on_agent_llm_response(const std::string& response)
+{
     LOG_INFO("LLM agent response: {}", response);
     if (response.empty()) {
-        do_read();
+        net::post(*m_strand, [self = shared_from_this()]() {
+            self->do_read();
+        });
         return;
     }
+    else {
+//        llm_ok_flag_ = true;
+        tts_create(response);
+    }
+}
+
+void AgentWsClient::tts_create(std::string response)
+{
+//    LOG_INFO("prolog llm response: {}", response);
     Json::Value response_json;
     Json::CharReaderBuilder response_builder;
     std::unique_ptr<Json::CharReader> response_reader(response_builder.newCharReader());

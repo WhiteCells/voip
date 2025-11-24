@@ -67,60 +67,124 @@ std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
     boost::system::error_code ec;
 
     auto results = resolver.resolve(host_, port_, ec);
-    if (ec) return {};
+    if (ec) {
+        LOG_ERROR("http resolve: {}", ec.message());
+        return {};
+    }
 
     boost::asio::connect(*sock, results, ec);
-    if (ec) return {};
+    if (ec) {
+        LOG_ERROR("http connect: {}", ec.message());
+        return {};
+    }
 
     // --- 构建 HTTP body ---
     Json::Value root;
-    root["text"] = text;
+//    root["text"] = text;
+    root["input"] = text;
+    root["voice"] = "speech:kefu001:fb7806eb";
+    root["response_format"] = "pcm";
+    root["sample_rate"] = 16000;
+    root["speed"] = 1.2;
     Json::StreamWriterBuilder writer;
     std::string body = Json::writeString(writer, root);
 
     http::request<http::string_body> req {http::verb::post, target_, 11};
-    req.set(http::field::content_type, "application/json");
+    req.set(http::field::content_type, "application/json; charset=utf-8");
+    req.set(http::field::host, host_ + ":" + port_);
     req.body() = body;
     req.prepare_payload();
 
     http::write(*sock, req, ec);
-    if (ec) return {};
+    if (ec) {
+        LOG_ERROR("http write error: {}", ec.message());
+        return {};
+    }
 
     boost::beast::flat_buffer buffer;
-    http::response<http::vector_body<char>> res;
+//    http::response<http::vector_body<char>> res;
+//
+//    // --- timeout thread，而不是 cancel() ---
+//    std::atomic<bool> done {false};
+//    std::atomic<bool> timeout_hit {false};
+//
+//    std::thread timeout_thread([&]() {
+//        std::this_thread::sleep_for(std::chrono::seconds(3));
+//        if (!done.load()) {
+//            timeout_hit = true;
+//        }
+//    });
+//
+//    http::read(*sock, buffer, res, ec);
+//    done = true;
+//    timeout_thread.join();
+//
+//    // --- 如果 timeout，丢弃旧任务 ---
+//    if (timeout_hit.load()) {
+//        LOG_ERROR("[TTS] read timeout, returning empty pcm");
+//        return {};
+//    }
+//
+//    // --- 如果在请求期间 generation 变了，直接丢弃 ---
+//    if (my_gen != generation_) {
+//        LOG_ERROR("[TTS] requestTTS result discarded due to newer generation");
+//        return {};
+//    }
+//
+//    if (ec || res.result() != http::status::ok) {
+////        LOG_ERROR("request status error, result: {}, ec: {}", (unsigned)res.result(), ec.message());
+//        std::string err_body(res.body().begin(), res.body().end());
+//        LOG_ERROR("request status error, result: {}, body: {}",
+//                  (unsigned)res.result(), err_body);
+//        return {};
+//    }
+//
+//    return res.body();
+//}
+    // 用 parser 支持 chunked
+    http::response_parser<http::vector_body<char>> parser;
+    parser.body_limit((std::numeric_limits<std::uint64_t>::max)());
 
-    // --- timeout thread，而不是 cancel() ---
-    std::atomic<bool> done {false};
-    std::atomic<bool> timeout_hit {false};
+    // ---- 先读 header ----
+    http::read_header(*sock, buffer, parser, ec);
+    if (ec) {
+        LOG_ERROR("read_header: {}", ec.message());
+        return {};
+    }
 
-    std::thread timeout_thread([&]() {
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        if (!done.load()) {
-            timeout_hit = true;
+    // 非 200 直接打印错误
+    if (parser.get().result() != http::status::ok) {
+        http::response<http::vector_body<char>> tmp = parser.release();
+        std::string err(tmp.body().begin(), tmp.body().end());
+        LOG_ERROR("HTTP {} body: {}", (unsigned)tmp.result(), err);
+        return {};
+    }
+
+    // ---- 流式读取 chunk ----
+    std::vector<char> pcm;
+    pcm.reserve(65536);
+
+    while (!parser.is_done()) {
+        http::read(*sock, buffer, parser, ec);
+        if (ec == http::error::end_of_stream) break;
+        if (ec) {
+            LOG_ERROR("read chunk: {}", ec.message());
+            break;
         }
-    });
-
-    http::read(*sock, buffer, res, ec);
-    done = true;
-    timeout_thread.join();
-
-    // --- 如果 timeout，丢弃旧任务 ---
-    if (timeout_hit.load()) {
-        LOG_WARN("[TTS] read timeout, returning empty pcm");
-        return {};
     }
 
-    // --- 如果在请求期间 generation 变了，直接丢弃 ---
+    auto res = parser.release();
+    if (!res.body().empty()) {
+        pcm.insert(pcm.end(), res.body().begin(), res.body().end());
+    }
+
+    // generation 检查
     if (my_gen != generation_) {
-        LOG_INFO("[TTS] requestTTS result discarded due to newer generation");
+        LOG_INFO("[TTS] dropped PCM (new generation)");
         return {};
     }
 
-    if (ec || res.result() != http::status::ok) {
-        return {};
-    }
-
-    return res.body();
+    return pcm;
 }
 
 
@@ -260,6 +324,8 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
             LOG_ERROR("[TTS] 生成失败: {}", e.what());
         }
     }
+
+//    tts_ok_flag_.store(true);
 
     // 插入特殊标志
     if (TTSPlayer::endendend_flag.load()) {
