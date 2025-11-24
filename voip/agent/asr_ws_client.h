@@ -97,6 +97,37 @@ public:
         });
     }
 
+    void send_start_config()
+    {
+        Json::Value config;
+        config["mode"] = "2pass";
+        config["wav_name"] = "record";
+        config["wav_format"] = "pcm";
+        config["audio_fs"] = 16000.0;
+        config["is_speaking"] = true;
+        config["itn"] = true;
+        config["svs_itn"] = true;
+        Json::Value chunk_size(Json::arrayValue);
+        chunk_size.append(5);
+        chunk_size.append(10);
+        chunk_size.append(5);
+        config["chunk_size"] = chunk_size;
+
+        Json::StreamWriterBuilder builder;
+        std::string config_str = Json::writeString(builder, config);
+        send(config_str);
+    }
+
+    void send_stop_config()
+    {
+        Json::Value config;
+        config["is_speaking"] = "false";
+
+        Json::StreamWriterBuilder builder;
+        std::string config_str = Json::writeString(builder, config);
+        send(config_str);
+    }
+
 private:
     void doResolve()
     {

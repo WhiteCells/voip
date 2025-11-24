@@ -23,17 +23,17 @@ int main()
     startEndpointLib(5060);
 
     auto web_ws_client = std::make_shared<WebWsClient>();
-    g_agent_ws_client = std::make_shared<AgentWsClient>(asr_server_remote_host, asr_server_remote_port);
-    g_manual_ws_client = std::make_shared<AgentWsClient>(asr_server_remote_host, asr_server_remote_port);
+    // g_agent_ws_client = std::make_shared<AgentWsClient>(asr_server_remote_host, asr_server_remote_port);
+    // g_manual_ws_client = std::make_shared<AgentWsClient>(asr_server_remote_host, asr_server_remote_port);
     auto gui_ws_server = std::make_shared<GuiWsServer>("0.0.0.0", 8001, web_ws_client);
 
     web_ws_client->set_server_sender(gui_ws_server);
-    g_agent_ws_client->set_server_sender(gui_ws_server);
-    g_manual_ws_client->set_server_sender(gui_ws_server);
+    // g_agent_ws_client->set_server_sender(gui_ws_server);
+    // g_manual_ws_client->set_server_sender(gui_ws_server);
 
     web_ws_client->start();
-    g_agent_ws_client->start();
-    g_manual_ws_client->start();
+    // g_agent_ws_client->start();
+    // g_manual_ws_client->start();
 
     // auto bridget_agent = std::make_shared<WebAgentBridge>(g_agent_ws_client, web_ws_client);
     // auto bridget_manual = std::make_shared<WebAgentBridge>(g_manual_ws_client, web_ws_client);

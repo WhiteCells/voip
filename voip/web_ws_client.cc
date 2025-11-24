@@ -169,20 +169,20 @@ WebWsClient::WebWsClient()
         else if (request_type == "auth") {
             std::string session_id = root["session_id"].asString();
             std::string access_token = root["access_token"].asString();
-            if (m_call_method == "agent") {
-                g_agent_ws_client->get_session_id(m_call_method, session_id, access_token);
-                LOG_INFO("call_method: {},session_id: {}, access_token: {}", m_call_method, session_id, access_token);
-            }
-            else if (m_call_method == "manual") {
-                g_agent_ws_client->get_session_id(m_call_method, session_id, access_token);
-                g_manual_ws_client->get_session_id(m_call_method, session_id, access_token);
-                LOG_INFO("call_method: {},session_id: {}, access_token: {}", m_call_method, session_id, access_token);
-            }
+            // if (m_call_method == "agent") {
+            //     g_agent_ws_client->get_session_id(m_call_method, session_id, access_token);
+            //     LOG_INFO("call_method: {},session_id: {}, access_token: {}", m_call_method, session_id, access_token);
+            // }
+            // else if (m_call_method == "manual") {
+            //     g_agent_ws_client->get_session_id(m_call_method, session_id, access_token);
+            //     g_manual_ws_client->get_session_id(m_call_method, session_id, access_token);
+            //     LOG_INFO("call_method: {},session_id: {}, access_token: {}", m_call_method, session_id, access_token);
+            // }
 
             ASRWsClient::s_session_id = session_id;
             ASRWsClient::s_access_token = access_token;
             ASRWsClient::s_call_method = m_call_method;
-            g_event_bus.publish(PrologTextMsg {"请开始开场白"});
+            // g_event_bus.publish(PrologTextMsg {"请开始开场白"});
         }
         else {
             LOG_ERROR("error request_type");

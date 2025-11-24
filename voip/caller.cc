@@ -219,16 +219,16 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 m_sender->send(msg);
             }
 
-            if (g_agent_ws_client && g_manual_ws_client) {
-                TTSPlayer::getInstance()->resume();
-                g_agent_ws_client->start_config_send(); //   发送asr启动配置
-                if (m_call_method == "manual") {
-                    g_manual_ws_client->start_config_send();
-                }
-            }
-            else {
-                LOG_ERROR("m_agent_ws_client is null");
-            }
+            // if (g_agent_ws_client && g_manual_ws_client) {
+            //     TTSPlayer::getInstance()->resume();
+            //     g_agent_ws_client->start_config_send(); //   发送asr启动配置
+            //     if (m_call_method == "manual") {
+            //         g_manual_ws_client->start_config_send();
+            //     }
+            // }
+            // else {
+            //     LOG_ERROR("m_agent_ws_client is null");
+            // }
 
             LOG_INFO(">>> pushCallState PJSIP_INV_STATE_CONFIRMED call: {}, phone: {}, call_type: {}", std::to_string(m_dialplan_id), m_phone, call_type);
 
@@ -285,19 +285,19 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 call_status = "hangup";
             }
 
-            if (g_agent_ws_client && g_manual_ws_client) {
+            // if (g_agent_ws_client && g_manual_ws_client) {
 
-                g_agent_ws_client->end_config_send(); // 发送asr结束配置
-                g_agent_ws_client->clear_llm_msg_list();
+            //     g_agent_ws_client->end_config_send(); // 发送asr结束配置
+            //     g_agent_ws_client->clear_llm_msg_list();
 
-                if (m_call_method == "manual") {
-                    g_manual_ws_client->end_config_send();
-                    g_agent_ws_client->clear_llm_msg_list();
-                }
-            }
-            else {
-                LOG_ERROR("m_agent_ws_client is null");
-            }
+            //     if (m_call_method == "manual") {
+            //         g_manual_ws_client->end_config_send();
+            //         g_agent_ws_client->clear_llm_msg_list();
+            //     }
+            // }
+            // else {
+            //     LOG_ERROR("m_agent_ws_client is null");
+            // }
 
             LOG_INFO(">>> pushCallState PJSIP_INV_STATE_DISCONNECTED call: {}, phone: {}, status: {}, call_type: {}, hangup_direction: {}", std::to_string(m_dialplan_id), m_phone, call_status, call_type, hangup_direction);
 

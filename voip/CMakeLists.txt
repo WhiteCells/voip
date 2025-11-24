@@ -21,6 +21,8 @@ set(SRC
     web_ws_client.cc
     agent_ws_client.cc
     main.cc
+    agent/tts_http_client.cc
+    agent/asr_ws_client.cc
 )
 
 add_executable(${PROJECT_NAME} ${SRC})

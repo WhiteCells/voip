@@ -36,7 +36,7 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
                                                     agent_session_remote_target,
                                                     true);
     m_asr_ws_client->start();
-    // m_asr_ws_client->send_start_config();
+    m_asr_ws_client->send_start_config();
 
     LOG_INFO("<<< construct {}", __func__);
 }
@@ -44,7 +44,7 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
 AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 {
     LOG_INFO(">>> {}", __func__);
-    // m_asr_ws_client->send_stop_config();
+    m_asr_ws_client->send_stop_config();
     tts_buf.clear();
     tts_pos = 0;
     LOG_INFO("<<< {}", __func__);
@@ -52,55 +52,55 @@ AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 
 void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
-    // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
-    const int sampleRate = 16000;
-    const int duration_ms = 20;
-    const int samplesPerFrame = sampleRate * duration_ms / 1000;    // 320
-    const size_t bytesPerFrame = samplesPerFrame * sizeof(int16_t); // 640 bytes
+    // // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
+    // const int sampleRate = 16000;
+    // const int duration_ms = 20;
+    // const int samplesPerFrame = sampleRate * duration_ms / 1000;    // 320
+    // const size_t bytesPerFrame = samplesPerFrame * sizeof(int16_t); // 640 bytes
 
-    frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
-    frame.size = bytesPerFrame;
-    frame.buf.resize(frame.size);
+    // frame.type = PJMEDIA_FRAME_TYPE_AUDIO;
+    // frame.size = bytesPerFrame;
+    // frame.buf.resize(frame.size);
 
-    if (m_llm_hangup.load()) {
-        if (last_pcm) {
-            last_pcm = false;
-            auto pcm = TTSHTTPClient::m_que->try_pop();
-            if (pcm.empty()) {
-                memset(frame.buf.data(), 0, frame.size);
-                return;
-            }
-        }
-    }
+    // if (m_llm_hangup.load()) {
+    //     if (last_pcm) {
+    //         last_pcm = false;
+    //         auto pcm = TTSHTTPClient::m_que->try_pop();
+    //         if (pcm.empty()) {
+    //             memset(frame.buf.data(), 0, frame.size);
+    //             return;
+    //         }
+    //     }
+    // }
 
-    if (TTSPlayer::getInstance()->isStopped()) {
-        tts_buf.clear();
-        tts_pos = 0;
-    }
+    // if (TTSPlayer::getInstance()->isStopped()) {
+    //     tts_buf.clear();
+    //     tts_pos = 0;
+    // }
 
-    if (tts_pos >= tts_buf.size()) {
-        auto pcm = TTSHTTPClient::m_que->try_pop();
-        if (!pcm.empty()) {
-            size_t samples = pcm.size() / sizeof(int16_t);
-            tts_buf.resize(samples);
-            memcpy(tts_buf.data(), pcm.data(), pcm.size());
-            tts_pos = 0;
-        }
-        else {
-            memset(frame.buf.data(), 0, frame.size);
-            return;
-        }
-    }
+    // if (tts_pos >= tts_buf.size()) {
+    //     auto pcm = TTSHTTPClient::m_que->try_pop();
+    //     if (!pcm.empty()) {
+    //         size_t samples = pcm.size() / sizeof(int16_t);
+    //         tts_buf.resize(samples);
+    //         memcpy(tts_buf.data(), pcm.data(), pcm.size());
+    //         tts_pos = 0;
+    //     }
+    //     else {
+    //         memset(frame.buf.data(), 0, frame.size);
+    //         return;
+    //     }
+    // }
 
-    size_t remain = tts_buf.size() - tts_pos;
-    size_t copy_samples = (std::min)((size_t)samplesPerFrame, remain);
-    memcpy(frame.buf.data(), tts_buf.data() + tts_pos, copy_samples * sizeof(int16_t));
-    tts_pos += copy_samples;
+    // size_t remain = tts_buf.size() - tts_pos;
+    // size_t copy_samples = (std::min)((size_t)samplesPerFrame, remain);
+    // memcpy(frame.buf.data(), tts_buf.data() + tts_pos, copy_samples * sizeof(int16_t));
+    // tts_pos += copy_samples;
 
-    if (copy_samples < samplesPerFrame) {
-        memset(frame.buf.data() + copy_samples * sizeof(int16_t), 0,
-               (samplesPerFrame - copy_samples) * sizeof(int16_t));
-    }
+    // if (copy_samples < samplesPerFrame) {
+    //     memset(frame.buf.data() + copy_samples * sizeof(int16_t), 0,
+    //            (samplesPerFrame - copy_samples) * sizeof(int16_t));
+    // }
 }
 
 void AgentRobotAudioMediaPort::startEndFlagMonitor(std::weak_ptr<AgentRobotAudioMediaPort> weak_self)
@@ -150,6 +150,6 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     if (frame.size > 0) {
         send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
         auto pcm = std::string(reinterpret_cast<const char *>(frame.buf.data()));
-        m_asr_ws_client->send(pcm, "customer");
+        m_asr_ws_client->send(pcm, false);
     }
 }
