@@ -3,7 +3,6 @@
 #include "io_context_pool.h"
 #include "logger.h"
 #include "request.hpp"
-#include "tts_request.h"
 #include <boost/asio/io_context.hpp>
 #include <exception>
 #include <iostream>
@@ -86,6 +85,7 @@ std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
     root["response_format"] = "pcm";
     root["sample_rate"] = 16000;
     root["speed"] = g_tts_speed;
+
     Json::StreamWriterBuilder writer;
     std::string body = Json::writeString(writer, root);
 
@@ -102,45 +102,7 @@ std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
     }
 
     boost::beast::flat_buffer buffer;
-//    http::response<http::vector_body<char>> res;
-//
-//    // --- timeout thread，而不是 cancel() ---
-//    std::atomic<bool> done {false};
-//    std::atomic<bool> timeout_hit {false};
-//
-//    std::thread timeout_thread([&]() {
-//        std::this_thread::sleep_for(std::chrono::seconds(3));
-//        if (!done.load()) {
-//            timeout_hit = true;
-//        }
-//    });
-//
-//    http::read(*sock, buffer, res, ec);
-//    done = true;
-//    timeout_thread.join();
-//
-//    // --- 如果 timeout，丢弃旧任务 ---
-//    if (timeout_hit.load()) {
-//        LOG_ERROR("[TTS] read timeout, returning empty pcm");
-//        return {};
-//    }
-//
-//    // --- 如果在请求期间 generation 变了，直接丢弃 ---
-//    if (my_gen != generation_) {
-//        LOG_ERROR("[TTS] requestTTS result discarded due to newer generation");
-//        return {};
-//    }
-//
-//    if (ec || res.result() != http::status::ok) {
-////        LOG_ERROR("request status error, result: {}, ec: {}", (unsigned)res.result(), ec.message());
-//        std::string err_body(res.body().begin(), res.body().end());
-//        LOG_ERROR("request status error, result: {}, body: {}",
-//                  (unsigned)res.result(), err_body);
-//        return {};
-//    }
-//
-//    return res.body();
-//}
+
     // 用 parser 支持 chunked
     http::response_parser<http::vector_body<char>> parser;
     parser.body_limit((std::numeric_limits<std::uint64_t>::max)());
@@ -181,6 +143,13 @@ std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
     // generation 检查
     if (my_gen != generation_) {
         LOG_INFO("[TTS] dropped PCM (new generation)");
+        return {};
+    }
+
+    if (ec || res.result() != http::status::ok) {
+    //        LOG_ERROR("request status error, result: {}, ec: {}", (unsigned)res.result(), ec.message());
+        std::string err_body(res.body().begin(), res.body().end());
+        LOG_ERROR("request status error, result: {}, body: {}",(unsigned)res.result(), err_body);
         return {};
     }
 
