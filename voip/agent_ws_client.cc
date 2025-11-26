@@ -13,9 +13,7 @@ AgentWsClient::AgentWsClient(const std::string &host, const std::string &port)
         ioc,
         agent_session_remote_host,
         agent_session_remote_port,
-        agent_session_remote_target
-    );
-
+        agent_session_remote_target);
 }
 
 AgentWsClient::~AgentWsClient()
@@ -102,9 +100,9 @@ void AgentWsClient::start_config_send()
     config["svs_itn"] = true;
 
     Json::Value chunk_size(Json::arrayValue);
-    chunk_size.append(5);
-    chunk_size.append(10);
-    chunk_size.append(5);
+    chunk_size.append(0);
+    chunk_size.append(6);
+    chunk_size.append(3);
     config["chunk_size"] = chunk_size;
 
     Json::StreamWriterBuilder builder;
@@ -112,7 +110,7 @@ void AgentWsClient::start_config_send()
     send(config_str);
     LOG_INFO("success send asr start config");
 
-    if(m_call_method == "agent") {
+    if (m_call_method == "agent") {
         m_llm_start = true;
         m_llm_start_time = std::chrono::steady_clock::now();
         end_timeout_check();
@@ -189,9 +187,9 @@ void AgentWsClient::start_llm_style()
         m_llm_start = false;
         m_llm_start_time = std::chrono::steady_clock::now();
         end_timeout_check();
-        start_timeout_check(m_llm_start_time,60);
+        start_timeout_check(m_llm_start_time, 60);
 
-        m_llm_client->asyncSend("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token,[self = shared_from_this()](const std::string& response) {
+        m_llm_client->asyncSend("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token, [self = shared_from_this()](const std::string &response) {
             self->tts_create(response);
         });
     }
@@ -200,7 +198,7 @@ void AgentWsClient::start_llm_style()
 void AgentWsClient::clear_llm_msg_list()
 {
     m_llm_msg_list.clear();
-//    m_llm_msg_text.clear();
+    //    m_llm_msg_text.clear();
     TTSPlayer::getInstance()->stop();
     LOG_INFO("clear llm msg list");
 }
@@ -215,7 +213,7 @@ void AgentWsClient::get_session_id(const std::string &call_method,
 
     LOG_INFO("get call_method {} session_id {} access_token {}", m_call_method, m_session_id, m_access_token);
 
-//    start_llm_style();
+    //    start_llm_style();
 }
 
 void AgentWsClient::on_resolver(beast::error_code ec, tcp::resolver::results_type results)
@@ -305,46 +303,57 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
         std::string mode = root.get("mode", "").asString();
 
         if (mode == "2pass-offline") {
-            LOG_INFO("m_role: {}, mode:2pass-offline mode test: {}", m_role, text);
-//            process_asr_with_llm(text);
-            if (m_call_method == "manual"){
-                manual_asr_with_llm(text);
-            }
-            else if (m_call_method == "agent") {
-                if (m_llm_start) {
-                    start_llm_style();
+            if (m_vad_flag) {
+                LOG_INFO("m_role: {}, mode:2pass-offline mode test: {}", m_role, text);
+                //            process_asr_with_llm(text);
+                if (m_call_method == "manual") {
+                    manual_asr_with_llm(text);
                 }
-                else {
-                    TTSPlayer::getInstance()->stop();
-                    if (!text.empty()) {
-                        {
-                            std::lock_guard<std::mutex> lock(text_mutex_);
-                            text_buffer_ += text; // 累积文本
-//                            if(llm_ok_flag_ && TTSPlayer::getInstance()->tts_ok_flag_.load()){
-//                                text_buffer_.clear();
-//                                llm_ok_flag_ = false;
-//                                TTSPlayer::getInstance()->tts_ok_flag_.store(false);
-//                            }
-//                            else{
-//                                text_buffer_ += text;
-//                            }
+                else if (m_call_method == "agent") {
+                    if (m_llm_start) {
+                        start_llm_style();
+                    }
+                    else {
+                        TTSPlayer::getInstance()->stop();
+                        if (!text.empty()) {
+                            {
+                                std::lock_guard<std::mutex> lock(text_mutex_);
+                                text_buffer_ += text; // 累积文本
+                                // if (llm_ok_flag_ && TTSPlayer::getInstance()->tts_ok_flag_.load()) {
+                                //     text_buffer_.clear();
+                                //     llm_ok_flag_ = false;
+                                //     TTSPlayer::getInstance()->tts_ok_flag_.store(false);
+                                // }
+                                // else {
+                                //     text_buffer_ += text;
+                                // }
+                                last_text_time_ = std::chrono::steady_clock::now();
+                            }
+                            // agent_asr_with_llm(text_buffer_);
 
-                            last_text_time_ = std::chrono::steady_clock::now();
-                        }
-//                        agent_asr_with_llm(text_buffer_);
-
-                        // 启动定时器线程，只启动一次
-                        if (!timer_running_) {
-                            timer_running_ = true;
-                            std::thread([this]() {
-                                while (true) {
-                                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                                    process_buffer_if_timeout();
-                                }
-                            }).detach();
+                            // 启动定时器线程，只启动一次
+                            if (!timer_running_) {
+                                timer_running_ = true;
+                                std::thread([this]() {
+                                    while (true) {
+                                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                                        process_buffer_if_timeout();
+                                    }
+                                }).detach();
+                            }
                         }
                     }
                 }
+            }
+            m_vad_flag = false;
+            m_first_flag = true;
+        }
+        else if (mode == "2pass-online") {
+            if (m_first_flag) {
+                m_first_flag = false;
+            }
+            else {
+                m_vad_flag = true;
             }
         }
     }
@@ -355,7 +364,8 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
     do_read();
 }
 
-void AgentWsClient::process_buffer_if_timeout() {
+void AgentWsClient::process_buffer_if_timeout()
+{
     std::lock_guard<std::mutex> lock(text_mutex_);
     auto now = std::chrono::steady_clock::now();
     if (!text_buffer_.empty() && std::chrono::duration_cast<std::chrono::milliseconds>(now - last_text_time_).count() > g_timeout_ms) {
@@ -369,16 +379,16 @@ void AgentWsClient::manual_asr_with_llm(const std::string &text)
 {
     m_llm_manual_text = text;
     LOG_INFO("m_call_method: {}, process_asr_with_llm: {}", m_call_method, text);
-//    LOG_INFO("LLM manual start");
+    //    LOG_INFO("LLM manual start");
     if (m_role == "customer") {
         LOG_INFO("LLM manual_customer start");
-        m_llm_client->asyncSend(m_llm_manual_text, "manual", "customer", m_session_id, m_access_token,[self = shared_from_this()](const std::string& response) {
+        m_llm_client->asyncSend(m_llm_manual_text, "manual", "customer", m_session_id, m_access_token, [self = shared_from_this()](const std::string &response) {
             LOG_INFO("LLM manual_customer response: {}", response);
         });
     }
     else if (m_role == "mediator") {
         LOG_INFO("LLM manual_mediator start");
-        m_llm_client->asyncSend(m_llm_manual_text, "manual", "mediator", m_session_id, m_access_token,[self = shared_from_this()](const std::string& response) {
+        m_llm_client->asyncSend(m_llm_manual_text, "manual", "mediator", m_session_id, m_access_token, [self = shared_from_this()](const std::string &response) {
             LOG_INFO("LLM manual_mediator response: {}", response);
         });
     }
@@ -389,13 +399,13 @@ void AgentWsClient::agent_asr_with_llm(const std::string &text)
     m_llm_agent_text = text;
     m_llm_start_time = std::chrono::steady_clock::now();
     end_timeout_check();
-    start_timeout_check(m_llm_start_time,60);
-    m_llm_client->asyncSend(m_llm_agent_text, m_call_method, m_role, m_session_id, m_access_token,[self = shared_from_this()](const std::string& response) {
+    start_timeout_check(m_llm_start_time, 60);
+    m_llm_client->asyncSend(m_llm_agent_text, m_call_method, m_role, m_session_id, m_access_token, [self = shared_from_this()](const std::string &response) {
         self->on_agent_llm_response(response);
     });
 }
 
-void AgentWsClient::on_agent_llm_response(const std::string& response)
+void AgentWsClient::on_agent_llm_response(const std::string &response)
 {
     LOG_INFO("LLM agent response: {}", response);
     if (response.empty()) {
@@ -405,14 +415,14 @@ void AgentWsClient::on_agent_llm_response(const std::string& response)
         return;
     }
     else {
-//        llm_ok_flag_ = true;
+        //        llm_ok_flag_ = true;
         tts_create(response);
     }
 }
 
 void AgentWsClient::tts_create(std::string response)
 {
-//    LOG_INFO("prolog llm response: {}", response);
+    //    LOG_INFO("prolog llm response: {}", response);
     Json::Value response_json;
     Json::CharReaderBuilder response_builder;
     std::unique_ptr<Json::CharReader> response_reader(response_builder.newCharReader());
@@ -438,14 +448,14 @@ void AgentWsClient::tts_create(std::string response)
     }
 }
 
-void AgentWsClient::start_timeout_check(std::chrono::steady_clock::time_point timeout_time,int llm_timeout_seconds)
+void AgentWsClient::start_timeout_check(std::chrono::steady_clock::time_point timeout_time, int llm_timeout_seconds)
 {
     m_llm_start_time = timeout_time;
     m_llm_timer_running = true;
 
     LOG_INFO("Starting new LLM timeout timer...");
 
-    m_llm_timer_thread = std::thread([self = shared_from_this(),llm_timeout_seconds]() {
+    m_llm_timer_thread = std::thread([self = shared_from_this(), llm_timeout_seconds]() {
         LOG_INFO("LLM timeout timer started ({}s)", llm_timeout_seconds);
 
         // 等待超时时间或被手动中止
@@ -461,7 +471,7 @@ void AgentWsClient::start_timeout_check(std::chrono::steady_clock::time_point ti
 
         // 超时触发
         LOG_WARN("LLM timeout ({}s) reached, executing hangup_call()", llm_timeout_seconds);
-        if(!self->m_is_hangup){
+        if (!self->m_is_hangup) {
             self->clear_llm_msg_list();
             self->hangup_call();
             self->m_is_hangup = false;
@@ -479,7 +489,8 @@ void AgentWsClient::end_timeout_check()
             if (m_llm_timer_thread.joinable()) {
                 m_llm_timer_thread.join();
             }
-        } catch (const std::system_error& e) {
+        }
+        catch (const std::system_error &e) {
             LOG_ERROR("Error joining LLM timer thread: {}", e.what());
         }
         LOG_INFO("LLM timeout timer stopped.");

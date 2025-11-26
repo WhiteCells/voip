@@ -90,7 +90,7 @@ private:
 
     void tts_create(std::string response);
 
-    void on_agent_llm_response(const std::string& response);
+    void on_agent_llm_response(const std::string &response);
 
     static void hangup_call()
     {
@@ -126,12 +126,15 @@ private:
     std::deque<std::string> m_send_queue;
     bool m_writing {false};
     bool m_llm_start {false};
-//    std::atomic<bool> llm_ok_flag_ {false};
+    //    std::atomic<bool> llm_ok_flag_ {false};
 
-    std::string text_buffer_;  // 累积文本
+    std::string text_buffer_;                              // 累积文本
     std::chrono::steady_clock::time_point last_text_time_; // 上一次收到文本时间
     std::mutex text_mutex_;
-    std::atomic<bool> timer_running_{false};
+    std::atomic<bool> timer_running_ {false};
+
+    bool m_vad_flag = false;
+    bool m_first_flag = true;
 };
 
 #endif // _AGENT_WS_CLIENT_H_
