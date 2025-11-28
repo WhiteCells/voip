@@ -79,7 +79,6 @@ std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
 
     // --- 构建 HTTP body ---
     Json::Value root;
-//    root["text"] = text;
     root["input"] = text;
     root["voice"] = g_tts_voice;
     root["response_format"] = "pcm";
