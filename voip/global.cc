@@ -61,6 +61,8 @@ int g_timeout_ms;
 
 float g_tts_speed;
 
+std::string g_tts_voice;
+
 void startEndpointLib(unsigned port)
 {
     endpoint.libCreate();

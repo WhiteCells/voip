@@ -84,6 +84,8 @@ extern int g_timeout_ms;
 
 extern float g_tts_speed;
 
+extern std::string g_tts_voice;
+
 // url
 #define URL_NOTIFY            "notify"            // 客户端通知
 #define URL_HEARTBEAT         "heartbeat"         // 客户端心跳

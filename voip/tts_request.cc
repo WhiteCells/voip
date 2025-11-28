@@ -81,7 +81,7 @@ std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
     Json::Value root;
 //    root["text"] = text;
     root["input"] = text;
-    root["voice"] = "speech:kefu001:fb7806eb";
+    root["voice"] = g_tts_voice;
     root["response_format"] = "pcm";
     root["sample_rate"] = 16000;
     root["speed"] = g_tts_speed;
