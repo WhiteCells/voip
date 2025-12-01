@@ -15,10 +15,6 @@
 #include "thread_pool.h"
 
 class AgentWsClient;
-/**
- * @brief 客户端 ID
- */
-extern std::string g_client_id;
 
 /**
  * @brief SIP 端点
@@ -150,13 +146,5 @@ extern OpusEncoder *encoder;
 extern OpusDecoder *decoder;
 
 extern std::atomic<bool> m_confirmed;
-
-#include "singleton.hpp"
-
-class Global : public Singleton<Global>
-{
-public:
-    // static
-};
 
 #endif // _GLOBAL_H_

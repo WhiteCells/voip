@@ -25,7 +25,6 @@ voip::Caller::~Caller()
 }
 
 void voip::Caller::group_call(const std::string &phone,
-                              const std::string &client_id,
                               const int dialplan_id,
                               std::shared_ptr<Coordinator> coordinator,
                               std::shared_ptr<IWSSender> sender,
@@ -37,7 +36,6 @@ void voip::Caller::group_call(const std::string &phone,
     m_sender = sender;
     m_dialplan_id = dialplan_id;
     m_phone = phone;
-    m_client_id = client_id;
     m_call_method = call_method;
     m_different = different;
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();
@@ -85,7 +83,6 @@ void voip::Caller::group_call(const std::string &phone,
 }
 
 void voip::Caller::single_call(const std::string &phone,
-                               const std::string &client_id,
                                const int dialplan_id,
                                std::shared_ptr<Coordinator> coordinator,
                                std::shared_ptr<IWSSender> sender,
@@ -97,7 +94,6 @@ void voip::Caller::single_call(const std::string &phone,
     m_sender = sender;
     m_dialplan_id = dialplan_id;
     m_phone = phone;
-    m_client_id = client_id;
     m_call_method = call_method;
     m_different = different;
     const std::string dst_uri = "sip:" + phone + "@" + acc_.getHost();

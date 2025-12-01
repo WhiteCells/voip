@@ -6,6 +6,7 @@
 #include "global.h"
 #include "web_ws_client.h"
 #include "ws_interface.h"
+#include "account.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <json/json.h>
@@ -118,6 +119,10 @@ private:
                 LOG_INFO("recv gui command: {}", root.toStyledString());
                 handleCommandMessage(root);
             }
+            else if (type == "sip_config") {
+                LOG_INFO("recv account info: {}", root.toStyledString());
+                handleAccountMessage(root);
+            }
         }
 
         do_read();
@@ -175,6 +180,31 @@ private:
         }
     }
 
+    void handleAccountMessage(const Json::Value &root)
+    {
+        if (!root.isMember("user") || !root["user"].isString()) {
+            LOG_ERROR("::user");
+            return;
+        }
+
+        if (!root.isMember("password") || !root["password"].isString()) {
+            LOG_ERROR("::password");
+            return;
+        }
+
+        if (!root.isMember("host") || !root["host"].isString()) {
+            LOG_ERROR("::host");
+            return;
+        }
+
+        m_account.reset();
+        std::string user = root["user"].asString();
+        std::string pass = root["password"].asString();
+        std::string host = root["host"].asString();
+        // m_account = std::make_unique<Account>();
+        m_account = std::make_unique<Account>(user, pass, host);
+    }
+
     void do_write()
     {
         m_stream.text(true);
@@ -196,6 +226,7 @@ private:
     http::request<http::string_body> m_req;
     std::queue<std::string> m_write_que;
     std::shared_ptr<WebWsClient> m_client;
+    std::unique_ptr<Account> m_account;
 };
 
 class GuiWsServer :

@@ -4,6 +4,7 @@
 #include "web_agent_bridge.h"
 #include "gui_ws_server.h"
 #include "tts_request.h"
+#include "env.h"
 #include <assert.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -22,6 +23,9 @@ int main()
 
     // config
     loadINICfg();
+
+    // env
+    Env::instance().load(".env");
 
     g_tts_thread_pool = std::make_unique<TTSThreadPool>(2);
 

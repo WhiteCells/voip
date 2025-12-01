@@ -87,7 +87,6 @@ private:
     beast::flat_buffer m_buffer;
     std::string m_host = backend_host;
     std::string m_port = backend_port;
-    std::string m_client_id = client_id;
     std::string m_target;
     std::function<void(const std::string &)> m_on_read_handler;
     std::atomic<bool> m_running {true};

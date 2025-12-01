@@ -300,18 +300,20 @@ void WebWsClient::start_call()
 void WebWsClient::single_call(std::shared_ptr<Coordinator> coordinator)
 {
     LOG_INFO("single call");
+    endpoint.libRegisterThread("Worker");
     auto caller = m_caller_que->getCaller();
     auto dialplan = m_dialplan_que->getDialPlan();
-    caller->single_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method, m_different);
+    caller->single_call(dialplan.second, dialplan.first, coordinator, m_server_sender, m_call_method, m_different);
     LOG_INFO("single call over");
 }
 
 void WebWsClient::group_call(std::size_t i, std::shared_ptr<Coordinator> coordinator)
 {
     LOG_INFO("group call index: {}", i);
+    endpoint.libRegisterThread("Worker");
     auto caller = m_caller_que->getCaller();
     auto dialplan = m_dialplan_que->getDialPlan();
-    caller->group_call(dialplan.second, g_client_id, dialplan.first, coordinator, m_server_sender, m_call_method, m_different);
+    caller->group_call(dialplan.second, dialplan.first, coordinator, m_server_sender, m_call_method, m_different);
     LOG_INFO("call {} over", dialplan.second);
 }
 

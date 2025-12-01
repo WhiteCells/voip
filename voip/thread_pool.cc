@@ -20,7 +20,7 @@ ThreadPool::ThreadPool(std::size_t size)
 
 void ThreadPool::worker()
 {
-    endpoint.libRegisterThread("Worker");
+    // endpoint.libRegisterThread("Worker");
     while (m_running) {
         Task task;
         {

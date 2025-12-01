@@ -37,7 +37,6 @@ public:
     // virtual void onStreamCreated(pj::OnStreamCreatedParam &prm) override;
 
     void group_call(const std::string &phone,
-                    const std::string &client_id,
                     const int dialplan_id,
                     std::shared_ptr<Coordinator> coordinator,
                     std::shared_ptr<IWSSender> sender,
@@ -45,7 +44,6 @@ public:
                     const std::string &different);
 
     void single_call(const std::string &phone,
-                     const std::string &client_id,
                      const int dialplan_id,
                      std::shared_ptr<Coordinator> coordinator,
                      std::shared_ptr<IWSSender> sender,
@@ -59,7 +57,6 @@ private:
     VAccount &acc_;
 
     std::string m_phone;
-    std::string m_client_id;
     std::shared_ptr<Coordinator> m_coordinator;
     std::shared_ptr<IWSSender> m_sender;
     std::string m_call_status;

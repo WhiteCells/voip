@@ -1,8 +1,6 @@
 #include "global.h"
 #include <thread>
 
-std::string g_client_id;
-
 pj::Endpoint endpoint;
 
 unsigned g_thread_num = std::thread::hardware_concurrency();
@@ -77,7 +75,7 @@ void startEndpointLib(unsigned port)
     ep_cfg.logConfig.level = 5;
 
     endpoint.libInit(ep_cfg);
-//    pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
+    //    pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
     auto &aud = endpoint.audDevManager();
     aud.setInputVolume(200);
     aud.setOutputVolume(200);
