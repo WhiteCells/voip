@@ -72,6 +72,7 @@ public:
                 break;
             }
             case PJSIP_INV_STATE_DISCONNECTED: {
+                m_confirmed = false;
                 g_agent_ws_client->end_config_send(); // 发送asr结束配置
                 g_agent_ws_client->clear_llm_msg_list();
                 g_agent_ws_client->m_is_hangup = true;
