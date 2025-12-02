@@ -16,6 +16,7 @@
 #include <pjsua2.hpp>
 #include <atomic>
 #include <memory>
+#include <fstream>
 
 class AgentRobotAudioMediaPort : public pj::AudioMediaPort
 {
@@ -52,6 +53,7 @@ private:
     std::vector<int16_t> tts_buf;
     std::size_t tts_pos;
     std::atomic<bool> m_end_flag;
+    std::ofstream m_audio_file;
 };
 
 #endif // _AGENT_ROBOT_AUDIOMEDIAPORT_H_

@@ -1,7 +1,9 @@
 #include "agent_robot_audiomediaport.h"
 #include "global.h"
 #include "logger.h"
+#include <chrono>
 #include <fstream>
+#include <filesystem>
 #include "agent_ws_client.h"
 #include "tts_request.h"
 
@@ -20,6 +22,13 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     fmt.avgBps = 32000;            //
     fmt.maxBps = 32000;            //
     pj::AudioMediaPort::createPort("port", fmt);
+    // audio file
+    std::filesystem::create_directories("pcm");
+    std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+    std::string aud_path = "pcm/client2agent_" + std::to_string(now.count()) + ".pcm";
+    LOG_INFO("aud file path: {}", aud_path);
+    m_audio_file = std::ofstream(aud_path,
+                                 std::ios::binary | std::ios::out | std::ios::trunc);
     LOG_INFO("<<< construct {}", __func__);
 }
 
@@ -34,7 +43,7 @@ AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 
 void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
-//    LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
+    //    LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
     const int sampleRate = 16000;
     const int duration_ms = 20;
     const int samplesPerFrame = sampleRate * duration_ms / 1000;    // 320
@@ -47,8 +56,8 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     if (TTSPlayer::getInstance()->isStopped()) {
         tts_buf.clear();
         tts_pos = 0;
-//        memset(frame.buf.data(), 0, frame.size);
-//        return;
+        //        memset(frame.buf.data(), 0, frame.size);
+        //        return;
     }
 
     // 如果当前缓存不够，尝试拉取新的 TTS 音频
@@ -100,14 +109,14 @@ void AgentRobotAudioMediaPort::startEndFlagMonitor(std::weak_ptr<AgentRobotAudio
                 break;
             }
             if (self->m_end_flag.load()) {
-//            if (TTSPlayer::endendend_flag.load()) {
+                //            if (TTSPlayer::endendend_flag.load()) {
                 LOG_INFO("[Monitor] m_end_flag detected, hanging up call...");
-//                std::this_thread::sleep_for(std::chrono::seconds(30));
+                //                std::this_thread::sleep_for(std::chrono::seconds(30));
                 self->m_end_flag.store(false);
-//                TTSPlayer::getInstance()->clear();
+                //                TTSPlayer::getInstance()->clear();
                 TTSPlayer::getInstance()->stop();
 
-                if(TTSPlayer::endendend_flag.load()){
+                if (TTSPlayer::endendend_flag.load()) {
                     endpoint.hangupAllCalls();
                     LOG_INFO("monitor hangup over");
                 }
@@ -138,14 +147,12 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         return;
     }
 
-    static std::ofstream send_audio("client2agent.pcm",
-                                    std::ios::binary | std::ios::out | std::ios::trunc);
-    if (!send_audio.is_open()) {
+    if (!m_audio_file.is_open()) {
         LOG_ERROR("Failed to open client2agent.pcm");
     }
 
     if (frame.size > 0) {
-        send_audio.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
+        m_audio_file.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
         if (g_agent_ws_client) {
             g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
         }
