@@ -82,11 +82,11 @@ public:
             // 构造 HTTP POST 请求
             std::string final_target = m_target + "/" + client_Id;
 
-            LOG_INFO("[LLMRequest] Sending request to {}:{} {} {} {} {}", m_host, m_port, final_target, call_method, call_method,call_type);
+            LOG_INFO("[RegisterRequest] Sending request to {}:{} {} {} {} {}", m_host, m_port, final_target, call_method, call_method,call_type);
 
             http::request<http::string_body> req {http::verb::post, final_target, 11};
             req.set(http::field::host, m_host);
-            req.set(http::field::user_agent, "Boost.Beast-LLMRequest");
+            req.set(http::field::user_agent, "Boost.Beast-RegisterRequest");
             req.set(http::field::content_type, "application/json; charset=utf-8");
             req.set(http::field::accept_charset, "utf-8");
             req.body() = body;
@@ -122,20 +122,20 @@ public:
                 return Json::writeString(writer, jsonResponse);
             }
             else {
-                LOG_INFO("[LLMRequest] JSON parse failed: {}", errs.c_str());
+                LOG_INFO("[RegisterRequest] JSON parse failed: {}", errs.c_str());
                 return res.body();
             }
         }
         catch (const beast::system_error &se) {
-            LOG_INFO("[LLMRequest] Beast system_error: {}", se.what());
+            LOG_INFO("[RegisterRequest] Beast system_error: {}", se.what());
             return "";
         }
         catch (const std::exception &e) {
-            LOG_INFO("[LLMRequest] Exception: {}", e.what());
+            LOG_INFO("[RegisterRequest] Exception: {}", e.what());
             return "";
         }
         catch (...) {
-            LOG_INFO("[LLMRequest] Unknown exception caught");
+            LOG_INFO("[RegisterRequest] Unknown exception caught");
             return "";
         }
     }
