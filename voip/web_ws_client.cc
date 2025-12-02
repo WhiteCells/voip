@@ -339,7 +339,8 @@ void WebWsClient::on_resolver(beast::error_code ec, tcp::resolver::results_type 
     if (ec) {
         LOG_ERROR("on_resolver error: {}", ec.message());
         Json::Value resp;
-        resp["backend_status"] = "error";
+        resp["status"] = "error";
+        resp["type"] = "backend_status";
 
         Json::StreamWriterBuilder builder;
         std::string resp_str = Json::writeString(builder, resp);
@@ -358,7 +359,8 @@ void WebWsClient::on_connect(beast::error_code ec, tcp::resolver::results_type::
     if (ec) {
         LOG_ERROR("on_connect error: {}", ec.message());
         Json::Value resp;
-        resp["backend_status"] = "error";
+        resp["status"] = "error";
+        resp["type"] = "backend_status";
 
         Json::StreamWriterBuilder builder;
         std::string resp_str = Json::writeString(builder, resp);
@@ -390,7 +392,8 @@ void WebWsClient::on_tls_handshake(beast::error_code ec)
     if (ec) {
         LOG_ERROR("on_tls_handshake error: {}", ec.message());
         Json::Value resp;
-        resp["backend_status"] = "error";
+        resp["status"] = "error";
+        resp["type"] = "backend_status";
 
         Json::StreamWriterBuilder builder;
         std::string resp_str = Json::writeString(builder, resp);
@@ -414,13 +417,15 @@ void WebWsClient::on_ws_handshake(beast::error_code ec)
     Json::StreamWriterBuilder builder;
     if (ec) {
         LOG_ERROR("on_ws_handshake error: {}", ec.message());
-        resp["backend_status"] = "error";
+        resp["status"] = "error";
+        resp["type"] = "backend_status";
         std::string resp_str = Json::writeString(builder, resp);
         m_server_sender->send(resp_str);
         return;
     }
     LOG_INFO("on_ws_handshake");
-    resp["backend_status"] = "connected";
+    resp["status"] = "connected";
+    resp["type"] = "backend_status";
     std::string resp_str = Json::writeString(builder, resp);
     m_server_sender->send(resp_str);
     do_read();
@@ -438,7 +443,8 @@ void WebWsClient::on_read(beast::error_code ec, std::size_t len)
     boost::ignore_unused(len);
     if (ec) {
         Json::Value resp;
-        resp["backend_status"] = "disconnected";
+        resp["status"] = "disconnected";
+        resp["type"] = "backend_status";
         Json::StreamWriterBuilder builder;
         std::string resp_str = Json::writeString(builder, resp);
         m_server_sender->send(resp_str);

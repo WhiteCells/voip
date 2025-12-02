@@ -61,6 +61,7 @@ void voip::Caller::group_call(const std::string &phone,
             status_msg["id"] = g_task_id;
             status_msg["phone"] = m_phone;
             status_msg["status"] = "DISCONNECTED";
+            status_msg["type"] = "call_status";
 
             Json::StreamWriterBuilder builder;
             builder["indentation"] = "";
@@ -114,6 +115,7 @@ void voip::Caller::single_call(const std::string &phone,
             status_msg["id"] = g_task_id;
             status_msg["phone"] = m_phone;
             status_msg["status"] = "DISCONNECTED";
+            status_msg["type"] = "call_status";
 
             Json::StreamWriterBuilder builder;
             builder["indentation"] = "";
@@ -157,6 +159,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "CONNECTING";
+                status_msg["type"] = "call_status";
 
                 Json::StreamWriterBuilder builder;
                 builder["indentation"] = "";
@@ -172,6 +175,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "NULL";
+                status_msg["type"] = "call_status";
 
                 Json::StreamWriterBuilder builder;
                 builder["indentation"] = "";
@@ -187,6 +191,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "CALLING";
+                status_msg["type"] = "call_status";
 
                 Json::StreamWriterBuilder builder;
                 builder["indentation"] = "";
@@ -211,6 +216,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 status_msg["id"] = g_task_id;
                 status_msg["phone"] = m_phone;
                 status_msg["status"] = "CONFIRMED";
+                status_msg["type"] = "call_status";
 
                 Json::StreamWriterBuilder builder;
                 builder["indentation"] = "";
@@ -270,6 +276,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
                 status_msg["id"] = g_task_id;
                 status_msg["phone"] = phone;
                 status_msg["status"] = "DISCONNECTED";
+                status_msg["type"] = "call_status";
 
                 Json::StreamWriterBuilder builder;
                 builder["indentation"] = "";

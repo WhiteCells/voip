@@ -37,6 +37,15 @@ public:
         answerCall();
     }
 
+    virtual void onRegState(pj::OnRegStateParam &prm) override {
+        LOG_INFO("reg state {}, {}, {}", (unsigned)prm.code, prm.reason, prm.expiration);
+        // callback
+        m_prm_code = std::to_string(prm.code);
+        
+        // 直接发送注册状态给GUI
+        sendRegistrationStatus(m_prm_code);
+    }
+
     void answerCall()
     {
         if (m_cur_caller) {
@@ -47,10 +56,29 @@ public:
         }
     }
 
+    // 获取注册状态码的方法
+    const std::string& getPrmCode() const {
+        return m_prm_code;
+    }
+    
+    // 设置发送注册状态的回调函数
+    void setRegistrationCallback(std::function<void(const std::string&)> callback) {
+        m_registration_callback = std::move(callback);
+    }
+
+    // 发送注册状态给GUI
+    void sendRegistrationStatus(const std::string& code) {
+        if (m_registration_callback) {
+            m_registration_callback(code);
+        }
+    }
+
 private:
     pj::AuthCredInfo m_auth_cred_info;
     pj::AccountConfig m_acc_cfg;
     std::unique_ptr<VCaller> m_cur_caller;
+    std::string m_prm_code;
+    std::function<void(const std::string&)> m_registration_callback;
 };
 
 #endif // _ACCOUNT_H_

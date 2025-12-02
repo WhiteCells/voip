@@ -9,9 +9,11 @@
 #include "account.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <json/json.h>
 #include <queue>
 #include <unordered_set>
+#include <functional>
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -171,6 +173,7 @@ private:
 
                 Json::Value response;
                 response["close_status"] = "success";
+                response["type"] = "close_status";
 
                 Json::StreamWriterBuilder writerBuilder;
                 std::string responseStr = Json::writeString(writerBuilder, response);
@@ -203,6 +206,27 @@ private:
         std::string host = root["host"].asString();
         // m_account = std::make_unique<Account>();
         m_account = std::make_unique<Account>(user, pass, host);
+        
+        // 设置注册状态回调函数
+        if (m_account) {
+            m_account->setRegistrationCallback([self = shared_from_this()](const std::string& code) {
+                self->sendRegistrationStatus(code);
+            });
+        }
+    }
+    
+    void sendRegistrationStatus(const std::string& code)
+    {
+        // 构建JSON响应
+        Json::Value response;
+        response["type"] = "registration_status";
+        response["code"] = code;
+        
+        Json::StreamWriterBuilder writerBuilder;
+        std::string responseStr = Json::writeString(writerBuilder, response);
+        
+        // 发送注册状态到前端
+        send(responseStr);
     }
 
     void do_write()
