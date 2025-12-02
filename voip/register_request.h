@@ -75,7 +75,7 @@ public:
             root["customer_info"] = customer_info;
             root["call_method"] = call_method;
             root["call_type"] = call_type;
-            //            root["session_id"] = session_id];
+
             Json::StreamWriterBuilder writer;
             std::string body = Json::writeString(writer, root);
 
