@@ -57,7 +57,7 @@ public:
                         if (response_json["data"].isMember("access_token"))
                         {
                             std::string access_token = response_json["data"]["access_token"].asString();
-                            g_agent_ws_client->get_session_id("incoming_agent", "265eb56c-3cbe-4ab8-9ae3-5de6739db7b9", access_token);
+                            g_agent_ws_client->get_session_id("incoming_agent", uuid, access_token);
                         }
                     }
                 }
