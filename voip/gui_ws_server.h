@@ -172,7 +172,7 @@ private:
                 endpoint.hangupAllCalls();
 
                 Json::Value response;
-                response["close_status"] = "success";
+                response["status"] = "success";
                 response["type"] = "close_status";
 
                 Json::StreamWriterBuilder writerBuilder;
