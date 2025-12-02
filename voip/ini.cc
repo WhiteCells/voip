@@ -13,13 +13,13 @@
 std::string trimSpace(const std::string &str)
 {
     std::size_t start = 0, end = str.size() - 1;
-    while (start < str.size() && std::isspace(str[start])) {
+    while (start < str.size() && std::isspace((unsigned char)str[start])) {
         ++start;
     }
     if (start == str.size()) {
         return "";
     }
-    while (end > start && std::isspace(str[end])) {
+    while (end > start && std::isspace((unsigned char)str[end])) {
         --end;
     }
     return str.substr(start, end - start + 1);
