@@ -354,6 +354,7 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
             }
             else {
                 m_vad_flag = true;
+                TTSPlayer::getInstance()->clear();
             }
         }
     }
