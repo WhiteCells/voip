@@ -11,7 +11,7 @@
 #include "global.h"
 #include "agent_ws_client.h"
 #include "register_request.h"
-
+#include "tts_request.h"
 
 class VCaller : public pj::Call
 {
@@ -57,25 +57,34 @@ public:
                         if (response_json["data"].isMember("access_token"))
                         {
                             std::string access_token = response_json["data"]["access_token"].asString();
-                            g_agent_ws_client->get_session_id("incoming_agent", uuid, access_token);
+                            g_agent_ws_client->get_session_id("incoming_agent", "265eb56c-3cbe-4ab8-9ae3-5de6739db7b9", access_token);
                         }
                     }
                 }
                 break;
             }
             case PJSIP_INV_STATE_CONFIRMED: {
+                TTSPlayer::getInstance()->resume();
+                TTSPlayer::endendend_flag.store(false);
+
                 m_confirmed = true;
-                g_agent_ws_client->start_config_send(); //   发送asr启动配置
-                g_agent_ws_client->m_is_hangup = false;
+                if (g_agent_ws_client) {
+                    g_agent_ws_client->start_config_send(); //   发送asr启动配置
+                    g_agent_ws_client->m_is_hangup = false;
+                }
                 pj::OnCallMediaStateParam prm_{};
                 onCallMediaState(prm_);
                 break;
             }
             case PJSIP_INV_STATE_DISCONNECTED: {
                 m_confirmed = false;
-                g_agent_ws_client->end_config_send(); // 发送asr结束配置
-                g_agent_ws_client->clear_llm_msg_list();
-                g_agent_ws_client->m_is_hangup = true;
+                if (g_agent_ws_client) {
+                    g_agent_ws_client->end_config_send(); // 发送asr结束配置
+                    g_agent_ws_client->clear_llm_msg_list();
+                    g_agent_ws_client->m_is_hangup = true;
+                }
+
+                TTSPlayer::endendend_flag.store(false);
                 break;
             }
             default: {

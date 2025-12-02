@@ -471,7 +471,7 @@ void AgentWsClient::start_timeout_check(std::chrono::steady_clock::time_point ti
         }
 
         // 超时触发
-        LOG_WARN("LLM timeout ({}s) reached, executing hangup_call()", llm_timeout_seconds);
+        LOG_WARN("LLM timeout ({}s) reached", llm_timeout_seconds);
         if (!self->m_is_hangup) {
             self->clear_llm_msg_list();
             self->hangup_call();

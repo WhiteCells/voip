@@ -235,7 +235,6 @@ void WebWsClient::stop()
 void WebWsClient::start_call()
 {
     while (m_running) {
-        TTSPlayer::endendend_flag.store(false);
         m_worker_num = m_dialplan_que->size();
         // LOG_INFO("m_worker_num {}", m_worker_num);
         m_batch_remain = m_dialplan_que->size();

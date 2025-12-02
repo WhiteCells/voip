@@ -296,10 +296,12 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
 //    tts_ok_flag_.store(true);
 
     // 插入特殊标志
+    LOG_INFO("to insert end flag produce TTSPlay::endendend_flag: {}", TTSPlayer::endendend_flag.load());
     if (TTSPlayer::endendend_flag.load()) {
         std::lock_guard<std::mutex> lock(mtx_);
         std::vector<char> END_FLAG {'E', 'N', 'D'};
         if (!audio_queue_.empty()) {
+            LOG_INFO("insert END_FLAG");
             audio_queue_.push(END_FLAG);
         } else {
             LOG_ERROR("audio queue is empty");

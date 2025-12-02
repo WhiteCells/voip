@@ -4,12 +4,10 @@
 #include "vaccount.h"
 #include "request.hpp"
 #include "logger.h"
-#include "request.hpp"
 #include "global.h"
 #include "coordinator.h"
 #include "ws_interface.h"
 #include "agent_ws_client.h"
-#include "tts_request.h"
 #include <chrono>
 
 voip::Caller::Caller(voip::VAccount &acc, int call_id)
