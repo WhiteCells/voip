@@ -7,6 +7,7 @@
 #include <boost/asio/ssl/error.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ssl/verify_mode.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/core/stream_traits.hpp>
@@ -42,7 +43,7 @@ public:
             LOG_INFO("start llm requests");
 
             net::io_context ioc;
-            ssl::context ctx(ssl::context::sslv23_client);
+            ssl::context ctx(ssl::context::tls_client);
             ctx.set_verify_mode(ssl::verify_peer);
             ctx.load_verify_file(agent_session_verify_file);
 

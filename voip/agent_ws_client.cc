@@ -183,7 +183,7 @@ void AgentWsClient::do_write()
 
 void AgentWsClient::start_llm_style()
 {
-    if (m_call_method == "agent") {
+    if (m_call_method == "agent" || m_call_method == "incoming_agent") {
         m_llm_start = false;
         m_llm_start_time = std::chrono::steady_clock::now();
         end_timeout_check();

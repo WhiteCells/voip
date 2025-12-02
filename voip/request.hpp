@@ -111,7 +111,7 @@ inline Json::Value httpSSLRequest(const std::string &host,
     auto &ioc = IOContextPool::getInstance()->getIOContext();
 
     // ssl
-    ssl::context ctx(ssl::context::sslv23_client);
+    ssl::context ctx(ssl::context::tls_client);
     ctx.set_verify_mode(ssl::verify_peer);     // 启用证书验证
     ctx.load_verify_file(backend_verify_file); // CA
 
@@ -192,7 +192,7 @@ inline Json::Value httpSSLRequest2(const std::string &host,
     auto &ioc = IOContextPool::getInstance()->getIOContext();
 
     // ssl
-    ssl::context ctx(ssl::context::sslv23_client);
+    ssl::context ctx(ssl::context::tls_client);
     ctx.set_verify_mode(ssl::verify_peer);           // 启用证书验证
     ctx.load_verify_file(agent_session_verify_file); // CA
 
