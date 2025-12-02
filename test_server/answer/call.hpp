@@ -33,6 +33,8 @@ public:
                 getMedia(i) != nullptr) {
                 AudioMedia *aud_med = (AudioMedia *)getMedia(i);
                 AudDevManager &mgr = Endpoint::instance().audDevManager();
+                mgr.getPlaybackDevMedia().adjustRxLevel(2.0);
+                mgr.getCaptureDevMedia().adjustTxLevel(2.0);
                 aud_med->startTransmit(mgr.getPlaybackDevMedia());
                 mgr.getCaptureDevMedia().startTransmit(*aud_med);
             }

@@ -309,7 +309,7 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
                 if (m_call_method == "manual") {
                     manual_asr_with_llm(text);
                 }
-                else if (m_call_method == "agent") {
+                else if (m_call_method == "agent" || m_call_method == "incoming_agent") {
                     if (m_llm_start) {
                         start_llm_style();
                     }

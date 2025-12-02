@@ -34,7 +34,7 @@ AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 
 void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
 {
-    // LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
+//    LOG_INFO("{} frame size: {}", __FUNCTION__, frame.size);
     const int sampleRate = 16000;
     const int duration_ms = 20;
     const int samplesPerFrame = sampleRate * duration_ms / 1000;    // 320
