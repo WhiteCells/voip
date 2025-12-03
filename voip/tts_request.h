@@ -46,6 +46,8 @@ public:
     void produceTTSAsync(std::vector<std::string> texts, std::string session_id);
     bool getNextAudio(std::vector<char> &pcm);
 
+    bool empty();
+
     void clear();
 
     void stop();
@@ -59,7 +61,7 @@ public:
 
     static std::atomic<bool> endendend_flag;
 
-//    std::atomic<bool> tts_ok_flag_ {false};
+    //    std::atomic<bool> tts_ok_flag_ {false};
 
 private:
     static std::string host_, port_, target_;
@@ -68,7 +70,7 @@ private:
     std::atomic<bool> stop_flag_ = false;
     std::string m_session_id;
     static std::atomic<uint64_t> generation_; // task generation/version
-    std::mutex socket_mtx_; // protect active_socket_
+    std::mutex socket_mtx_;                   // protect active_socket_
     std::weak_ptr<boost::asio::ip::tcp::socket> active_socket_;
 };
 

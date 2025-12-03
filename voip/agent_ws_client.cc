@@ -303,48 +303,53 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
         std::string mode = root.get("mode", "").asString();
 
         if (mode == "2pass-offline") {
-            if (m_vad_flag) {
-                LOG_INFO("m_role: {}, mode:2pass-offline mode test: {}", m_role, text);
-                //            process_asr_with_llm(text);
-                if (m_call_method == "manual") {
-                    manual_asr_with_llm(text);
+            if (!TTSPlayer::getInstance()->empty()) {
+                LOG_WARN("drop asr text: {}", text);
+                do_read();
+                return;
+            }
+            // if (m_vad_flag) {
+            LOG_INFO("m_role: {}, mode:2pass-offline mode text: {}", m_role, text);
+            //            process_asr_with_llm(text);
+            if (m_call_method == "manual") {
+                manual_asr_with_llm(text);
+            }
+            else if (m_call_method == "agent" || m_call_method == "incoming_agent") {
+                if (m_llm_start) {
+                    start_llm_style();
                 }
-                else if (m_call_method == "agent" || m_call_method == "incoming_agent") {
-                    if (m_llm_start) {
-                        start_llm_style();
-                    }
-                    else {
-                        TTSPlayer::getInstance()->stop();
-                        if (!text.empty()) {
-                            {
-                                std::lock_guard<std::mutex> lock(text_mutex_);
-                                text_buffer_ += text; // 累积文本
-                                // if (llm_ok_flag_ && TTSPlayer::getInstance()->tts_ok_flag_.load()) {
-                                //     text_buffer_.clear();
-                                //     llm_ok_flag_ = false;
-                                //     TTSPlayer::getInstance()->tts_ok_flag_.store(false);
-                                // }
-                                // else {
-                                //     text_buffer_ += text;
-                                // }
-                                last_text_time_ = std::chrono::steady_clock::now();
-                            }
-                            // agent_asr_with_llm(text_buffer_);
+                else {
+                    // TTSPlayer::getInstance()->stop();
+                    if (!text.empty()) {
+                        {
+                            std::lock_guard<std::mutex> lock(text_mutex_);
+                            text_buffer_ += text; // 累积文本
+                            // if (llm_ok_flag_ && TTSPlayer::getInstance()->tts_ok_flag_.load()) {
+                            //     text_buffer_.clear();
+                            //     llm_ok_flag_ = false;
+                            //     TTSPlayer::getInstance()->tts_ok_flag_.store(false);
+                            // }
+                            // else {
+                            //     text_buffer_ += text;
+                            // }
+                            last_text_time_ = std::chrono::steady_clock::now();
+                        }
+                        // agent_asr_with_llm(text_buffer_);
 
-                            // 启动定时器线程，只启动一次
-                            if (!timer_running_) {
-                                timer_running_ = true;
-                                std::thread([this]() {
-                                    while (true) {
-                                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                                        process_buffer_if_timeout();
-                                    }
-                                }).detach();
-                            }
+                        // 启动定时器线程，只启动一次
+                        if (!timer_running_) {
+                            timer_running_ = true;
+                            std::thread([this]() {
+                                while (true) {
+                                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                                    process_buffer_if_timeout();
+                                }
+                            }).detach();
                         }
                     }
                 }
             }
+            // }
             m_vad_flag = false;
             m_first_flag = true;
         }
@@ -354,7 +359,7 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
             }
             else {
                 m_vad_flag = true;
-                TTSPlayer::getInstance()->clear();
+                // TTSPlayer::getInstance()->clear();
             }
         }
     }
@@ -370,9 +375,11 @@ void AgentWsClient::process_buffer_if_timeout()
     std::lock_guard<std::mutex> lock(text_mutex_);
     auto now = std::chrono::steady_clock::now();
     if (!text_buffer_.empty() && std::chrono::duration_cast<std::chrono::milliseconds>(now - last_text_time_).count() > g_timeout_ms) {
-        LOG_INFO("process_buffer_if_timeout: {}", text_buffer_);
-        agent_asr_with_llm(text_buffer_);
-        text_buffer_.clear();
+        if (TTSPlayer::getInstance()->empty()) {
+            LOG_INFO("process_buffer_if_timeout: {}", text_buffer_);
+            agent_asr_with_llm(text_buffer_);
+            text_buffer_.clear();
+        }
     }
 }
 

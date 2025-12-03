@@ -27,7 +27,7 @@ std::string TTSPlayer::host_, TTSPlayer::port_, TTSPlayer::target_;
 std::atomic<bool> TTSPlayer::endendend_flag {false};
 
 // initialize generation_
-std::atomic<uint64_t> TTSPlayer::generation_{0};
+std::atomic<uint64_t> TTSPlayer::generation_ {0};
 
 // --- 工具函数：读取PCM文件 ---
 static std::vector<char> read_pcm(const std::string &filename)
@@ -127,7 +127,8 @@ std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
 
     while (!parser.is_done()) {
         http::read(*sock, buffer, parser, ec);
-        if (ec == http::error::end_of_stream) break;
+        if (ec == http::error::end_of_stream)
+            break;
         if (ec) {
             LOG_ERROR("read chunk: {}", ec.message());
             break;
@@ -146,15 +147,14 @@ std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
     }
 
     if (ec || res.result() != http::status::ok) {
-    //        LOG_ERROR("request status error, result: {}, ec: {}", (unsigned)res.result(), ec.message());
+        //        LOG_ERROR("request status error, result: {}, ec: {}", (unsigned)res.result(), ec.message());
         std::string err_body(res.body().begin(), res.body().end());
-        LOG_ERROR("request status error, result: {}, body: {}",(unsigned)res.result(), err_body);
+        LOG_ERROR("request status error, result: {}, body: {}", (unsigned)res.result(), err_body);
         return {};
     }
 
     return pcm;
 }
-
 
 inline std::int64_t get_current_timestamp_seconds()
 {
@@ -181,7 +181,7 @@ void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string sess
         return;
     }
 
-//    resume();
+    //    resume();
 
     // --- NEW: bump generation and cancel previous active socket ---
     uint64_t my_gen = ++generation_;
@@ -189,7 +189,7 @@ void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string sess
         std::lock_guard<std::mutex> lock(socket_mtx_);
         if (auto s = active_socket_.lock()) {
             boost::system::error_code ec;
-//            s->cancel(ec);
+            //            s->cancel(ec);
             clear();
             LOG_INFO("[TTS] Canceled previous active TTS socket (ec: {})", ec.message());
         }
@@ -250,7 +250,7 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
             auto req_start_time = get_current_timestamp_milliseconds();
             // request
             std::string backup = text;
-            auto pcm = requestTTS(text,my_gen);
+            auto pcm = requestTTS(text, my_gen);
             // 如果在请求期间被取消，requestTTS 会返回空（或抛出），因此再次检查 generation
             if (my_gen != generation_) {
                 LOG_INFO("[TTS] produceTTS aborted after requestTTS (newer generation)");
@@ -293,7 +293,7 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
         }
     }
 
-//    tts_ok_flag_.store(true);
+    //    tts_ok_flag_.store(true);
 
     // 插入特殊标志
     LOG_INFO("to insert end flag produce TTSPlay::endendend_flag: {}", TTSPlayer::endendend_flag.load());
@@ -303,7 +303,8 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
         if (!audio_queue_.empty()) {
             LOG_INFO("insert END_FLAG");
             audio_queue_.push(END_FLAG);
-        } else {
+        }
+        else {
             LOG_ERROR("audio queue is empty");
         }
     }
@@ -323,6 +324,13 @@ bool TTSPlayer::getNextAudio(std::vector<char> &pcm)
     pcm = std::move(audio_queue_.front());
     audio_queue_.pop();
     return !pcm.empty();
+}
+
+bool TTSPlayer::empty()
+{
+    std::lock_guard<std::mutex> lock(mtx_);
+    LOG_INFO("TTSPlayer::empty");
+    return audio_queue_.empty();
 }
 
 void TTSPlayer::clear()
@@ -364,7 +372,7 @@ void TTSPlayer::stop()
         std::lock_guard<std::mutex> lock(socket_mtx_);
         if (auto s = active_socket_.lock()) {
             boost::system::error_code ec;
-//            s->cancel(ec);
+            //            s->cancel(ec);
             LOG_INFO("[TTS] stop(): canceled active socket (ec: {})", ec.message());
         }
     }
