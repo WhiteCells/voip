@@ -70,6 +70,11 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
                 m_end_flag = true;
                 pcm.clear();
             }
+            if(pcm == std::vector<char> {'T', 'A', 'I', 'L'}){
+                TTSPlayer::getInstance()->tts_flag_.store(false);
+                LOG_INFO("set tts_flag to false {}", TTSPlayer::getInstance()->tts_flag_.load());
+                pcm.clear();
+            }
             if (!pcm.empty()) {
                 size_t samples = pcm.size() / sizeof(int16_t);
                 tts_buf.resize(samples);
@@ -150,11 +155,12 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     if (!m_audio_file.is_open()) {
         LOG_ERROR("Failed to open client2agent.pcm");
     }
-
-    if (frame.size > 0) {
-        m_audio_file.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
-        if (g_agent_ws_client) {
-            g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
+    if (!TTSPlayer::getInstance()->tts_flag_.load()){
+        if (frame.size > 0) {
+            m_audio_file.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
+            if (g_agent_ws_client) {
+                g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
+            }
         }
     }
 }

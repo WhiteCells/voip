@@ -68,6 +68,8 @@ public:
                 TTSPlayer::endendend_flag.store(false);
 
                 m_confirmed = true;
+
+                TTSPlayer::getInstance()->tts_flag_.store(false);
                 if (g_agent_ws_client) {
                     g_agent_ws_client->start_config_send(); //   发送asr启动配置
                     g_agent_ws_client->m_is_hangup = false;
