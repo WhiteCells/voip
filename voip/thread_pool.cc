@@ -2,6 +2,7 @@
 #include "global.h"
 #include <iostream>
 #include <pjsua2.hpp>
+#include "logger.h"
 
 ThreadPool::~ThreadPool()
 {
@@ -113,6 +114,7 @@ void TTSThreadPool::worker()
             task();
         }
         catch (const std::exception& e) {
+            LOG_ERROR("TTSThreadPool Task Exception: {}", e.what());
         }
     }
 }

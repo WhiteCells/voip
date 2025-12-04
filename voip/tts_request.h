@@ -20,7 +20,7 @@ private:
     static std::shared_ptr<TTSPlayer> instance_;
 
 public:
-    std::vector<char> requestTTS(std::string text, uint64_t my_gen);
+    std::vector<char> requestTTS(std::string text);
 
     TTSPlayer() = default;
     ~TTSPlayer();
@@ -42,7 +42,7 @@ public:
         target_ = target;
     }
 
-    void produceTTS(std::vector<std::string> texts, std::string session_id, uint64_t gen);
+    void produceTTS(std::vector<std::string> texts, std::string session_id);
     void produceTTSAsync(std::vector<std::string> texts, std::string session_id);
     bool getNextAudio(std::vector<char> &pcm);
 

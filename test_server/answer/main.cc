@@ -36,10 +36,10 @@ int main()
         MyAccount *acc = new MyAccount();
 
         AccountConfig acfg;
-        acfg.idUri = "sip:1000@192.168.10.51";
+        acfg.idUri = "sip:1007@192.168.10.51";
         acfg.regConfig.registrarUri = "sip:192.168.10.51";
 
-        AuthCredInfo cred("digest", "*", "1000", 0, "1000");
+        AuthCredInfo cred("digest", "*", "1007", 0, "1007");
         acfg.sipConfig.authCreds.push_back(cred);
 
         acc->create(acfg);

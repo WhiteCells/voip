@@ -110,7 +110,10 @@ void AgentWsClient::start_config_send()
     send(config_str);
     LOG_INFO("success send asr start config");
 
-    if (m_call_method == "agent") {
+    m_vad_flag = false;
+    m_first_flag = true;
+
+    if (m_call_method == "agent" || m_call_method == "incoming_agent") {
         m_llm_start = true;
         m_llm_start_time = std::chrono::steady_clock::now();
         end_timeout_check();
@@ -189,7 +192,7 @@ void AgentWsClient::start_llm_style()
         end_timeout_check();
         start_timeout_check(m_llm_start_time, 60);
 
-        m_llm_client->asyncSend("请用开场话术开始对话", "agent", "mediator", m_session_id, m_access_token, [self = shared_from_this()](const std::string &response) {
+        m_llm_client->asyncSend("请用开场话术开始对话", m_call_method, "mediator", m_session_id, m_access_token, [self = shared_from_this()](const std::string &response) {
             self->tts_create(response);
         });
     }
@@ -303,53 +306,64 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
         std::string mode = root.get("mode", "").asString();
 
         if (mode == "2pass-offline") {
-            if (!TTSPlayer::getInstance()->empty()) {
-                LOG_WARN("drop asr text: {}", text);
-                do_read();
-                return;
-            }
-            // if (m_vad_flag) {
             LOG_INFO("m_role: {}, mode:2pass-offline mode text: {}", m_role, text);
-            //            process_asr_with_llm(text);
-            if (m_call_method == "manual") {
-                manual_asr_with_llm(text);
-            }
-            else if (m_call_method == "agent" || m_call_method == "incoming_agent") {
-                if (m_llm_start) {
-                    start_llm_style();
+//            if (!TTSPlayer::getInstance()->empty()) {
+//                LOG_WARN("drop asr text: {}", text);
+//                do_read();
+//                return;
+//            }
+            if (m_vad_flag) {
+                LOG_INFO("m_role: {}, mode:2pass-offline mode text: {}", m_role, text);
+                //            process_asr_with_llm(text);
+                if (m_call_method == "manual") {
+                    manual_asr_with_llm(text);
                 }
-                else {
-                    // TTSPlayer::getInstance()->stop();
-                    if (!text.empty()) {
-                        {
-                            std::lock_guard<std::mutex> lock(text_mutex_);
-                            text_buffer_ += text; // 累积文本
-                            // if (llm_ok_flag_ && TTSPlayer::getInstance()->tts_ok_flag_.load()) {
-                            //     text_buffer_.clear();
-                            //     llm_ok_flag_ = false;
-                            //     TTSPlayer::getInstance()->tts_ok_flag_.store(false);
-                            // }
-                            // else {
-                            //     text_buffer_ += text;
-                            // }
-                            last_text_time_ = std::chrono::steady_clock::now();
+                else if (m_call_method == "agent" || m_call_method == "incoming_agent") {
+                    if (m_llm_start) {
+                        start_llm_style();
+                    }
+                    else {
+                        // TTSPlayer::getInstance()->stop();
+                        if(TTSPlayer::getInstance()->tts_flag_.load()){
+                            call_text_buffer_ += text;
+                            LOG_INFO("通话文本缓存: {}", call_text_buffer_);
                         }
-                        // agent_asr_with_llm(text_buffer_);
-
-                        // 启动定时器线程，只启动一次
-                        if (!timer_running_) {
-                            timer_running_ = true;
-                            std::thread([this]() {
-                                while (true) {
-                                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                                    process_buffer_if_timeout();
-                                }
-                            }).detach();
+                        else if (!text.empty()) {
+                            text_buffer_ = text;
+                            std::string combined_text = call_text_buffer_ + text_buffer_ ;
+                            LOG_INFO("process_buffer: {}", combined_text);
+                            agent_asr_with_llm(combined_text);
+                            text_buffer_.clear();
+                            call_text_buffer_.clear();
+//                            {
+//                                std::lock_guard<std::mutex> lock(text_mutex_);
+//                                text_buffer_ += text; // 累积文本
+//                                // if (llm_ok_flag_ && TTSPlayer::getInstance()->tts_ok_flag_.load()) {
+//                                //     text_buffer_.clear();
+//                                //     llm_ok_flag_ = false;
+//                                //     TTSPlayer::getInstance()->tts_ok_flag_.store(false);
+//                                // }
+//                                // else {
+//                                //     text_buffer_ += text;
+//                                // }
+//                                last_text_time_ = std::chrono::steady_clock::now();
+//                            }
+//                            // agent_asr_with_llm(text_buffer_);
+//
+//                            // 启动定时器线程，只启动一次
+//                            if (!timer_running_) {
+//                                timer_running_ = true;
+//                                std::thread([this]() {
+//                                    while (true) {
+//                                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//                                        process_buffer_if_timeout();
+//                                    }
+//                                }).detach();
+//                            }
                         }
                     }
                 }
             }
-            // }
             m_vad_flag = false;
             m_first_flag = true;
         }
@@ -359,6 +373,7 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
             }
             else {
                 m_vad_flag = true;
+                LOG_WARN("VAD 丢弃 mode:2pass-online mode text: {}", text);
                 // TTSPlayer::getInstance()->clear();
             }
         }
@@ -376,9 +391,11 @@ void AgentWsClient::process_buffer_if_timeout()
     auto now = std::chrono::steady_clock::now();
     if (!text_buffer_.empty() && std::chrono::duration_cast<std::chrono::milliseconds>(now - last_text_time_).count() > g_timeout_ms) {
         if (TTSPlayer::getInstance()->empty()) {
-            LOG_INFO("process_buffer_if_timeout: {}", text_buffer_);
-            agent_asr_with_llm(text_buffer_);
+            std::string combined_text = call_text_buffer_ + text_buffer_ ;
+            LOG_INFO("process_buffer: {}", combined_text);
+            agent_asr_with_llm(combined_text);
             text_buffer_.clear();
+            call_text_buffer_.clear();
         }
     }
 }
@@ -448,7 +465,7 @@ void AgentWsClient::tts_create(std::string response)
 
                 if (!m_llm_msg_list.empty()) {
                     TTSPlayer::getInstance()->resume();                                      // 恢复播放
-                    TTSPlayer::getInstance()->produceTTSAsync(m_llm_msg_list, m_session_id); // 将LLM的文本转换为TTS的音频
+                    TTSPlayer::getInstance()->produceTTS(m_llm_msg_list, m_session_id); // 将LLM的文本转换为TTS的音频
                     m_llm_msg_list.clear();
                 }
             }

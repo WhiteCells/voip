@@ -155,12 +155,12 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
     if (!m_audio_file.is_open()) {
         LOG_ERROR("Failed to open client2agent.pcm");
     }
-    if (!TTSPlayer::getInstance()->tts_flag_.load()){
-        if (frame.size > 0) {
-            m_audio_file.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
-            if (g_agent_ws_client) {
-                g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
-            }
+//    if (!TTSPlayer::getInstance()->tts_flag_.load()){
+    if (frame.size > 0) {
+        m_audio_file.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
+        if (g_agent_ws_client) {
+            g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
         }
     }
+//    }
 }

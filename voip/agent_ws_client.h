@@ -129,6 +129,7 @@ private:
     //    std::atomic<bool> llm_ok_flag_ {false};
 
     std::string text_buffer_;                              // 累积文本
+    std::string call_text_buffer_;
     std::chrono::steady_clock::time_point last_text_time_; // 上一次收到文本时间
     std::mutex text_mutex_;
     std::atomic<bool> timer_running_ {false};

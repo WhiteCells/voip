@@ -52,7 +52,7 @@ TTSPlayer::~TTSPlayer()
     stop();
 }
 
-std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
+std::vector<char> TTSPlayer::requestTTS(std::string text)
 {
     asio::io_context &ioc = IOContextPool::getInstance()->getIOContext();
 
@@ -141,10 +141,10 @@ std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
     }
 
     // generation 检查
-    if (my_gen != generation_) {
-        LOG_INFO("[TTS] dropped PCM (new generation)");
-        return {};
-    }
+//    if (my_gen != generation_) {
+//        LOG_INFO("[TTS] dropped PCM (new generation)");
+//        return {};
+//    }
 
     if (ec || res.result() != http::status::ok) {
         //        LOG_ERROR("request status error, result: {}, ec: {}", (unsigned)res.result(), ec.message());
@@ -174,43 +174,47 @@ static float count_pcm_time(std::size_t pcm_len, unsigned int sample_rate,
 }
 
 // produceTTSAsync: 最小化改动，++generation_, cancel old socket, 提交新任务并传 gen
-void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string session_id)
-{
-    tts_flag_ = true;
-
-    if (!g_tts_thread_pool) {
-        LOG_ERROR("TTS thread pool not initialized");
-        return;
-    }
-
-    //    resume();
-
-    // --- NEW: bump generation and cancel previous active socket ---
-    uint64_t my_gen = ++generation_;
-    {
-        std::lock_guard<std::mutex> lock(socket_mtx_);
-        if (auto s = active_socket_.lock()) {
-            boost::system::error_code ec;
-            //            s->cancel(ec);
-            clear();
-            LOG_INFO("[TTS] Canceled previous active TTS socket (ec: {})", ec.message());
-        }
-    }
-
-    g_tts_thread_pool->addTask([texts = std::move(texts), session_id, my_gen]() {
-        TTSPlayer::getInstance()->produceTTS(texts, session_id, my_gen);
-    });
-}
+//void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string session_id)
+//{
+//    tts_flag_.store( true);
+//    LOG_INFO("[TTS] produceTTSAsync tts_flag {}", tts_flag_.load());
+//
+//    if (!g_tts_thread_pool) {
+//        LOG_ERROR("TTS thread pool not initialized");
+//        return;
+//    }
+//    LOG_INFO("[TTS] Thread pool is valid, adding task...");
+//
+//    //    resume();
+//
+//    // --- NEW: bump generation and cancel previous active socket ---
+//    uint64_t my_gen = ++generation_;
+//    {
+//        std::lock_guard<std::mutex> lock(socket_mtx_);
+//        if (auto s = active_socket_.lock()) {
+//            boost::system::error_code ec;
+//            //            s->cancel(ec);
+//            clear();
+//            LOG_INFO("[TTS] Canceled previous active TTS socket (ec: {})", ec.message());
+//        }
+//    }
+//
+//    g_tts_thread_pool->addTask([texts = std::move(texts), session_id, my_gen]() {
+//        LOG_INFO("[TTS] Task started in thread pool, calling produceTTS...");
+//        TTSPlayer::getInstance()->produceTTS(texts, session_id, my_gen);
+//    });
+//}
 
 // --- 生产TTS音频 ---
-void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_id, uint64_t my_gen)
+void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_id)
 {
+    tts_flag_.store( true);
     m_session_id = session_id;
 
-    if (my_gen != generation_) {
-        LOG_INFO("[TTS] produceTTS aborted immediately (newer generation exists)");
-        return;
-    }
+//    if (my_gen != generation_) {
+//        LOG_INFO("[TTS] produceTTS aborted immediately (newer generation exists)");
+//        return;
+//    }
 
     std::uint64_t total_req_cast = 0;
     float total_play_cast = 0.0f;
@@ -235,10 +239,10 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
 
     for (const std::string &text : texts) {
         // 每次循环开始前检查 generation 和 stop_flag_
-        if (my_gen != generation_) {
-            LOG_INFO("[TTS] produceTTS aborted mid-way (newer generation)");
-            break;
-        }
+//        if (my_gen != generation_) {
+//            LOG_INFO("[TTS] produceTTS aborted mid-way (newer generation)");
+//            break;
+//        }
 
         if (stop_flag_) {
             LOG_INFO("[TTS] 停止TTS");
@@ -252,12 +256,12 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
             auto req_start_time = get_current_timestamp_milliseconds();
             // request
             std::string backup = text;
-            auto pcm = requestTTS(text, my_gen);
+            auto pcm = requestTTS(text);
             // 如果在请求期间被取消，requestTTS 会返回空（或抛出），因此再次检查 generation
-            if (my_gen != generation_) {
-                LOG_INFO("[TTS] produceTTS aborted after requestTTS (newer generation)");
-                break;
-            }
+//            if (my_gen != generation_) {
+//                LOG_INFO("[TTS] produceTTS aborted after requestTTS (newer generation)");
+//                break;
+//            }
 
             if (text != backup) {
                 LOG_ERROR("!!! text changed after requestTTS !!!");
