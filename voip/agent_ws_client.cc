@@ -465,7 +465,7 @@ void AgentWsClient::tts_create(std::string response)
 
                 if (!m_llm_msg_list.empty()) {
                     TTSPlayer::getInstance()->resume();                                      // 恢复播放
-                    TTSPlayer::getInstance()->produceTTS(m_llm_msg_list, m_session_id); // 将LLM的文本转换为TTS的音频
+                    TTSPlayer::getInstance()->produceTTSAsync(m_llm_msg_list, m_session_id); // 将LLM的文本转换为TTS的音频
                     m_llm_msg_list.clear();
                 }
             }
