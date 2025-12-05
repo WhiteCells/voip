@@ -54,6 +54,8 @@ public:
 
     void resume();
 
+    void reset();
+
     bool isStopped() const
     {
         return stop_flag_.load();
@@ -61,7 +63,6 @@ public:
 
     static std::atomic<bool> endendend_flag;
     std::atomic<bool> tts_flag_ = false;
-    //    std::atomic<bool> tts_ok_flag_ {false};
 
 private:
     static std::string host_, port_, target_;

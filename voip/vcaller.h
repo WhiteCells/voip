@@ -18,7 +18,7 @@ class VCaller : public pj::Call
 public:
     VCaller(pj::Account &acc, int call_id = PJSUA_INVALID_ID)
         : pj::Call(acc, call_id)
-        ,m_register_request(std::make_shared<RegisterRequest>("192.168.10.5", "8000", "/session/reg"))
+        , m_register_request(std::make_shared<RegisterRequest>("192.168.10.5", "8000", "/session/reg"))
     {
     }
     VCaller(const VCaller &) = delete;
@@ -52,10 +52,9 @@ public:
                 std::unique_ptr<Json::CharReader> response_reader(response_builder.newCharReader());
                 std::string response_errors;
 
-                if (response_reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &response_errors)){
+                if (response_reader->parse(response.c_str(), response.c_str() + response.size(), &response_json, &response_errors)) {
                     if (response_json.isMember("data") && response_json["data"].isObject()) {
-                        if (response_json["data"].isMember("access_token"))
-                        {
+                        if (response_json["data"].isMember("access_token")) {
                             std::string access_token = response_json["data"]["access_token"].asString();
                             g_agent_ws_client->get_session_id("incoming_agent", uuid, access_token);
                         }
@@ -64,6 +63,7 @@ public:
                 break;
             }
             case PJSIP_INV_STATE_CONFIRMED: {
+                TTSPlayer::getInstance()->reset();
                 TTSPlayer::getInstance()->resume();
                 TTSPlayer::endendend_flag.store(false);
 
@@ -74,7 +74,7 @@ public:
                     g_agent_ws_client->start_config_send(); //   发送asr启动配置
                     g_agent_ws_client->m_is_hangup = false;
                 }
-                pj::OnCallMediaStateParam prm_{};
+                pj::OnCallMediaStateParam prm_ {};
                 onCallMediaState(prm_);
                 break;
             }
@@ -108,9 +108,8 @@ public:
                 pj::AudDevManager &mgr = pj::Endpoint::instance().audDevManager();
                 mgr.getPlaybackDevMedia().adjustTxLevel(2.0);
                 mgr.getCaptureDevMedia().adjustTxLevel(2.0);
-//                aud_med->startTransm it(mgr.getPlaybackDevMedia());
-//                mgr.getCaptureDevMedia().startTransmit(*aud_med);
                 LOG_INFO("start transmit");
+                m_agent_robot_media_port.reset();
                 m_agent_robot_media_port = std::make_shared<AgentRobotAudioMediaPort>();
                 AgentRobotAudioMediaPort::startEndFlagMonitor(m_agent_robot_media_port);
                 aud_med->startTransmit(*m_agent_robot_media_port);
@@ -124,7 +123,6 @@ public:
         static boost::uuids::random_generator_mt19937 gen;
         return boost::uuids::to_string(gen());
     }
-
 
 private:
     std::shared_ptr<AgentRobotAudioMediaPort> m_agent_robot_media_port;

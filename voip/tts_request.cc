@@ -52,7 +52,7 @@ TTSPlayer::~TTSPlayer()
     stop();
 }
 
-std::vector<char> TTSPlayer::requestTTS(std::string text,uint64_t my_gen)
+std::vector<char> TTSPlayer::requestTTS(std::string text, uint64_t my_gen)
 {
     asio::io_context &ioc = IOContextPool::getInstance()->getIOContext();
 
@@ -176,7 +176,7 @@ static float count_pcm_time(std::size_t pcm_len, unsigned int sample_rate,
 // produceTTSAsync: 最小化改动，++generation_, cancel old socket, 提交新任务并传 gen
 void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string session_id)
 {
-    tts_flag_.store( true);
+    tts_flag_.store(true);
     LOG_INFO("[TTS] produceTTSAsync tts_flag {}", tts_flag_.load());
 
     if (!g_tts_thread_pool) {
@@ -208,7 +208,7 @@ void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string sess
 // --- 生产TTS音频 ---
 void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_id, uint64_t my_gen)
 {
-    tts_flag_.store( true);
+    tts_flag_.store(true);
     m_session_id = session_id;
 
     if (my_gen != generation_) {
@@ -256,7 +256,7 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
             auto req_start_time = get_current_timestamp_milliseconds();
             // request
             std::string backup = text;
-            auto pcm = requestTTS(text,my_gen);
+            auto pcm = requestTTS(text, my_gen);
             // 如果在请求期间被取消，requestTTS 会返回空（或抛出），因此再次检查 generation
             if (my_gen != generation_) {
                 LOG_INFO("[TTS] produceTTS aborted after requestTTS (newer generation)");
@@ -339,7 +339,7 @@ bool TTSPlayer::getNextAudio(std::vector<char> &pcm)
 bool TTSPlayer::empty()
 {
     std::lock_guard<std::mutex> lock(mtx_);
-//    LOG_INFO("TTSPlayer::empty");
+    //    LOG_INFO("TTSPlayer::empty");
     return audio_queue_.empty();
 }
 
@@ -393,4 +393,20 @@ void TTSPlayer::resume()
 {
     stop_flag_ = false;
     LOG_INFO("[TTS] resume produce WAV and clear text_list");
+}
+
+void TTSPlayer::reset()
+{
+    stop_flag_.store(false);
+    endendend_flag.store(false);
+    tts_flag_.store(false);
+
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        while (!audio_queue_.empty()) {
+            audio_queue_.pop();
+        }
+    }
+
+    LOG_INFO("[TTS] reset all states");
 }

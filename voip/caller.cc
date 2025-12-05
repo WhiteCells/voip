@@ -223,6 +223,7 @@ void voip::Caller::onCallState(pj::OnCallStateParam &prm)
             }
 
             if (g_agent_ws_client && g_manual_ws_client) {
+                TTSPlayer::getInstance()->reset();
                 TTSPlayer::getInstance()->resume();
                 g_agent_ws_client->start_config_send(); //   发送asr启动配置
                 g_agent_ws_client->m_is_hangup = false;
@@ -329,6 +330,9 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
         cap_dev_med.adjustRxLevel(2.0);
         play_dev_med.adjustTxLevel(2.0);
 
+        TTSPlayer::getInstance()->resume();
+        TTSPlayer::endendend_flag.store(false);
+
         for (unsigned i = 0; i < ci.media.size(); ++i) {
             if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
                 LOG_INFO("used media index: {}", i);
@@ -336,6 +340,8 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
 
 #ifdef REMINDER
                 if (m_call_method == "manual") {
+                    m_agent_aud_media_port.reset();
+                    m_agent_cap_media_port.reset();
                     m_agent_aud_media_port = std::make_shared<AgentAudAudioMediaPort>();
                     m_agent_cap_media_port = std::make_shared<AgentCapAudioMediaPort>();
                     // interact with ai
@@ -346,12 +352,18 @@ void voip::Caller::onCallMediaState(pj::OnCallMediaStateParam &prm)
                     cap_dev_med.startTransmit(*aud_med);
                 }
                 else if (m_call_method == "agent") {
+                    m_agent_robot_media_port.reset();
                     m_agent_robot_media_port = std::make_shared<AgentRobotAudioMediaPort>();
                     AgentRobotAudioMediaPort::startEndFlagMonitor(m_agent_robot_media_port);
                     aud_med->startTransmit(*m_agent_robot_media_port);
                     m_agent_robot_media_port->startTransmit(*aud_med);
                 }
 #elif ROBOT
+                // 确保之前的媒体端口对象被重置
+                if (m_agent_robot_media_port) {
+                    m_agent_robot_media_port.reset();
+                }
+                m_agent_robot_media_port = std::make_shared<AgentRobotAudioMediaPort>();
                 aud_med->startTransmit(*m_agent_robot_media_port);
                 m_agent_robot_media_port->startTransmit(*aud_med);
 #endif
