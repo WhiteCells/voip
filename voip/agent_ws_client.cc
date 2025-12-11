@@ -23,7 +23,7 @@ static bool match_by_rules(const std::string &str, const std::filesystem::path &
 
         try {
             std::regex reg(pattern);
-            if (std::regex_match(str, reg)) {
+            if (std::regex_search(str, reg)) {
                 LOG_INFO("match by pattern: {}", pattern);
                 return true;
             }
@@ -369,36 +369,47 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
                         start_llm_style();
                     }
                     else {
-                        TTSPlayer::getInstance()->stop();
-                        if (!text.empty()) {
-                            {
-                                std::lock_guard<std::mutex> lock(text_mutex_);
-                                text_buffer_ += text; // 累积文本
-                                // if (llm_ok_flag_ && TTSPlayer::getInstance()->tts_ok_flag_.load()) {
-                                //     text_buffer_.clear();
-                                //     llm_ok_flag_ = false;
-                                //     TTSPlayer::getInstance()->tts_ok_flag_.store(false);
-                                // }
-                                // else {
-                                //     text_buffer_ += text;
-                                // }
-                                last_text_time_ = std::chrono::steady_clock::now();
+                        if (TTSPlayer::getInstance()->tts_flag_.load()) {
+                            call_text_buffer_ += text;
+                            LOG_INFO("通话文本缓存: {}", call_text_buffer_);
+                            if(regex_match_from_root(text)){
+                                TTSPlayer::getInstance()->stop();
+                                agent_asr_with_llm(call_text_buffer_);
+                                call_text_buffer_.clear();
                             }
-                            // agent_asr_with_llm(text_buffer_);
+                        }
+                        else if (!text.empty()) {
+                            text_buffer_ = text;
+                            std::string combined_text = call_text_buffer_ + text_buffer_;
+                            LOG_INFO("process_buffer: {}", combined_text);
+                            agent_asr_with_llm(combined_text);
+                            text_buffer_.clear();
+                            call_text_buffer_.clear();
 
-                            // 启动定时器线程，只启动一次
-                            if (!timer_running_) {
-                                timer_running_ = true;
-                                std::thread([this]() {
-                                    while (true) {
-                                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                                        process_buffer_if_timeout();
-                                    }
-                                }).detach();
-                            }
+//                            {
+//                                std::lock_guard<std::mutex> lock(text_mutex_);
+//                                text_buffer_ += text; // 累积文本
+//                                last_text_time_ = std::chrono::steady_clock::now();
+//                            }
+//                            // agent_asr_with_llm(text_buffer_);
+//
+//                            // 启动定时器线程，只启动一次
+//                            if (!timer_running_) {
+//                                timer_running_ = true;
+//                                std::thread([this]() {
+//                                    while (true) {
+//                                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//                                        process_buffer_if_timeout();
+//                                    }
+//                                }).detach();
+//                            }
                         }
                     }
                 }
+            }
+
+            else{
+                LOG_INFO("VAD丢弃文本: {}", text);
             }
             m_vad_flag = false;
             m_first_flag = true;
@@ -409,7 +420,7 @@ void AgentWsClient::on_read(beast::error_code ec, std::size_t bytes_transferred)
             }
             else {
                 m_vad_flag = true;
-                TTSPlayer::getInstance()->clear();
+//                TTSPlayer::getInstance()->clear();
             }
         }
     }

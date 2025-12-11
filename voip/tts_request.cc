@@ -176,6 +176,9 @@ static float count_pcm_time(std::size_t pcm_len, unsigned int sample_rate,
 // produceTTSAsync: 最小化改动，++generation_, cancel old socket, 提交新任务并传 gen
 void TTSPlayer::produceTTSAsync(std::vector<std::string> texts, std::string session_id)
 {
+    tts_flag_.store(true);
+    LOG_INFO("[TTS] produceTTSAsync tts_flag {}", tts_flag_.load());
+
     if (!g_tts_thread_pool) {
         LOG_ERROR("TTS thread pool not initialized");
         return;
@@ -293,6 +296,11 @@ void TTSPlayer::produceTTS(std::vector<std::string> texts, std::string session_i
         }
     }
 
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        audio_queue_.push({'T', 'A', 'I', 'L'});
+    }
+
 //    tts_ok_flag_.store(true);
 
     // 插入特殊标志
@@ -337,6 +345,7 @@ void TTSPlayer::clear()
 // --- 停止TTS ---
 void TTSPlayer::stop()
 {
+    tts_flag_.store(true);
     stop_flag_ = true;
     // optional: bump generation_ to invalidate running tasks immediately
     ++generation_;

@@ -58,6 +58,7 @@ public:
     }
 
     static std::atomic<bool> endendend_flag;
+    std::atomic<bool> tts_flag_ = false;
 
 //    std::atomic<bool> tts_ok_flag_ {false};
 
