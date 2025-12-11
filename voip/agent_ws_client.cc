@@ -1,6 +1,61 @@
 #include "agent_ws_client.h"
 #include "io_context_pool.h"
 #include "tts_request.h"
+#include <regex>
+#include <fstream>
+#include <filesystem>
+
+static bool match_by_rules(const std::string &str, const std::filesystem::path &rules_file)
+{
+    std::ifstream ifs(rules_file);
+    if (!ifs.is_open()) {
+        LOG_ERROR("Failed to open rules file: {}", rules_file.string());
+        return false;
+    }
+
+    std::string pattern;
+    while (std::getline(ifs, pattern)) {
+        if (pattern.empty()) {
+            continue;
+        }
+
+        LOG_INFO("regex pattern: {}", pattern);
+
+        try {
+            std::regex reg(pattern);
+            if (std::regex_match(str, reg)) {
+                LOG_INFO("match by pattern: {}", pattern);
+                return true;
+            }
+        }
+        catch (...) {
+            LOG_ERROR("Invalid regex pattern: {}", pattern);
+            continue;
+        }
+    }
+
+    return false;
+}
+
+static bool regex_match_from_root(const std::string &str,
+                                  const std::filesystem::path &root_path = "./regex")
+{
+    if (!std::filesystem::exists(root_path) || !std::filesystem::is_directory(root_path)) {
+        return false;
+    }
+
+    for (const auto &entry : std::filesystem::directory_iterator(root_path)) {
+        const auto &path = entry.path();
+        if (path.extension() != ".regex") {
+            continue;
+        }
+        if (match_by_rules(str, path)) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 AgentWsClient::AgentWsClient(const std::string &host, const std::string &port)
     : m_host(host)
@@ -238,7 +293,7 @@ void AgentWsClient::on_connect(beast::error_code ec, tcp::resolver::results_type
     m_ws->set_option(websocket::stream_base::decorator([](websocket::request_type &req) {
         req.set(http::field::user_agent, "<ws>");
     }));
-    m_host += ":" + std::to_string(ep.port());
+    // m_host += ":" + std::to_string(ep.port());
     m_ws->next_layer().async_handshake(ssl::stream_base::client,
                                        beast::bind_front_handler(&AgentWsClient::on_tls_handshake,
                                                                  shared_from_this()));
@@ -254,7 +309,7 @@ void AgentWsClient::on_tls_handshake(beast::error_code ec)
     m_ws->set_option(websocket::stream_base::decorator([](websocket::request_type &req) {
         req.set(http::field::user_agent, "voip-client");
     }));
-    m_ws->async_handshake(m_host, m_target,
+    m_ws->async_handshake(m_host + m_port, m_target,
                           beast::bind_front_handler(&AgentWsClient::on_ws_handshake,
                                                     shared_from_this()));
 }
