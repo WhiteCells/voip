@@ -22,27 +22,41 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     fmt.avgBps = 32000;            //
     fmt.maxBps = 32000;            //
     pj::AudioMediaPort::createPort("port", fmt);
+
     // audio file
-    std::filesystem::create_directories("pcm");
-    std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
-    std::string aud_path = "pcm/client2agent_" + std::to_string(now.count()) + ".pcm";
+    std::filesystem::create_directories("record");
+
+    // customer audio file
+    auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+    std::string aud_path = "record/client2agent_" + std::to_string(now.count()) + ".pcm";
     LOG_INFO("aud file path: {}", aud_path);
-    m_audio_file = std::ofstream(aud_path,
-                                 std::ios::binary | std::ios::out | std::ios::trunc);
+    m_customer_audio_file = std::ofstream(aud_path,
+                                          std::ios::binary | std::ios::out | std::ios::trunc);
+
+    // mediator audio file
+    aud_path = "record/agent2client_" + std::to_string(now.count()) + ".pcm";
+    LOG_INFO("aud file path: {}", aud_path);
+    m_mediator_audio_file = std::ofstream(aud_path,
+                                          std::ios::binary | std::ios::out | std::ios::trunc);
+
     LOG_INFO("<<< construct {}", __func__);
 }
 
 AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 {
-    if (m_audio_file.is_open()) {
-        m_audio_file.close();
-        LOG_INFO("Audio file closed");
+    if (m_mediator_audio_file.is_open()) {
+        m_mediator_audio_file.close();
+        LOG_INFO("mediator audio file closed");
+    }
+    if (m_customer_audio_file.is_open()) {
+        m_customer_audio_file.close();
+        LOG_INFO("customer audio file closed");
     }
 
     LOG_INFO(">>> {}", __func__);
     tts_buf.clear();
     tts_pos = 0;
-    if(g_agent_ws_client) {
+    if (g_agent_ws_client) {
         g_agent_ws_client->clear_llm_msg_list();
     }
     LOG_INFO("<<< {}", __func__);
@@ -77,7 +91,7 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
                 m_end_flag = true;
                 pcm.clear();
             }
-            if(pcm == std::vector<char> {'T', 'A', 'I', 'L'}){
+            if (pcm == std::vector<char> {'T', 'A', 'I', 'L'}) {
                 TTSPlayer::getInstance()->tts_flag_.store(false);
                 LOG_INFO("set tts_flag to false {}", TTSPlayer::getInstance()->tts_flag_.load());
                 pcm.clear();
@@ -105,6 +119,10 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     if (copy_samples < samplesPerFrame) {
         memset(frame.buf.data() + copy_samples * sizeof(int16_t), 0,
                (samplesPerFrame - copy_samples) * sizeof(int16_t));
+    }
+
+    if (m_mediator_audio_file.is_open()) {
+        m_mediator_audio_file.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
     }
 }
 
@@ -159,19 +177,13 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
         return;
     }
 
-    if (!m_audio_file.is_open()) {
+    if (!m_customer_audio_file.is_open()) {
         LOG_ERROR("Failed to open client2agent.pcm");
-    }
-
-    static std::ofstream send_audio("agent_aud_recv.pcm",
-                                    std::ios::binary | std::ios::out | std::ios::trunc);
-    if (!send_audio.is_open()) {
-        LOG_ERROR("Failed to open agent_aud_recv.pcm");
     }
 
     //    if (!TTSPlayer::getInstance()->tts_flag_.load()){
     if (frame.size > 0) {
-        m_audio_file.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
+        m_customer_audio_file.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
         if (g_agent_ws_client) {
             g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
         }
