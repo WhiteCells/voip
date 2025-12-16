@@ -32,7 +32,11 @@ public:
         LOG_INFO("AccountCheck created");
     }
 
-    ~AccountCheck();
+    ~AccountCheck()
+    {
+        LOG_INFO("AccountCheck shutdown");
+        pj::Account::shutdown();
+    }
 
     virtual void onRegState(pj::OnRegStateParam &prm) override
     {
@@ -43,10 +47,10 @@ public:
                                                               prm.reason);
     }
 
-    std::string getId() const;
-    std::string getUser() const;
-    std::string getPass() const;
-    std::string getHost() const;
+    std::string getId() const { return m_id; }
+    std::string getUser() const { return m_user; }
+    std::string getPass() const { return m_pass; }
+    std::string getHost() const { return m_host; }
 
 private:
     std::string m_id;

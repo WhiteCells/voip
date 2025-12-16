@@ -28,7 +28,7 @@ public:
     bool shouldAbort(std::shared_ptr<OutcomingCall> winner) const;
     std::thread::id getThreadId() const;
 
-    void reset_();
+    void resume();
 
 private:
     mutable std::mutex m_mtx;

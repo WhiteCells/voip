@@ -2,6 +2,9 @@
 
 #include "../logger.h"
 #include "../coordinator.h"
+#include "../mediaport/agent_aud_audiomediaport.h"
+#include "../mediaport/agent_cap_audiomediaport.h"
+// #include "../mediaport/agent_robot_audiomediaport.h"
 #include "outcoming_acc.h"
 #include <pjsua2.hpp>
 #include <pjsua2/call.hpp>
@@ -49,6 +52,8 @@ public:
             }
             case PJSIP_INV_STATE_CONFIRMED: {
                 LOG_INFO("call {} state: {}", m_phone, ci.stateText);
+                // m_coordinator->notifyCallConfirmed(shared_from_this());
+
                 break;
             }
             case PJSIP_INV_STATE_DISCONNECTED: {
@@ -75,8 +80,6 @@ public:
         auto &aud_mgr = pj::Endpoint::instance().audDevManager();
         auto cap_dev_med = aud_mgr.getCaptureDevMedia();
         auto play_dev_med = aud_mgr.getPlaybackDevMedia();
-        cap_dev_med.adjustRxLevel(2.0);
-        play_dev_med.adjustRxLevel(2.0);
 
         for (unsigned i = 0; i < ci.media.size(); ++i) {
             if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
@@ -84,6 +87,14 @@ public:
 
                 if (m_call_method == "manual") {
                     // manual
+                    // m_agent_aud_med_port = std::make_shared<AgentAudAudioMediaPort>();
+                    // m_agent_cap_med_port = std::make_shared<AgentCapAudioMediaPort>();
+
+                    // aud_med->startTransmit(*m_agent_aud_med_port);
+                    // cap_dev_med.startTransmit(*m_agent_cap_med_port);
+
+                    aud_med->startTransmit(play_dev_med);
+                    cap_dev_med.startTransmit(*aud_med);
                 }
                 else if (m_call_method == "agent") {
                     // agent
@@ -122,6 +133,7 @@ public:
         }
         // 阻塞等待通话结束
         m_coordinator->waitForCallFinished();
+        LOG_INFO("call {} finished", m_phone);
     }
 
     void makeSingleCall(const std::string &phone,
@@ -163,4 +175,7 @@ private:
     std::string m_differentl;
     std::shared_ptr<Coordinator> m_coordinator;
     // mediaport
+    std::shared_ptr<AgentAudAudioMediaPort> m_agent_aud_med_port;
+    std::shared_ptr<AgentCapAudioMediaPort> m_agent_cap_med_port;
+    // std::shared_ptr<AgentRobotAudioMediaPort> m_agent_robot_aud_med_port;
 };

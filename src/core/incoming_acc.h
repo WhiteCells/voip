@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../logger.h"
+#include "../event/event.h"
+#include "../event/msg.h"
 #include "incoming_call.h"
 #include <pjsua2.hpp>
 #include <string>
@@ -16,7 +18,7 @@ public:
         , m_host(host)
     {
         LOG_INFO("register IncomingAcc: {} {} {}", m_user, m_pass, m_host);
-        pj::Endpoint::instance().libRegisterThread("incoming_acc");
+        pj::Endpoint::instance().libRegisterThread("incoming_acc_create");
         auto auth_cred_info = pj::AuthCredInfo("digest", "*", m_user, 0, m_pass);
         pj::AccountConfig acc_cfg;
         acc_cfg.idUri = "sip:" + user + "@" + host;
@@ -45,6 +47,7 @@ public:
     {
         LOG_INFO("user {}, reg state {}, {}, {}", m_user, (unsigned)prm.code, prm.reason, prm.expiration);
         // todo 通知 UI 登陆状态
+        EventBus::getInstance()->publish(IncomingAccRegStateMsg(prm.code));
     }
 
     void answer()

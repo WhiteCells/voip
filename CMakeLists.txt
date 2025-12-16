@@ -10,13 +10,15 @@ add_subdirectory(3rd/spdlog spdlog)
 add_subdirectory(3rd/jsoncpp jsoncpp)
 
 set(SRC
-    src/singleton.hpp
-    src/logger.cc
+    src/mediaport/agent_aud_audiomediaport.cc
+    src/mediaport/agent_cap_audiomediaport.cc
+    src/mediaport/agent_robot_audiomediaport.cc
+    src/coordinator.cc
     src/io_context_pool.cc
-    src/server/gui_ws_server.cc
-    src/server/ws_session.cc
-    src/thread_pool.cc
+    src/logger.cc
     src/main.cc
+    src/singleton.hpp
+    src/thread_pool.cc
 )
 
 add_executable(${PROJECT_NAME} ${SRC})

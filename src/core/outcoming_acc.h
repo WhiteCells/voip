@@ -19,6 +19,7 @@ public:
         , m_host(host)
     {
         LOG_INFO("register OutcomingAcc: {} {} {} {}", m_id, m_user, m_pass, m_host);
+        pj::Endpoint::instance().libRegisterThread("outcoming_acc_create");
         pj::AuthCredInfo auth_cred_info = pj::AuthCredInfo("digest", "*", user, 0, pass);
         pj::AccountConfig acc_cfg;
         acc_cfg.idUri = "sip:" + user + "@" + host;

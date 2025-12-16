@@ -2,15 +2,15 @@
 
 #include "../logger.h"
 #include "../client/web_ws_client.h"
-// #include "../vaccount.h"
+#include "../io_context_pool.h"
+#include "../core/sip_core.h"
+#include "../event/event.h"
+#include "../event/msg.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/steady_timer.hpp>
 #include <json/json.h>
 #include <pjsua2.hpp>
 #include <queue>
-#include <unordered_set>
-#include <functional>
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -25,7 +25,20 @@ public:
     explicit WebSocketSession(tcp::socket &&socket)
         : m_stream(std::move(socket))
     {
+        EventBus::getInstance()->subscribe<IncomingAccRegStateMsg>([this](const IncomingAccRegStateMsg &msg) {
+            Json::Value resp;
+            resp["type"] = "registration_status";
+            resp["code"] = std::to_string(msg.m_code);
+            LOG_INFO("registration_status: {}", resp.toStyledString());
+            this->send(resp.toStyledString());
+        });
+
+        EventBus::getInstance()->subscribe<WebConnStateMsg>([this](const WebConnStateMsg &msg) {
+            LOG_INFO("backend_status: {}", msg.m_state);
+            this->send(msg.m_state);
+        });
     }
+
     ~WebSocketSession() = default;
 
     void run()
@@ -129,12 +142,14 @@ private:
     void handleConfigMessage(const Json::Value &root)
     {
         try {
-            m_client.reset();
             auto host = root["host"].asString();
             auto port = root["port"].asString();
             auto route = root["route"].asString();
             auto client_id = root["client_id"].asString();
-            m_client->start(host, port, route + "/" + client_id);
+            auto &ioc = IOContextPool::getInstance()->getIOContext();
+            m_client.reset();
+            m_client = std::make_shared<WebWsClient>(ioc, host, port, route + "/" + client_id, "crt/backend-server.crt"); // todo
+            m_client->start();
         }
         catch (const std::exception &e) {
             LOG_ERROR("handleConfigMessage: {}", e.what());
@@ -148,18 +163,15 @@ private:
             std::string action = root["action"].asString();
 
             if (action == "hangup" || action == "close") {
+                // todo 通知 SIPCore 挂断电话
+                EventBus::getInstance()->publish(HangupEvent {});
+
                 // local_hangup = "mediator";
-                // 尝试执行挂断所有呼叫操作
-                pj::Endpoint::instance().hangupAllCalls();
 
-                Json::Value response;
-                response["status"] = "success";
-                response["type"] = "close_status";
-
-                Json::StreamWriterBuilder writerBuilder;
-                std::string responseStr = Json::writeString(writerBuilder, response);
-
-                send(responseStr);
+                Json::Value resp;
+                resp["status"] = "success";
+                resp["type"] = "close_status";
+                send(resp.toStyledString());
             }
         }
     }
@@ -180,6 +192,12 @@ private:
             LOG_ERROR("::host");
             return;
         }
+
+        // todo 通知 SIPCore 注册账号
+        auto user = root["user"].asString();
+        auto pass = root["password"].asString();
+        auto host = root["host"].asString();
+        SIPCore::getInstance()->registerAccount(user, pass, host);
 
         // m_account.reset();
         // std::string user = root["user"].asString();

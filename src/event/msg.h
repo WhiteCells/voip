@@ -8,8 +8,6 @@ struct Msg
     Msg()
     {
     }
-
-    virtual ~Msg() = 0;
 };
 
 // 接收到的 ASR 消息
@@ -63,8 +61,30 @@ struct AnswerEvent : public Msg
 // Outcoming 事件
 struct OutcomingEvent : public Msg
 {
-    explicit OutcomingEvent()
+    explicit OutcomingEvent(const std::string &msg)
+        : m_msg(msg)
     {
     }
     std::string m_msg;
+};
+
+// Incoming 分机号注册状态事件
+struct IncomingAccRegStateMsg : public Msg
+{
+    explicit IncomingAccRegStateMsg(int code)
+        : m_code(code)
+    {
+    }
+    int m_code;
+};
+
+// 后端连接状态事件
+struct WebConnStateMsg : public Msg
+{
+    explicit WebConnStateMsg(const std::string &state)
+        : m_state(state)
+    {
+    }
+    // int m_code;
+    std::string m_state;
 };

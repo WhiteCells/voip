@@ -1,13 +1,10 @@
 #pragma once
 
 #include "../logger.h"
-#include "../io_context_pool.h"
 #include "../client/web_ws_client.h"
 #include "ws_session.h"
-// #include "ws_interface.h"
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/steady_timer.hpp>
 #include <json/json.h>
 #include <unordered_set>
 #include <string>

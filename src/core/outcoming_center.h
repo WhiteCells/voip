@@ -5,6 +5,7 @@
 #include "../logger.h"
 #include "../singleton.hpp"
 #include "outcoming_acc.h"
+#include "outcoming_call.h"
 #include "outcoming_call_que.h"
 #include "check_acc_mgr.h"
 #include "check_acc.h"
@@ -30,7 +31,7 @@ public:
     {
         while (m_running) {
             std::size_t worker_num = m_dialplan_que->size(); // 需要的线程数
-            m_batch_remain = m_dialplan_que->size();         // 剩余的任务数
+            m_batch_remain = worker_num;                     // 剩余的任务数
             if (m_batch_remain == 0) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
@@ -56,18 +57,22 @@ public:
             }
             else if (m_call_type == "group") {
                 LOG_INFO("start group call");
-                m_thread_pool.addTask([this, coordinator]() {
-                    makeGroupCall(coordinator);
-                    {
-                        std::lock_guard<std::mutex> lock(m_batch_mutex);
-                        --m_batch_remain;
-                        if (m_batch_remain == 0) {
-                            m_batch_cv.notify_all();
+                for (std::size_t i = 0; i < worker_num; ++i) {
+                    m_thread_pool.addTask([this, i, coordinator]() {
+                        LOG_INFO("group call worker: {}", i);
+                        makeGroupCall(coordinator);
+                        {
+                            std::lock_guard<std::mutex> lock(m_batch_mutex);
+                            --m_batch_remain;
+                            if (m_batch_remain == 0) {
+                                m_batch_cv.notify_all();
+                            }
                         }
-                    }
-                });
+                    });
+                }
                 std::unique_lock<std::mutex> lock(m_batch_mutex);
                 m_batch_cv.wait(lock, [this]() {
+                    LOG_INFO("batch remain: {}", m_batch_remain);
                     return m_batch_remain == 0;
                 });
                 LOG_INFO("group call done");
@@ -97,7 +102,7 @@ public:
 
     void handleOutcomingEvent(const OutcomingEvent &event)
     {
-        LOG_INFO("OutcomingEvent: {}", event.m_msg);
+        // LOG_INFO("OutcomingEvent: {}", event.m_msg);
         Json::Value root;
         std::string errs;
         std::istringstream iss(event.m_msg);
@@ -127,13 +132,15 @@ public:
             const Json::Value accounts_array = root["accounts"];
             const std::string node = root["node"].asString();
             const std::string task_id = root["task_id"].asString();
-            const Json::Value dialplans_array = root["dialplan"];
+            const Json::Value dialplans_array = root["phones"];
             const std::string call_type = root["call_type"].asString();
             const std::string call_method = root["call_method"].asString();
             const std::string different = root["different"].asString();
             m_call_type = call_type;
             m_call_method = call_method;
             m_different = different;
+
+            // todo 通知 GuiServer 有呼叫任务
 
             if (call_type == "single") {
                 // 处理单呼
@@ -149,19 +156,25 @@ public:
             }
             else if (call_type == "group") {
                 // 处理群呼
+                LOG_INFO("dialplans_array size: {}", dialplans_array.size());
                 for (Json::ArrayIndex i = 0; i < dialplans_array.size(); ++i) {
                     const Json::Value &item = accounts_array[i];
                     const std::string id = item["id"].asString();
                     const std::string user = item["extUser"].asString();
                     const std::string pass = item["extPsd"].asString();
+                    LOG_INFO("id: {}, user: {}, pass: {}", id, user, pass);
                     auto acc = std::make_shared<OutcomingAcc>(id, user, pass, node);
                     m_accs.push_back(acc);
                     auto call = std::make_shared<OutcomingCall>(*acc);
                     m_call_que->addCaller(call);
                 }
                 for (const auto &item : dialplans_array) {
+                    LOG_INFO("dialplan: {}", item.asString());
                     m_dialplan_que->addDialPlan(item.asString());
                 }
+            }
+            else {
+                LOG_ERROR("error call_type: {}", call_type);
             }
         }
         else if (request_type == "auth") {
@@ -173,14 +186,19 @@ public:
             SessionCore::getInstance()->setAccessToken(access_token);
             SessionCore::getInstance()->setCallMethod(m_call_method);
         }
+        else {
+            LOG_ERROR("error request_type: {}", request_type);
+        }
     }
 
 private:
     OutcomingCenter()
-        : m_thread_pool(std::thread::hardware_concurrency())
+        : m_call_que(std::make_shared<OutcomingCallQue>())
+        , m_dialplan_que(std::make_shared<OutcomingDialPlanQue>())
+        , m_thread_pool(std::thread::hardware_concurrency())
     {
         EventBus::getInstance()->subscribe<OutcomingEvent>([this](const OutcomingEvent &event) {
-            LOG_INFO("OutcomingEvent: {}", event.m_msg);
+            // LOG_INFO("OutcomingEvent: {}", event.m_msg);
             this->handleOutcomingEvent(event);
         });
     }

@@ -22,17 +22,39 @@ public:
     {
     }
 
-    void addCaller(CallerSPtr caller);
-    CallerSPtr getCaller();
-    void releaseCaller(CallerSPtr vcall);
+    void addCaller(CallerSPtr caller)
+    {
+        std::lock_guard<std::mutex> lock(m_que_mtx);
+        m_que.push(caller);
+        m_que_cv.notify_one();
+    }
 
-    std::size_t size() const;
-    bool empty() const;
+    CallerSPtr getCaller()
+    {
+        std::unique_lock<std::mutex> lock(m_que_mtx);
+        m_que_cv.wait(lock, [this]() {
+            return !m_que.empty();
+        });
+        auto caller = m_que.front();
+        m_que.pop();
+        return caller;
+    }
+
+    std::size_t size() const
+    {
+        std::lock_guard<std::mutex> lock(m_que_mtx);
+        return m_que.size();
+    }
+
+    bool empty() const
+    {
+        std::lock_guard<std::mutex> lock(m_que_mtx);
+        return m_que.empty();
+    }
 
 private:
     std::queue<CallerSPtr> m_que;
     mutable std::mutex m_que_mtx;
     std::condition_variable m_que_cv;
     std::atomic_bool m_fetching;
-    // std::vector<std::shared_ptr<voip::VAccount>> m_acc;
 };

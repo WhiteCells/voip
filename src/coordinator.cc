@@ -104,7 +104,7 @@ std::thread::id Coordinator::getThreadId() const
     return std::this_thread::get_id();
 }
 
-void Coordinator::reset_()
+void Coordinator::resume()
 {
     std::unique_lock<std::mutex> lock(m_mtx);
     m_confirmed = false;

@@ -19,7 +19,7 @@ public:
     Env(const Env &) = delete;
     Env &operator=(const Env &) = delete;
 
-    bool load(const std::string &filename)
+    bool load(const std::string &filename = ".env")
     {
         std::ifstream file(filename);
         if (!file.is_open()) {

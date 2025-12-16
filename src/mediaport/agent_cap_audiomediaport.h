@@ -30,4 +30,9 @@ public:
      * @param frame       The frame.
      */
     virtual void onFrameReceived(pj::MediaFrame &frame) override;
+
+private:
+    // todo ASR WS Client
+    // todo LLM HTTP Client
+    // todo TTS WS Client
 };

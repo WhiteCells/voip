@@ -2,7 +2,7 @@
 
 #include <pjsua2.hpp>
 
-void startEndpoint(unsigned port = 5060)
+inline void startEndpoint(unsigned port = 5060)
 {
     static pj::Endpoint endpoint;
 
