@@ -1,7 +1,8 @@
 #pragma once
 
 #include "../logger.h"
-#include <pjsua2.hpp>
+#include <pjsua2/account.hpp>
+#include <pjsua2/endpoint.hpp>
 #include <memory>
 
 class OutcomingAcc :
@@ -40,7 +41,6 @@ public:
     virtual void onRegState(pj::OnRegStateParam &prm) override
     {
         LOG_INFO("code: {} reason: {}", static_cast<int>(prm.code), prm.reason);
-        // OutcomingAccMgr::getInstance()->onAccountRegState(shared_from_this(), prm.code, prm.reason);
     }
 
     std::string getId() const { return m_id; }

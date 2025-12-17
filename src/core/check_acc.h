@@ -2,7 +2,8 @@
 
 #include "../logger.h"
 #include "check_acc_mgr.h"
-#include <pjsua2.hpp>
+#include <pjsua2/account.hpp>
+#include <pjsua2/endpoint.hpp>
 #include <memory>
 #include <string>
 

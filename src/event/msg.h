@@ -50,14 +50,6 @@ struct HangupEvent : public Msg
     }
 };
 
-// 接听事件
-struct AnswerEvent : public Msg
-{
-    explicit AnswerEvent()
-    {
-    }
-};
-
 // Outcoming 事件
 struct OutcomingEvent : public Msg
 {
@@ -85,6 +77,25 @@ struct WebConnStateMsg : public Msg
         : m_state(state)
     {
     }
-    // int m_code;
+    std::string m_state;
+};
+
+// 外呼呼叫号码时间
+struct OutcomingDialPlanMsg
+{
+    explicit OutcomingDialPlanMsg(const std::string &dialplan)
+        : m_dialplan(dialplan)
+    {
+    }
+    std::string m_dialplan;
+};
+
+// 外呼呼叫状态事件
+struct OutcomingCallStateMsg
+{
+    explicit OutcomingCallStateMsg(const std::string &state)
+        : m_state(state)
+    {
+    }
     std::string m_state;
 };

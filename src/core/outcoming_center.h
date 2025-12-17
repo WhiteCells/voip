@@ -77,6 +77,10 @@ public:
                 });
                 LOG_INFO("group call done");
             }
+            // 释放分机号 m_accs
+            for (auto &acc : m_accs) {
+                acc.reset();
+            }
         }
     }
 
@@ -140,37 +144,38 @@ public:
             m_call_method = call_method;
             m_different = different;
 
-            // todo 通知 GuiServer 有呼叫任务
-
             if (call_type == "single") {
                 // 处理单呼
                 const std::string id = accounts_array[0]["id"].asString();
                 const std::string user = accounts_array[0]["extUser"].asString();
-                const std::string pass = accounts_array[0]["extPass"].asString();
+                const std::string pass = accounts_array[0]["extPsd"].asString();
                 const std::string dialplan = dialplans_array[0].asString();
+                LOG_INFO("to make OutcomingAcc id: {}, user: {}", id, user);
                 auto acc = std::make_shared<OutcomingAcc>(id, user, pass, node);
                 m_accs.push_back(acc);
                 auto call = std::make_shared<OutcomingCall>(*acc);
                 m_call_que->addCaller(call);
+                LOG_INFO("to push dialplan: {}", dialplan);
                 m_dialplan_que->addDialPlan(dialplan);
             }
             else if (call_type == "group") {
                 // 处理群呼
                 LOG_INFO("dialplans_array size: {}", dialplans_array.size());
-                for (Json::ArrayIndex i = 0; i < dialplans_array.size(); ++i) {
+                // 处理分机号与呼叫不匹配情况
+                auto max_call_cnt = std::min(accounts_array.size(), dialplans_array.size());
+                for (Json::ArrayIndex i = 0; i < max_call_cnt; ++i) {
                     const Json::Value &item = accounts_array[i];
                     const std::string id = item["id"].asString();
                     const std::string user = item["extUser"].asString();
                     const std::string pass = item["extPsd"].asString();
-                    LOG_INFO("id: {}, user: {}, pass: {}", id, user, pass);
+                    LOG_INFO("to make OutcomingAcc id: {}, user: {}", id, user);
                     auto acc = std::make_shared<OutcomingAcc>(id, user, pass, node);
                     m_accs.push_back(acc);
                     auto call = std::make_shared<OutcomingCall>(*acc);
                     m_call_que->addCaller(call);
-                }
-                for (const auto &item : dialplans_array) {
-                    LOG_INFO("dialplan: {}", item.asString());
-                    m_dialplan_que->addDialPlan(item.asString());
+                    auto dialplan = dialplans_array[i].asString();
+                    LOG_INFO("to push dialplan: {}", dialplan);
+                    m_dialplan_que->addDialPlan(dialplan);
                 }
             }
             else {

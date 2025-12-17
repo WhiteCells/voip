@@ -37,6 +37,11 @@ public:
             LOG_INFO("backend_status: {}", msg.m_state);
             this->send(msg.m_state);
         });
+
+        EventBus::getInstance()->subscribe<OutcomingCallStateMsg>([this](const OutcomingCallStateMsg &msg) {
+            LOG_INFO("OutcomingCallStateMsg: {}", msg.m_state);
+            this->send(msg.m_state);
+        });
     }
 
     ~WebSocketSession() = default;

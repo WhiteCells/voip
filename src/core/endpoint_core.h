@@ -1,6 +1,6 @@
 #pragma once
 
-#include <pjsua2.hpp>
+#include <pjsua2/endpoint.hpp>
 
 inline void startEndpoint(unsigned port = 5060)
 {
