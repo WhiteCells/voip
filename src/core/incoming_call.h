@@ -1,8 +1,12 @@
 #pragma once
 
 #include "../logger.h"
-#include <pjsua2.hpp>
+#include "../mediaport/agent_robot_audiomediaport.h"
+// #include "../core/sip_core.h"
+#include <pjsua2/account.hpp>
 #include <pjsua2/call.hpp>
+#include <pjsua2/media.hpp>
+#include <pjsua2/endpoint.hpp>
 
 class IncomingCall : public pj::Call
 {
@@ -37,9 +41,13 @@ public:
                 break;
             }
             case PJSIP_INV_STATE_CONFIRMED: {
+                // 更新 SipCore 呼叫状态
+                // SIPCore::getInstance()->setState(SIPCore::State::CALLING);
                 break;
             }
             case PJSIP_INV_STATE_DISCONNECTED: {
+                // 更新 SipCore 呼叫状态
+                // SIPCore::getInstance()->setState(SIPCore::State::IDLE);
                 break;
             }
             default: {
@@ -54,10 +62,15 @@ public:
         pj::CallInfo ci = pj::Call::getInfo();
         for (unsigned i = 0; i < ci.media.size(); i++) {
             if (ci.media[i].type == PJMEDIA_TYPE_AUDIO && pj::Call::getMedia(i) != nullptr) {
+                auto *aud_med = (pj::AudioMedia *)pj::Call::getMedia(i);
+                m_agent_robot_media_port = std::make_shared<AgentRobotAudioMediaPort>();
+                aud_med->startTransmit(*m_agent_robot_media_port);
+                m_agent_robot_media_port->startTransmit(*aud_med);
             }
         }
     }
 
 private:
     // mediaport
+    std::shared_ptr<AgentRobotAudioMediaPort> m_agent_robot_media_port;
 };
