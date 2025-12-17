@@ -88,7 +88,12 @@ private:
     {
         if (ec) {
             LOG_ERROR("onResolve error: {}", ec.message());
-            // todo 通知 GuiServer 连接失败
+            // 通知 GuiServer 连接失败
+            // todo 错误类型通知
+            Json::Value resp;
+            resp["type"] = "backend_status";
+            resp["status"] = "error";
+            EventBus::getInstance()->publish(WebConnStateMsg {resp.toStyledString()});
             return;
         }
         LOG_INFO("onResolve success, endpoint: {}:{}",
@@ -104,7 +109,11 @@ private:
     {
         if (ec) {
             LOG_ERROR("onConnect error: {}", ec.message());
-            // todo 通知 GuiServer 连接失败
+            // 通知 GuiServer 连接失败
+            Json::Value resp;
+            resp["type"] = "backend_status";
+            resp["status"] = "error";
+            EventBus::getInstance()->publish(WebConnStateMsg {resp.toStyledString()});
             return;
         }
         LOG_INFO("onConnect success, endpoint: {}:{}",
@@ -121,7 +130,11 @@ private:
     {
         if (ec) {
             LOG_ERROR("onTLSHandshake error: {}", ec.message());
-            // todo 通知 GuiServer 连接失败
+            // 通知 GuiServer 连接失败
+            Json::Value resp;
+            resp["type"] = "backend_status";
+            resp["status"] = "error";
+            EventBus::getInstance()->publish(WebConnStateMsg {resp.toStyledString()});
             return;
         }
         LOG_INFO("onTLSHandshake success");
@@ -134,7 +147,11 @@ private:
     {
         if (ec) {
             LOG_ERROR("onWsHandshake error: {}", ec.message());
-            // todo 通知 GuiServer 连接失败
+            // 通知 GuiServer 连接失败
+            Json::Value resp;
+            resp["type"] = "backend_status";
+            resp["status"] = "error";
+            EventBus::getInstance()->publish(WebConnStateMsg {resp.toStyledString()});
             return;
         }
         LOG_INFO("onWsHandshake success");
@@ -157,7 +174,11 @@ private:
     {
         if (ec) {
             LOG_ERROR("onRead error: {}", ec.message());
-            // todo 通知 GuiServer 连接失败
+            // 通知 GuiServer 连接失败
+            Json::Value resp;
+            resp["type"] = "backend_status";
+            resp["status"] = "error";
+            EventBus::getInstance()->publish(WebConnStateMsg {resp.toStyledString()});
             return;
         }
         std::string msg = beast::buffers_to_string(m_buffer.data());
