@@ -4,7 +4,9 @@
 #include "../event/event.h"
 #include "../event/msg.h"
 #include "incoming_call.h"
-#include <pjsua2.hpp>
+#include <pjsua2/call.hpp>
+#include <pjsua2/account.hpp>
+#include <pjsua2/endpoint.hpp>
 #include <string>
 
 class IncomingAcc : public pj::Account
@@ -39,23 +41,34 @@ public:
     virtual void onIncomingCall(pj::OnIncomingCallParam &prm) override
     {
         LOG_INFO("incoming call {}, {}, {}", prm.rdata.info, prm.rdata.wholeMsg, prm.rdata.srcAddress);
-        // m_incoming_call = std::make_shared<IncomingCall>(*this, prm.callId);
-        // todo 通知 SIPCore 接听电话
+        m_incoming_call.reset();
+        m_incoming_call = std::make_shared<IncomingCall>(*this, prm.callId);
+        // EventBus::getInstance()->publish(AnswerEvent {});
+        std::thread([this]() {
+            answer();
+        }).detach();
     }
 
     virtual void onRegState(pj::OnRegStateParam &prm) override
     {
         LOG_INFO("user {}, reg state {}, {}, {}", m_user, (unsigned)prm.code, prm.reason, prm.expiration);
-        // todo 通知 UI 登陆状态
+        // 通知 GuiWsServer 注册状态
         EventBus::getInstance()->publish(IncomingAccRegStateMsg(prm.code));
     }
 
     void answer()
     {
+        LOG_INFO("to answer call");
         if (m_incoming_call) {
+            pj::Endpoint::instance().libRegisterThread("incoming_acc_answer");
+            LOG_INFO("answer call");
             pj::CallOpParam prm;
             prm.statusCode = PJSIP_SC_OK;
             m_incoming_call->answer(prm);
+            if (prm.statusCode == PJSIP_SC_OK) {
+                // SIPCore::getInstance()->setState(SIPCore::State::CALLING);
+                // EventBus::getInstance()->publish();
+            }
             LOG_INFO("answer call code: {}", (unsigned)prm.statusCode);
         }
     }
