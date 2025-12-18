@@ -1,6 +1,9 @@
 #pragma once
 
 #include "../logger.h"
+#include "../core/session_core.h"
+#include "../event/event.h"
+#include "../event/msg.h"
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/beast.hpp>
@@ -37,10 +40,13 @@ public:
         , m_host(host)
         , m_port(port)
         , m_path(path)
+        , m_ssl_ctx(ssl::context::tls_client)
         , m_is_ssl(is_ssl)
         , m_ssl_cert(ssl_cert)
     {
         LOG_INFO(">>> construct {}", __func__);
+        m_ssl_ctx.set_verify_mode(ssl::verify_none); // todo
+        m_ssl_ctx.load_verify_file(m_ssl_cert);
         LOG_INFO("<<< construct {}", __func__);
     }
 
@@ -55,10 +61,7 @@ public:
         LOG_INFO("FunASR WebSocket Client Start");
         m_strand.emplace(m_ioc.get_executor());
         m_resolver = std::make_unique<tcp::resolver>(m_ioc);
-        ssl::context ssl_ctx(ssl::context::tls_client);
-        ssl_ctx.set_verify_mode(ssl::verify_none); // todo
-        ssl_ctx.load_verify_file(m_ssl_cert);
-        m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(*m_strand, ssl_ctx);
+        m_ws = std::make_unique<websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(*m_strand, m_ssl_ctx);
         m_resolver->async_resolve(m_host, m_port,
                                   beast::bind_front_handler(&ASRWsClient::onResolve, shared_from_this()));
     }
@@ -87,7 +90,7 @@ public:
             LOG_ERROR("FunASR WebSocket Client Send: WebSocket is not open");
             return;
         }
-        LOG_INFO("FunASR WebSocket Client Send: {}", msg);
+        // LOG_INFO("FunASR WebSocket Client Send: {}", msg);
         net::dispatch(*m_strand, [self = shared_from_this(), msg, is_binary]() {
             auto prefix = is_binary ? "B:" : "T:";
             self->m_send_queue.push_back(prefix + msg);
@@ -132,7 +135,7 @@ private:
             LOG_ERROR("FunASR WebSocket Client TLS Handshake: {}", ec.message());
             return;
         }
-        m_ws->async_handshake(m_host + m_port,
+        m_ws->async_handshake(m_host + ":" + m_port,
                               m_path,
                               beast::bind_front_handler(&ASRWsClient::onWsHandshake,
                                                         shared_from_this()));
@@ -144,7 +147,26 @@ private:
             LOG_ERROR("FunASR WebSocket Client WebSocket Handshake: {}", ec.message());
             return;
         }
+        sendStartConfig();
         doRead();
+    }
+
+    void sendStartConfig()
+    {
+        Json::Value config;
+        config["mode"] = "2pass";
+        config["wav_name"] = "record";
+        config["wav_format"] = "pcm";
+        config["audio_fs"] = 16000.0;
+        config["is_speaking"] = true;
+        config["itn"] = true;
+        config["svs_itn"] = true;
+        Json::Value chunk_size(Json::arrayValue);
+        chunk_size.append(0);
+        chunk_size.append(6);
+        chunk_size.append(3);
+        config["chunk_size"] = chunk_size;
+        send(config.toStyledString());
     }
 
     void doRead()
@@ -178,7 +200,40 @@ private:
         }
 
         std::string text = root["text"].asString();
-        LOG_INFO("FunASR WebSocket Client Read: {}", text);
+        std::string mode = root["mode"].asString();
+        LOG_INFO("FunASR WebSocket Client mode: {}, text: {}", mode, text);
+
+        if (mode == m_offline_mode) {
+            if (m_vad_flag) {
+                auto call_method = SessionCore::getInstance()->getCallMethod();
+                LOG_INFO("FunASR WebSocket Client Read: call_method: {}", call_method);
+                if (call_method == "manual") {
+                    // 通知 SessionHttpClient 话术提醒文本结果
+                    // EventBus::getInstance()->publish(ASRTextMsg {call_method, text});
+                }
+                else {
+                    // 通知 LLMHttpClient 智能客服文本结果
+                    LOG_INFO("FunASR WebSocket Client Read: VAD True, text: {}", text);
+                    EventBus::getInstance()->publish(ASRTextMsg {call_method, text});
+                }
+            }
+            else {
+                LOG_INFO("FunASR WebSocket Client Read: VAD False, text: {}", text);
+            }
+            m_vad_flag = false;
+            m_first_flag = true;
+        }
+        else if (mode == m_online_mode) {
+            if (m_first_flag) {
+                m_first_flag = false;
+            }
+            else {
+                m_vad_flag = true;
+            }
+        }
+        else {
+            LOG_ERROR("FunASR WebSocket Client Read: Unknown mode: {}", mode);
+        }
 
         doRead();
     }
@@ -210,7 +265,7 @@ private:
             LOG_ERROR("FunASR WebSocket Client Write: {}", ec.message());
             return;
         }
-        LOG_INFO("FunASR WebSocket Client Write: {} bytes", bytes_transferred);
+        // LOG_INFO("FunASR WebSocket Client Write: {} bytes", bytes_transferred);
         doWrite();
     }
 
@@ -222,16 +277,14 @@ private:
     std::deque<std::string> m_send_queue;
     beast::flat_buffer m_buffer;
     std::atomic<bool> m_writing {false};
-    // bool m_vad_flag {false};
-    // bool m_first_flag {true};
+    bool m_vad_flag {false};
+    bool m_first_flag {true};
     const std::string m_host;
     const std::string m_port;
     const std::string m_path;
+    ssl::context m_ssl_ctx;
     const bool m_is_ssl;
     const std::string m_ssl_cert;
-
-public:
-    static std::string s_call_method;
-    static std::string s_session_id;
-    static std::string s_access_token;
+    const std::string m_online_mode = "2pass-online";
+    const std::string m_offline_mode = "2pass-offline";
 };

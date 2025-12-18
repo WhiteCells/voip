@@ -1,6 +1,9 @@
 #pragma once
 
-#include <pjsua2.hpp>
+#include "../agent/asr_ws_client.h"
+#include "../agent/llm_http_client.h"
+#include "../agent/tts_http_client.h"
+#include <pjsua2/media.hpp>
 #include <atomic>
 #include <memory>
 #include <fstream>
@@ -37,9 +40,12 @@ public:
     virtual void onFrameReceived(pj::MediaFrame &frame) override;
 
 private:
-    std::vector<int16_t> tts_buf;
-    std::size_t tts_pos;
+    std::vector<int16_t> m_tts_buf;
+    std::size_t m_tts_pos;
     std::atomic<bool> m_end_flag;
     std::ofstream m_audio_file;
+    // agent
+    std::shared_ptr<ASRWsClient> m_asr_ws_client;
+    std::shared_ptr<LLMHttpClient> m_llm_http_client;
+    std::shared_ptr<TTSHttpClient> m_tts_http_client;
 };
-

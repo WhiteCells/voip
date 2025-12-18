@@ -33,6 +33,4 @@ public:
 
 private:
     // todo ASR WS Client
-    // todo LLM HTTP Client
-    // todo TTS WS Client
 };

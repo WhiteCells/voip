@@ -2,6 +2,7 @@
 
 #include <string>
 #include <chrono>
+#include <sys/types.h>
 
 struct Msg
 {
@@ -14,11 +15,12 @@ struct Msg
 // 用于通知 LLM 有新的 ASR 文本需要回复
 struct ASRTextMsg : public Msg
 {
-    explicit ASRTextMsg(const std::string &text)
-        : m_text(text)
+    ASRTextMsg(const std::string &call_method, const std::string &text)
+        : m_call_method(call_method), m_text(text)
     {
     }
 
+    std::string m_call_method;
     std::string m_text;
 };
 
@@ -34,12 +36,22 @@ struct ASRStopMsg : public Msg
 // 用于通知 TTS 有新的 LLM 文本的音频需要生成
 struct LLMTextMsg : public Msg
 {
-    explicit LLMTextMsg(const std::string &text)
-        : m_text(text)
+    LLMTextMsg(uint64_t request_id, const std::vector<std::string> &texts)
+        : m_request_id(request_id), m_texts(texts)
     {
     }
 
-    std::string m_text;
+    uint64_t m_request_id = 0;
+    std::vector<std::string> m_texts;
+};
+
+// LLM 打断消息
+// 用于通知 TTS 打断当前正在播放的音频
+struct LLMInterruptMsg : public Msg
+{
+    explicit LLMInterruptMsg()
+    {
+    }
 };
 
 // 挂断事件

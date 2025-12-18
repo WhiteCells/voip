@@ -62,6 +62,9 @@ public:
             case PJSIP_INV_STATE_CONFIRMED: {
                 LOG_INFO("call {} CONFIRMED state: {}", m_phone, ci.stateText);
                 m_coordinator->notifyCallConfirmed(shared_from_this());
+                SIPCore::getInstance()->setState(SIPCore::State::CALLING);
+                pj::OnCallMediaStateParam call_media_state_prm;
+                onCallMediaState(call_media_state_prm);
                 // 通知 GuiWsServer 已接通
                 Json::Value call_state;
                 call_state["id"] = "111"; // todo
@@ -71,7 +74,6 @@ public:
                 EventBus::getInstance()->publish(OutcomingCallStateMsg {call_state.toStyledString()});
                 // todo 通知 WebHttpClient 已接通
                 // 更新 SipCore 呼叫状态
-                SIPCore::getInstance()->setState(SIPCore::State::CALLING);
                 break;
             }
             case PJSIP_INV_STATE_DISCONNECTED: {
@@ -116,6 +118,8 @@ public:
             if (ci.media[i].type == PJMEDIA_TYPE_AUDIO) {
                 aud_med = (pj::AudioMedia *)pj::Call::getMedia(i);
 
+                LOG_INFO("to transmit media");
+
                 if (m_call_method == "manual") {
                     // manual
                     // m_agent_aud_med_port.reset();
@@ -131,10 +135,11 @@ public:
                 }
                 else if (m_call_method == "agent") {
                     // agent
-                    // m_agent_robot_aud_med_port.reset();
-                    // m_agent_robot_aud_med_port = std::make_shared<AgentRobotAudioMediaPort>();
-                    // aud_med->startTransmit(*m_agent_robot_aud_med_port);
-                    // m_agent_robot_aud_med_port->startTransmit(*aud_med);
+                    LOG_INFO("call {} agent", m_phone);
+                    m_agent_robot_aud_med_port.reset();
+                    m_agent_robot_aud_med_port = std::make_shared<AgentRobotAudioMediaPort>();
+                    aud_med->startTransmit(*m_agent_robot_aud_med_port);
+                    m_agent_robot_aud_med_port->startTransmit(*aud_med);
                 }
                 break;
             }

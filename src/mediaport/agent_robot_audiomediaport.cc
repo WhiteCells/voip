@@ -1,11 +1,14 @@
 #include "agent_robot_audiomediaport.h"
 #include "../logger.h"
+#include "../io_context_pool.h"
+#include "../event/event.h"
+#include "../event/msg.h"
 #include <chrono>
 #include <fstream>
 #include <filesystem>
 
 AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
-    : tts_pos(0)
+    : m_tts_pos(0)
     , m_end_flag(false)
 {
     LOG_INFO(">>> construct {}", __func__);
@@ -26,15 +29,32 @@ AgentRobotAudioMediaPort::AgentRobotAudioMediaPort()
     LOG_INFO("aud file path: {}", aud_path);
     m_audio_file = std::ofstream(aud_path,
                                  std::ios::binary | std::ios::out | std::ios::trunc);
+
+    // asr ws client
+    auto &ioc = IOContextPool::getInstance()->getIOContext();
+    m_asr_ws_client = std::make_shared<ASRWsClient>(ioc, "192.168.2.3", "51805", "/", true, "crt/asr-server.crt");
+    m_asr_ws_client->start();
+
+    // llm http client
+    auto &ioc2 = IOContextPool::getInstance()->getIOContext();
+    m_llm_http_client = std::make_shared<LLMHttpClient>(ioc2, "192.168.10.5", "8000", "/session/context", "crt/agent-session-server.crt");
+
+    // tts http client
+    auto &ioc3 = IOContextPool::getInstance()->getIOContext();
+    m_tts_http_client = std::make_shared<TTSHttpClient>(ioc3, "192.168.2.3", "51004", "/cosyvoice2/speech");
+
+    //
+    // EventBus::getInstance()->subscribe<LLMInterruptMsg>([this](const LLMInterruptMsg &msg) {
+    //     m_tts_buf.clear();
+    //     m_tts_pos = 0;
+    // });
+
     LOG_INFO("<<< construct {}", __func__);
 }
 
 AgentRobotAudioMediaPort::~AgentRobotAudioMediaPort()
 {
     LOG_INFO(">>> {}", __func__);
-    tts_buf.clear();
-    tts_pos = 0;
-    // g_agent_ws_client->clear_llm_msg_list();
     LOG_INFO("<<< {}", __func__);
 }
 
@@ -50,41 +70,34 @@ void AgentRobotAudioMediaPort::onFrameRequested(pj::MediaFrame &frame)
     frame.size = bytesPerFrame;
     frame.buf.resize(frame.size);
 
-    // if (TTSPlayer::getInstance()->isStopped()) {
-    //     tts_buf.clear();
-    //     tts_pos = 0;
-    //     //        memset(frame.buf.data(), 0, frame.size);
-    //     //        return;
-    // }
-
     // 如果当前缓存不够，尝试拉取新的 TTS 音频
-    if (tts_pos >= tts_buf.size()) {
-        std::vector<char> pcm;
-        // if (TTSPlayer::getInstance()->getNextAudio(pcm) && !pcm.empty()) {
-        //     LOG_INFO("pcm {}", std::string(pcm.data()));
-        //     if (pcm == std::vector<char> {'E', 'N', 'D'}) {
-        //         LOG_INFO("set m_end_flag to true");
-        //         m_end_flag = true;
-        //         pcm.clear();
-        //     }
-        //     if (!pcm.empty()) {
-        //         size_t samples = pcm.size() / sizeof(int16_t);
-        //         tts_buf.resize(samples);
-        //         memcpy(tts_buf.data(), pcm.data(), pcm.size());
-        //         tts_pos = 0;
-        //     }
-        // }
-        // else {
-        //     memset(frame.buf.data(), 0, frame.size);
-        //     return;
-        // }
+    if (m_tts_pos >= m_tts_buf.size()) {
+        std::vector<char> pcm = TTSHttpClient::m_pcm_que->try_pop();
+        if (!pcm.empty()) {
+            LOG_INFO("pcm {}", std::string(pcm.data()));
+            if (pcm == std::vector<char> {'E', 'N', 'D'}) {
+                LOG_INFO("set m_end_flag to true");
+                m_end_flag = true;
+                pcm.clear();
+            }
+            if (!pcm.empty()) {
+                size_t samples = pcm.size() / sizeof(int16_t);
+                m_tts_buf.resize(samples);
+                memcpy(m_tts_buf.data(), pcm.data(), pcm.size());
+                m_tts_pos = 0;
+            }
+        }
+        else {
+            memset(frame.buf.data(), 0, frame.size);
+            return;
+        }
     }
 
     // 从缓冲中取 20ms 数据
-    size_t remain = tts_buf.size() - tts_pos;
+    size_t remain = m_tts_buf.size() - m_tts_pos;
     size_t copy_samples = (std::min)((size_t)samplesPerFrame, remain);
-    memcpy(frame.buf.data(), tts_buf.data() + tts_pos, copy_samples * sizeof(int16_t));
-    tts_pos += copy_samples;
+    memcpy(frame.buf.data(), m_tts_buf.data() + m_tts_pos, copy_samples * sizeof(int16_t));
+    m_tts_pos += copy_samples;
 
     // 如果不满一帧，补零
     if (copy_samples < samplesPerFrame) {
@@ -150,8 +163,8 @@ void AgentRobotAudioMediaPort::onFrameReceived(pj::MediaFrame &frame)
 
     if (frame.size > 0) {
         m_audio_file.write(reinterpret_cast<char *>(frame.buf.data()), frame.size);
-        // if (g_agent_ws_client) {
-        //     g_agent_ws_client->sendBinary(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), "customer");
-        // }
+        if (m_asr_ws_client) {
+            m_asr_ws_client->send(std::string(reinterpret_cast<const char *>(frame.buf.data()), frame.size), true);
+        }
     }
 }
